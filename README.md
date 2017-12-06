@@ -15,8 +15,10 @@ package from [Flathub].
 
 ## Installation
 
-To install FreeFileSync through Flathub, you can use graphical software centers
-like GNOME Software. Visit [Flathub] and read the instructions.
+To install FreeFileSync through Flathub, visit
+[flathub.org/apps](https://flathub.org/apps.html) and click on FreeFileSync.
+It should open in a supported software center (like GNOME Software) with the
+option to install the app.
 
 Or you can use the command line:
 ```

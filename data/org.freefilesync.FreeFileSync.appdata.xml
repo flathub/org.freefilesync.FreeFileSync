@@ -16,19 +16,19 @@
   </description>
   <url type="homepage">https://www.freefilesync.org</url>
   <screenshots>
-    <screenshot type="default">
+    <screenshot type="default" priority="4">
       <caption>Manual synchronization of two folders</caption>
       <image>https://www.freefilesync.org/images/screenshots/openSUSE.png</image>
     </screenshot>
-    <screenshot>
+    <screenshot priority="3">
       <caption>Online storage support</caption>
       <image>https://www.freefilesync.org/images/screenshots/sftp.png</image>
     </screenshot>
-    <screenshot>
+    <screenshot priority="2">
       <caption>Synchronization settings</caption>
       <image>https://www.freefilesync.org/images/screenshots/sync-settings.png</image>
     </screenshot>
-    <screenshot>
+    <screenshot priority="1">
       <caption>Automatic synchronization</caption>
       <image>https://www.freefilesync.org/images/screenshots/RealTimeSync.png</image>
     </screenshot>

@@ -8,3 +8,4 @@ Type=Application
 Icon=org.freefilesync.FreeFileSync.RealTimeSync
 Categories=Utility;
 StartupNotify=true
+Keywords=freefilesync;

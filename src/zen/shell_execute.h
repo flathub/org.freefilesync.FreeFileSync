@@ -7,6 +7,7 @@
 #ifndef SHELL_EXECUTE_H_23482134578134134
 #define SHELL_EXECUTE_H_23482134578134134
 
+#include "warn_static.h"
 #include "file_error.h"
 
     #include <unistd.h> //fork()

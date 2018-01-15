@@ -4,6 +4,7 @@
 // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
 // *****************************************************************************
 
+#include <zen/warn_static.h>
 #include "progress_indicator.h"
 #include <memory>
 #include <wx/imaglist.h>

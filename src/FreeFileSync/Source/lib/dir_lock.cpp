@@ -15,6 +15,7 @@
 #include <zen/optional.h>
 #include <wx/log.h>
 #include <wx/app.h>
+#include <zen/warn_static.h>
 
     #include <fcntl.h>    //open()
     #include <sys/stat.h> //

@@ -4,6 +4,7 @@
 // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
 // *****************************************************************************
 
+#include <zen/warn_static.h>
 #include "file_io.h"
 #include "file_access.h"
 

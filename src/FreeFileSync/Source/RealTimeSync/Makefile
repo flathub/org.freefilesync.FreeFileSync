@@ -1,5 +1,5 @@
 APPNAME = RealTimeSync
-prefix = /usr
+prefix = /app
 BINDIR = $(DESTDIR)$(prefix)/bin
 
 CXXFLAGS  = -std=c++14 -pipe -DWXINTL_NO_GETTEXT_MACRO -I../../.. -I../../../zenXml -include "zen/i18n.h" -Wall -O3 -DNDEBUG `wx-config --cxxflags --debug=no` -pthread

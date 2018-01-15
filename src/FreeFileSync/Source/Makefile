@@ -1,5 +1,5 @@
 APPNAME     = FreeFileSync
-prefix      = /usr
+prefix      = /app
 BINDIR      = $(DESTDIR)$(prefix)/bin
 SHAREDIR    = $(DESTDIR)$(prefix)/share
 APPSHAREDIR = $(SHAREDIR)/$(APPNAME)
@@ -123,5 +123,5 @@ install:
 	$(APPSHAREDIR)
 
 	mkdir -p $(DOCSHAREDIR)
-	cp ../Build/Changelog.txt $(DOCSHAREDIR)/changelog
+	cp ../../Changelog.txt $(DOCSHAREDIR)/changelog
 	gzip $(DOCSHAREDIR)/changelog

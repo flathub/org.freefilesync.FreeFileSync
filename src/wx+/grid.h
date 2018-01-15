@@ -28,7 +28,7 @@ extern const wxEventType EVENT_GRID_MOUSE_LEFT_UP;     //generates: GridClickEve
 extern const wxEventType EVENT_GRID_MOUSE_RIGHT_DOWN;  //
 extern const wxEventType EVENT_GRID_MOUSE_RIGHT_UP;    //
 
-extern const wxEventType EVENT_GRID_SELECT_RANGE; //generates: GridRangeSelectEvent
+extern const wxEventType EVENT_GRID_SELECT_RANGE; //generates: GridSelectEvent
 //NOTE: neither first nor second row need to match EVENT_GRID_MOUSE_LEFT_DOWN/EVENT_GRID_MOUSE_LEFT_UP: user holding SHIFT; moving out of window...
 
 extern const wxEventType EVENT_GRID_COL_LABEL_MOUSE_LEFT;  //generates: GridLabelClickEvent
@@ -41,54 +41,60 @@ struct GridClickEvent : public wxMouseEvent
 {
     GridClickEvent(wxEventType et, const wxMouseEvent& me, ptrdiff_t row, HoverArea hoverArea) :
         wxMouseEvent(me), row_(row), hoverArea_(hoverArea) { SetEventType(et); }
-    wxEvent* Clone() const override { return new GridClickEvent(*this); }
+    GridClickEvent* Clone() const override { return new GridClickEvent(*this); }
 
     const ptrdiff_t row_; //-1 for invalid position, >= rowCount if out of range
     const HoverArea hoverArea_; //may be HoverArea::NONE
 };
 
-struct GridRangeSelectEvent : public wxCommandEvent
+struct MouseSelect
 {
-    GridRangeSelectEvent(size_t rowFirst, size_t rowLast, bool positive, const GridClickEvent* mouseInitiated) :
+    GridClickEvent click;
+    bool complete = false; //false if this is a preliminary "clear range" event for mouse-down, before the actual selection has happened during mouse-up
+};
+
+struct GridSelectEvent : public wxCommandEvent
+{
+    GridSelectEvent(size_t rowFirst, size_t rowLast, bool positive, const MouseSelect* mouseSelect) :
         wxCommandEvent(EVENT_GRID_SELECT_RANGE), rowFirst_(rowFirst), rowLast_(rowLast), positive_(positive),
-        mouseInitiated_(mouseInitiated ? *mouseInitiated : Opt<GridClickEvent>()) { assert(rowFirst <= rowLast); }
-    wxEvent* Clone() const override { return new GridRangeSelectEvent(*this); }
+        mouseSelect_(mouseSelect ? *mouseSelect : Opt<MouseSelect>()) { assert(rowFirst <= rowLast); }
+    GridSelectEvent* Clone() const override { return new GridSelectEvent(*this); }
 
     const size_t rowFirst_; //selected range: [rowFirst_, rowLast_)
     const size_t rowLast_;
     const bool   positive_; //"false" when clearing selection!
-    Opt<GridClickEvent> mouseInitiated_; //filled unless selection was performed via keyboard shortcuts or is result of Grid::clearSelection()
+    const Opt<MouseSelect> mouseSelect_; //filled unless selection was performed via keyboard shortcuts
 };
 
 struct GridLabelClickEvent : public wxMouseEvent
 {
     GridLabelClickEvent(wxEventType et, const wxMouseEvent& me, ColumnType colType) : wxMouseEvent(me), colType_(colType) { SetEventType(et); }
-    wxEvent* Clone() const override { return new GridLabelClickEvent(*this); }
+    GridLabelClickEvent* Clone() const override { return new GridLabelClickEvent(*this); }
 
     const ColumnType colType_; //may be ColumnType::NONE
 };
 
-
 struct GridColumnResizeEvent : public wxCommandEvent
 {
     GridColumnResizeEvent(int offset, ColumnType colType) : wxCommandEvent(EVENT_GRID_COL_RESIZE), colType_(colType), offset_(offset) {}
-    wxEvent* Clone() const override { return new GridColumnResizeEvent(*this); }
+    GridColumnResizeEvent* Clone() const override { return new GridColumnResizeEvent(*this); }
 
     const ColumnType colType_;
     const int        offset_;
 };
 
 using GridClickEventFunction        = void (wxEvtHandler::*)(GridClickEvent&);
-using GridRangeSelectEventFunction  = void (wxEvtHandler::*)(GridRangeSelectEvent&);
+using GridSelectEventFunction       = void (wxEvtHandler::*)(GridSelectEvent&);
 using GridLabelClickEventFunction   = void (wxEvtHandler::*)(GridLabelClickEvent&);
 using GridColumnResizeEventFunction = void (wxEvtHandler::*)(GridColumnResizeEvent&);
 
-#define GridClickEventHandler(func)       (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridClickEventFunction, &func)
-#define GridRangeSelectEventHandler(func) (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridRangeSelectEventFunction, &func)
-#define GridLabelClickEventHandler(func)  (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridLabelClickEventFunction, &func)
+#define GridClickEventHandler(func)       (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridClickEventFunction,        &func)
+#define GridSelectEventHandler(func)      (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridSelectEventFunction,       &func)
+#define GridLabelClickEventHandler(func)  (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridLabelClickEventFunction,   &func)
 #define GridColumnResizeEventHandler(func)(wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(GridColumnResizeEventFunction, &func)
 
 //------------------------------------------------------------------------------------------------------------
+
 class Grid;
 
 
@@ -146,19 +152,18 @@ public:
 
     void setRowHeight(int height);
 
-    struct ColumnAttribute
+    struct ColAttributes
     {
-        ColumnAttribute(ColumnType type, int offset, int stretch, bool visible = true) : type_(type), visible_(visible), stretch_(std::max(stretch, 0)), offset_(offset) { assert(stretch >=0 ); }
-        ColumnType type_;
-        bool visible_;
+        ColumnType type = ColumnType::NONE;
         //first, client width is partitioned according to all available stretch factors, then "offset_" is added
         //universal model: a non-stretched column has stretch factor 0 with the "offset" becoming identical to final width!
-        int stretch_; //>= 0
-        int offset_;
+        int offset  = 0;
+        int stretch = 0; //>= 0
+        bool visible = false;
     };
 
-    void setColumnConfig(const std::vector<ColumnAttribute>& attr); //set column count + widths
-    std::vector<ColumnAttribute> getColumnConfig() const;
+    void setColumnConfig(const std::vector<ColAttributes>& attr); //set column count + widths
+    std::vector<ColAttributes> getColumnConfig() const;
 
     void setDataProvider(const std::shared_ptr<GridData>& dataView) { dataView_ = dataView; }
     /**/  GridData* getDataProvider()       { return dataView_.get(); }
@@ -178,8 +183,9 @@ public:
     void showScrollBars(ScrollBarStatus horizontal, ScrollBarStatus vertical);
 
     std::vector<size_t> getSelectedRows() const { return selection_.get(); }
-    void selectAllRows (GridEventPolicy rangeEventPolicy);
-    void clearSelection(GridEventPolicy rangeEventPolicy); //turn off range selection event when calling this function in an event handler to avoid recursion!
+    void selectRow(size_t row, GridEventPolicy rangeEventPolicy);
+    void selectAllRows (GridEventPolicy rangeEventPolicy); //turn off range selection event when calling this function in an event handler to avoid recursion!
+    void clearSelection(GridEventPolicy rangeEventPolicy) { clearSelectionImpl(nullptr /*mouseSelect*/, rangeEventPolicy); } //
 
     void scrollDelta(int deltaX, int deltaY); //in scroll units
 
@@ -193,9 +199,9 @@ public:
 
     struct ColumnPosInfo
     {
-        ColumnType colType; //ColumnType::NONE no column at x position!
-        int cellRelativePosX;
-        int colWidth;
+        ColumnType colType   = ColumnType::NONE; //ColumnType::NONE no column at x position!
+        int cellRelativePosX = 0;
+        int colWidth         = 0;
     };
     ColumnPosInfo getColumnAtPos(int posX) const; //absolute position!
 
@@ -208,6 +214,9 @@ public:
     size_t getGridCursor() const; //returns row
 
     void scrollTo(size_t row);
+    size_t getTopRow() const;
+
+    void makeRowVisible(size_t row);
 
     void Refresh(bool eraseBackground = true, const wxRect* rect = nullptr) override;
     bool Enable(bool enable = true) override;
@@ -226,7 +235,6 @@ private:
     void updateWindowSizes(bool updateScrollbar = true);
 
     void selectWithCursor(ptrdiff_t row);
-    void makeRowVisible(size_t row);
 
     void redirectRowLabelEvent(wxMouseEvent& event);
 
@@ -247,53 +255,52 @@ private:
     class Selection
     {
     public:
-        void init(size_t rowCount) { rowSelectionValue.resize(rowCount); clear(); }
+        void init(size_t rowCount) { selected_.resize(rowCount); clear(); }
 
-        size_t maxSize() const { return rowSelectionValue.size(); }
+        size_t maxSize() const { return selected_.size(); }
 
         std::vector<size_t> get() const
         {
             std::vector<size_t> result;
-            for (size_t row = 0; row < rowSelectionValue.size(); ++row)
-                if (rowSelectionValue[row] != 0)
+            for (size_t row = 0; row < selected_.size(); ++row)
+                if (selected_[row] != 0)
                     result.push_back(row);
             return result;
         }
 
-        void selectAll() { selectRange(0, rowSelectionValue.size(), true); }
-        void clear    () { selectRange(0, rowSelectionValue.size(), false); }
+        void selectRow(size_t row) { selectRange(row, row + 1,        true); }
+        void selectAll          () { selectRange(0, selected_.size(), true); }
+        void clear              () { selectRange(0, selected_.size(), false); }
 
-        bool isSelected(size_t row) const { return row < rowSelectionValue.size() ? rowSelectionValue[row] != 0 : false; }
+        bool isSelected(size_t row) const { return row < selected_.size() ? selected_[row] != 0 : false; }
 
         void selectRange(size_t rowFirst, size_t rowLast, bool positive = true) //select [rowFirst, rowLast), trims if required!
         {
             if (rowFirst <= rowLast)
             {
-                numeric::clamp<size_t>(rowFirst, 0, rowSelectionValue.size());
-                numeric::clamp<size_t>(rowLast,  0, rowSelectionValue.size());
+                numeric::clamp<size_t>(rowFirst, 0, selected_.size());
+                numeric::clamp<size_t>(rowLast,  0, selected_.size());
 
-                std::fill(rowSelectionValue.begin() + rowFirst, rowSelectionValue.begin() + rowLast, positive);
+                std::fill(selected_.begin() + rowFirst, selected_.begin() + rowLast, positive);
             }
             else assert(false);
         }
 
     private:
-        std::vector<char> rowSelectionValue; //effectively a vector<bool> of size "number of rows"
+        std::vector<char> selected_; //effectively a vector<bool> of size "number of rows"
     };
 
     struct VisibleColumn
     {
-        VisibleColumn(ColumnType type, int offset, int stretch) : type_(type), stretch_(stretch), offset_(offset) {}
-        ColumnType type_;
-        int stretch_; //>= 0
-        int offset_;
+        ColumnType type = ColumnType::NONE;
+        int offset  = 0;
+        int stretch = 0; //>= 0
     };
 
     struct ColumnWidth
     {
-        ColumnWidth(ColumnType type, int width) : type_(type), width_(width) {}
-        ColumnType type_;
-        int width_;
+        ColumnType type = ColumnType::NONE;
+        int width = 0;
     };
     std::vector<ColumnWidth> getColWidths()                 const; //
     std::vector<ColumnWidth> getColWidths(int mainWinWidth) const; //evaluate stretched columns
@@ -304,7 +311,7 @@ private:
     {
         const auto& widths = getColWidths();
         if (col < widths.size())
-            return widths[col].width_;
+            return widths[col].width;
         return NoValue();
     }
 
@@ -312,7 +319,9 @@ private:
 
     wxRect getColumnLabelArea(ColumnType colType) const; //returns empty rect if column not found
 
-    void selectRangeAndNotify(ptrdiff_t rowFrom, ptrdiff_t rowTo, bool positive, const GridClickEvent* mouseInitiated); //select inclusive range [rowFrom, rowTo] + notify event!
+    void selectRangeAndNotify(ptrdiff_t rowFrom, ptrdiff_t rowTo, bool positive, const MouseSelect* mouseSelect); //select inclusive range [rowFrom, rowTo] + notify event!
+
+    void clearSelectionImpl(const MouseSelect* mouseSelect, GridEventPolicy rangeEventPolicy);
 
     bool isSelected(size_t row) const { return selection_.isSelected(row); }
 
@@ -352,11 +361,53 @@ private:
     bool allowColumnMove_   = true;
     bool allowColumnResize_ = true;
 
-    std::vector<VisibleColumn>   visibleCols_; //individual widths, type and total column count
-    std::vector<ColumnAttribute> oldColAttributes_; //visible + nonvisible columns; use for conversion in setColumnConfig()/getColumnConfig() *only*!
+    std::vector<VisibleColumn> visibleCols_; //individual widths, type and total column count
+    std::vector<ColAttributes> oldColAttributes_; //visible + nonvisible columns; use for conversion in setColumnConfig()/getColumnConfig() *only*!
 
     size_t rowCountOld_ = 0; //at the time of last Grid::Refresh()
 };
+
+//------------------------------------------------------------------------------------------------------------
+
+template <class ColAttrReal>
+std::vector<ColAttrReal> makeConsistent(const std::vector<ColAttrReal>& attribs, const std::vector<ColAttrReal>& defaults)
+{
+    using ColTypeReal = decltype(ColAttrReal().type);
+    std::vector<ColAttrReal> output;
+
+    std::set<ColTypeReal> usedTypes; //remove duplicates
+    auto appendUnique = [&](const std::vector<ColAttrReal>& attr)
+    {
+        std::copy_if(attr.begin(), attr.end(), std::back_inserter(output),
+        [&](const ColAttrReal& a) { return usedTypes.insert(a.type).second; });
+    };
+    appendUnique(attribs);
+    appendUnique(defaults); //make sure each type is existing!
+
+    return output;
+}
+
+
+template <class ColAttrReal>
+std::vector<Grid::ColAttributes> convertColAttributes(const std::vector<ColAttrReal>& attribs, const std::vector<ColAttrReal>& defaults)
+{
+    std::vector<Grid::ColAttributes> output;
+    for (const ColAttrReal& ca : makeConsistent(attribs, defaults))
+        output.push_back({ static_cast<ColumnType>(ca.type), ca.offset, ca.stretch, ca.visible });
+    return output;
+}
+
+
+template <class ColAttrReal>
+std::vector<ColAttrReal> convertColAttributes(const std::vector<Grid::ColAttributes>& attribs)
+{
+    using ColTypeReal = decltype(ColAttrReal().type);
+
+    std::vector<ColAttrReal> output;
+    for (const Grid::ColAttributes& ca : attribs)
+        output.push_back({ static_cast<ColTypeReal>(ca.type), ca.offset, ca.stretch, ca.visible });
+    return output;
+}
 }
 
 #endif //GRID_H_834702134831734869987

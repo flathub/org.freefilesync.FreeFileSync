@@ -214,7 +214,7 @@ void MainDialog::OnConfigSave(wxCommandEvent& event)
 {
     Zstring defaultFileName = currentConfigFileName_.empty() ? Zstr("Realtime.ffs_real") : currentConfigFileName_;
     //attention: currentConfigFileName may be an imported *.ffs_batch file! We don't want to overwrite it with a GUI config!
-    if (endsWith(defaultFileName, Zstr(".ffs_batch")))
+    if (endsWith(defaultFileName, Zstr(".ffs_batch"), CmpFilePath()))
         defaultFileName = beforeLast(defaultFileName, Zstr("."), IF_MISSING_RETURN_NONE) + Zstr(".ffs_real");
 
     wxFileDialog filePicker(this,

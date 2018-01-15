@@ -131,8 +131,6 @@ size_t FileInput::tryRead(void* buffer, size_t bytesToRead) //throw FileError, E
 
 size_t FileInput::read(void* buffer, size_t bytesToRead) //throw FileError, ErrorFileLocked, X; return "bytesToRead" bytes unless end of stream!
 {
-    warn_static("implement PERF_AWESOME_BUFFER program wide for all buffers!?")
-
     /*
         FFS 8.9-9.5 perf issues on macOS: https://www.freefilesync.org/forum/viewtopic.php?t=4808
             app-level buffering is essential to optimize random data sizes; e.g. "export file list":
@@ -155,13 +153,12 @@ size_t FileInput::read(void* buffer, size_t bytesToRead) //throw FileError, Erro
     for (;;)
     {
         const size_t junkSize = std::min(static_cast<size_t>(itEnd - it), bufPosEnd_ - bufPos_);
-        std::memcpy(it, &memBuf_[bufPos_], junkSize);
+        std::memcpy(it, &memBuf_[0] + bufPos_ /*caveat: vector debug checks*/, junkSize);
         bufPos_ += junkSize;
         it      += junkSize;
 
         if (it == itEnd)
             break;
-
         //--------------------------------------------------------------------
         const size_t bytesRead = tryRead(&memBuf_[0], blockSize); //throw FileError, ErrorFileLocked; may return short, only 0 means EOF! => CONTRACT: bytesToRead > 0
         bufPos_ = 0;
@@ -263,19 +260,18 @@ void FileOutput::write(const void* buffer, size_t bytesToWrite) //throw FileErro
         if (memBuf_.size() - bufPos_ < blockSize) //support memBuf_.size() > blockSize to reduce memmove()s, but perf test shows: not really needed!
             // || bufPos_ == bufPosEnd_) -> not needed while memBuf_.size() == blockSize
         {
-            std::memmove(&memBuf_[0], &memBuf_[bufPos_], bufPosEnd_ - bufPos_);
+            std::memmove(&memBuf_[0], &memBuf_[0] + bufPos_, bufPosEnd_ - bufPos_);
             bufPosEnd_ -= bufPos_;
             bufPos_ = 0;
         }
 
         const size_t junkSize = std::min(static_cast<size_t>(itEnd - it), blockSize - (bufPosEnd_ - bufPos_));
-        std::memcpy(&memBuf_[bufPosEnd_], it, junkSize);
+        std::memcpy(&memBuf_[0] + bufPosEnd_ /*caveat: vector debug checks*/, it, junkSize);
         bufPosEnd_ += junkSize;
         it         += junkSize;
 
         if (it == itEnd)
             return;
-
         //--------------------------------------------------------------------
         const size_t bytesWritten = tryWrite(&memBuf_[bufPos_], blockSize); //throw FileError; may return short! CONTRACT: bytesToWrite > 0
         bufPos_ += bytesWritten;

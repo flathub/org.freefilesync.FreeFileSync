@@ -10,7 +10,7 @@
 #include <functional>
 #include <zen/optional.h>
 #include <wx+/grid.h>
-#include "column_attr.h"
+#include "tree_grid_attr.h"
 #include "../file_hierarchy.h"
 
 
@@ -57,14 +57,14 @@ public:
     struct Node
     {
         Node(int percent, uint64_t bytes, int itemCount, unsigned int level, NodeStatus status) :
-            percent_(percent), level_(level), status_(status), bytes_(bytes), itemCount_(itemCount) {}
+            percent_(percent), bytes_(bytes), itemCount_(itemCount), level_(level), status_(status) {}
         virtual ~Node() {}
 
         const int percent_; //[0, 100]
-        const unsigned int level_;
-        const NodeStatus status_;
         const uint64_t bytes_;
         const int itemCount_;
+        const unsigned int level_;
+        const NodeStatus status_;
     };
 
     struct FilesNode : public Node
@@ -91,16 +91,15 @@ public:
     };
 
     std::unique_ptr<Node> getLine(size_t row) const; //return nullptr on error
-    size_t linesTotal() const { return flatTree.size(); }
+    size_t linesTotal() const { return flatTree_.size(); }
 
     void expandNode(size_t row);
     void reduceNode(size_t row);
     NodeStatus getStatus(size_t row) const;
     ptrdiff_t getParent(size_t row) const; //return < 0 if none
 
-    void setSortDirection(ColumnTypeNavi colType, bool ascending); //apply permanently!
-    std::pair<ColumnTypeNavi, bool> getSortDirection() { return std::make_pair(sortColumn, sortAscending); }
-    static bool getDefaultSortDirection(ColumnTypeNavi colType); //ascending?
+    void setSortDirection(ColumnTypeTree colType, bool ascending); //apply permanently!
+    std::pair<ColumnTypeTree, bool> getSortDirection() { return std::make_pair(sortColumn_, sortAscending_); }
 
 private:
     struct DirNodeImpl;
@@ -139,12 +138,10 @@ private:
 
     struct TreeLine
     {
-        TreeLine(unsigned int level, int percent, const Container* node, enum NodeType type) : level_(level), percent_(percent), node_(node), type_(type) {}
-
-        unsigned int level_;
-        int percent_; //[0, 100]
-        const Container* node_; //
-        NodeType type_;         //we increase size of "flatTree" using C-style types rather than have a polymorphic "folderCmpView"
+        unsigned int level = 0;
+        int percent = 0; //[0, 100]
+        const Container* node = nullptr;     //
+        NodeType type = NodeType::TYPE_ROOT; //we increase size of "flatTree" using C-style types rather than have a polymorphic "folderCmpView"
     };
 
     static void compressNode(Container& cont);
@@ -154,37 +151,34 @@ private:
     template <class Predicate> void updateView(Predicate pred);
     void applySubView(std::vector<RootNodeImpl>&& newView);
 
-    template <bool ascending> static void sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeNavi columnType);
+    template <bool ascending> static void sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeTree columnType);
     template <bool ascending> struct LessShortName;
 
-    std::vector<TreeLine> flatTree; //collapsable/expandable sub-tree of folderCmpView -> always sorted!
+    std::vector<TreeLine> flatTree_; //collapsable/expandable sub-tree of folderCmpView -> always sorted!
     /*             /|\
                     | (update...)
                     |                         */
-    std::vector<RootNodeImpl> folderCmpView; //partial view on folderCmp -> unsorted (cannot be, because files are not a separate entity)
-    std::function<bool(const FileSystemObject& fsObj)> lastViewFilterPred; //buffer view filter predicate for lazy evaluation of files/symlinks corresponding to a TYPE_FILES node
+    std::vector<RootNodeImpl> folderCmpView_; //partial view on folderCmp -> unsorted (cannot be, because files are not a separate entity)
+    std::function<bool(const FileSystemObject& fsObj)> lastViewFilterPred_; //buffer view filter predicate for lazy evaluation of files/symlinks corresponding to a TYPE_FILES node
     /*             /|\
                     | (update...)
                     |                         */
-    std::vector<std::shared_ptr<BaseFolderPair>> folderCmp; //full raw data
+    std::vector<std::shared_ptr<BaseFolderPair>> folderCmp_; //full raw data
 
-    ColumnTypeNavi sortColumn = naviGridLastSortColumnDefault;
-    bool sortAscending        = naviGridLastSortAscendingDefault;
+    ColumnTypeTree sortColumn_ = treeGridLastSortColumnDefault;
+    bool sortAscending_        = getDefaultSortDirection(treeGridLastSortColumnDefault);
 };
 
 
 Zstring getShortDisplayNameForFolderPair(const AbstractPath& itemPathL, const AbstractPath& itemPathR);
 
-
-namespace treeview
+namespace treegrid
 {
-void init(Grid& grid, const std::shared_ptr<TreeView>& treeDataView);
+void init(Grid& grid);
+TreeView& getDataView(Grid& grid);
 
 void setShowPercentage(Grid& grid, bool value);
 bool getShowPercentage(const Grid& grid);
-
-std::vector<Grid::ColumnAttribute> convertConfig(const std::vector<ColumnAttributeNavi  >& attribs); //+ make consistent
-std::vector<ColumnAttributeNavi>   convertConfig(const std::vector<Grid::ColumnAttribute>& attribs); //
 }
 }
 

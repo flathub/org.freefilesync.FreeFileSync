@@ -133,8 +133,8 @@ void Application::onQueryEndSession(wxEvent& event)
 
 
 void runGuiMode  (const Zstring& globalConfigFile);
-void runGuiMode  (const Zstring& globalConfigFile, const XmlGuiConfig& guiCfg, const std::vector<Zstring>& referenceFiles, bool startComparison);
-void runBatchMode(const Zstring& globalConfigFile, const XmlBatchConfig& batchCfg, const Zstring& referenceFile, FfsReturnCode& returnCode);
+void runGuiMode  (const Zstring& globalConfigFile, const XmlGuiConfig& guiCfg, const std::vector<Zstring>& cfgFilePaths, bool startComparison);
+void runBatchMode(const Zstring& globalConfigFile, const XmlBatchConfig& batchCfg, const Zstring& cfgFilePath, FfsReturnCode& returnCode);
 void showSyntaxHelp();
 
 
@@ -156,15 +156,19 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
     };
 
     //parse command line arguments
-    std::vector<Zstring> dirPathPhrasesLeft;
-    std::vector<Zstring> dirPathPhrasesRight;
+    std::vector<std::pair<Zstring, Zstring>> dirPathPhrasePairs;
     std::vector<std::pair<Zstring, XmlType>> configFiles; //XmlType: batch or GUI files only
     Zstring globalConfigFile;
     bool openForEdit = false;
     {
+        std::vector<Zstring> dirPathPhrasesLeft;  //TODO: remove migration code at some time! 2017-12-14
+        std::vector<Zstring> dirPathPhrasesRight; //
+
         const Zchar optionEdit    [] = Zstr("-edit");
-        const Zchar optionLeftDir [] = Zstr("-leftdir");
-        const Zchar optionRightDir[] = Zstr("-rightdir");
+        const Zchar optionLeftDir [] = Zstr("-leftdir");  //TODO: remove migration code at some time! 2017-12-14
+        const Zchar optionRightDir[] = Zstr("-rightdir"); //
+        const Zchar optionDirPair [] = Zstr("-dirpair");
+        const Zchar optionSendTo  [] = Zstr("-sendto"); //remaining arguments are unspecified number of folder paths; wonky syntax; let's keep it undocumented
 
         auto syntaxHelpRequested = [&](const Zstring& arg)
         {
@@ -177,6 +181,16 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
                    argTmp == Zstr("?");
         };
 
+        auto isCommandLineOption = [&](const Zstring& arg)
+        {
+            return strEqual(arg, optionEdit,     CmpAsciiNoCase()) ||
+                   strEqual(arg, optionLeftDir,  CmpAsciiNoCase()) ||
+                   strEqual(arg, optionRightDir, CmpAsciiNoCase()) ||
+                   strEqual(arg, optionDirPair,  CmpAsciiNoCase()) ||
+                   strEqual(arg, optionSendTo,   CmpAsciiNoCase()) ||
+                   syntaxHelpRequested(arg);
+        };
+
         for (auto it = commandArgs.begin(); it != commandArgs.end(); ++it)
             if (syntaxHelpRequested(*it))
                 return showSyntaxHelp();
@@ -184,7 +198,7 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
                 openForEdit = true;
             else if (strEqual(*it, optionLeftDir, CmpAsciiNoCase()))
             {
-                if (++it == commandArgs.end())
+                if (++it == commandArgs.end() || isCommandLineOption(*it))
                 {
                     notifyFatalError(replaceCpy(_("A directory path is expected after %x."), L"%x", utfTo<std::wstring>(optionLeftDir)), _("Syntax error"));
                     return;
@@ -193,12 +207,65 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
             }
             else if (strEqual(*it, optionRightDir, CmpAsciiNoCase()))
             {
-                if (++it == commandArgs.end())
+                if (++it == commandArgs.end() || isCommandLineOption(*it))
                 {
                     notifyFatalError(replaceCpy(_("A directory path is expected after %x."), L"%x", utfTo<std::wstring>(optionRightDir)), _("Syntax error"));
                     return;
                 }
                 dirPathPhrasesRight.push_back(*it);
+            }
+            else if (strEqual(*it, optionDirPair, CmpAsciiNoCase()))
+            {
+                if (++it == commandArgs.end() || isCommandLineOption(*it))
+                {
+                    notifyFatalError(replaceCpy(_("A left and a right directory path are expected after %x."), L"%x", utfTo<std::wstring>(optionDirPair)), _("Syntax error"));
+                    return;
+                }
+                dirPathPhrasePairs.emplace_back(*it, Zstring());
+
+                if (++it == commandArgs.end() || isCommandLineOption(*it))
+                {
+                    notifyFatalError(replaceCpy(_("A left and a right directory path are expected after %x."), L"%x", utfTo<std::wstring>(optionDirPair)), _("Syntax error"));
+                    return;
+                }
+                dirPathPhrasePairs.back().second = *it;
+            }
+            else if (strEqual(*it, optionSendTo, CmpAsciiNoCase()))
+            {
+                for (size_t i = 0; ; ++i)
+                {
+                    if (++it == commandArgs.end() || isCommandLineOption(*it))
+                    {
+                        --it;
+                        break;
+                    }
+
+                    if (i < 2) //-SendTo with more than 2 paths? Doesn't make any sense, does it!?
+                    {
+                        //for -SendTo we expect a list of full native paths, not "phrases" that need to be resolved!
+                        auto getFolderPath = [](Zstring itemPath)
+                        {
+                            try
+                            {
+                                if (getItemType(itemPath) == ItemType::FILE) //throw FileError
+                                    if (Opt<Zstring> parentPath = getParentFolderPath(itemPath))
+                                        return *parentPath;
+                            }
+                            catch (FileError&) {}
+
+                            return itemPath;
+                        };
+
+                        if (i % 2 == 0)
+                            dirPathPhrasePairs.emplace_back(getFolderPath(*it), Zstring());
+                        else
+                        {
+                            const Zstring folderPath = getFolderPath(*it);
+                            if (!equalFilePath(dirPathPhrasePairs.back().first, folderPath)) //user accidentally sending to two files, which each time yield the same parent folder
+                                dirPathPhrasePairs.back().second = folderPath;
+                        }
+                    }
+                }
             }
             else
             {
@@ -243,13 +310,17 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
                     return;
                 }
             }
-    }
 
-    if (dirPathPhrasesLeft.size() != dirPathPhrasesRight.size())
-    {
-        notifyFatalError(_("Unequal number of left and right directories specified."), _("Syntax error"));
-        return;
+        if (dirPathPhrasesLeft.size() != dirPathPhrasesRight.size())
+        {
+            notifyFatalError(_("Unequal number of left and right directories specified."), _("Syntax error"));
+            return;
+        }
+
+        for (size_t i = 0; i < dirPathPhrasesLeft.size(); ++i)
+            dirPathPhrasePairs.emplace_back(dirPathPhrasesLeft[i], dirPathPhrasesRight[i]);
     }
+    //----------------------------------------------------------------------------------------------------
 
     auto hasNonDefaultConfig = [](const FolderPairEnh& fp)
     {
@@ -260,7 +331,7 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
 
     auto replaceDirectories = [&](MainConfiguration& mainCfg)
     {
-        if (!dirPathPhrasesLeft.empty())
+        if (!dirPathPhrasePairs.empty())
         {
             //check if config at folder-pair level is present: this probably doesn't make sense when replacing/adding the user-specified directories
             if (hasNonDefaultConfig(mainCfg.firstPair) || std::any_of(mainCfg.additionalPairs.begin(), mainCfg.additionalPairs.end(), hasNonDefaultConfig))
@@ -270,14 +341,14 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
             }
 
             mainCfg.additionalPairs.clear();
-            for (size_t i = 0; i < dirPathPhrasesLeft.size(); ++i)
+            for (size_t i = 0; i < dirPathPhrasePairs.size(); ++i)
                 if (i == 0)
                 {
-                    mainCfg.firstPair.folderPathPhraseLeft_  = dirPathPhrasesLeft [0];
-                    mainCfg.firstPair.folderPathPhraseRight_ = dirPathPhrasesRight[0];
+                    mainCfg.firstPair.folderPathPhraseLeft_  = dirPathPhrasePairs[0].first;
+                    mainCfg.firstPair.folderPathPhraseRight_ = dirPathPhrasePairs[0].second;
                 }
                 else
-                    mainCfg.additionalPairs.emplace_back(dirPathPhrasesLeft[i], dirPathPhrasesRight[i],
+                    mainCfg.additionalPairs.emplace_back(dirPathPhrasePairs[i].first, dirPathPhrasePairs[i].second,
                                                          nullptr, nullptr, FilterConfig());
         }
         return true;
@@ -290,7 +361,7 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
     if (configFiles.empty())
     {
         //gui mode: default startup
-        if (dirPathPhrasesLeft.empty())
+        if (dirPathPhrasePairs.empty())
             runGuiMode(globalConfigFilePath);
         //gui mode: default config with given directories
         else
@@ -357,7 +428,7 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
     //gui mode: merged configs
     else
     {
-        if (!dirPathPhrasesLeft.empty())
+        if (!dirPathPhrasePairs.empty())
         {
             notifyFatalError(_("Directories cannot be set for more than one configuration file."), _("Syntax error"));
             return;
@@ -387,15 +458,15 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
 }
 
 
-void runGuiMode(const Zstring& globalConfigFile) { MainDialog::create(globalConfigFile); }
+void runGuiMode(const Zstring& globalConfigFilePath) { MainDialog::create(globalConfigFilePath); }
 
 
-void runGuiMode(const Zstring& globalConfigFile,
+void runGuiMode(const Zstring& globalConfigFilePath,
                 const xmlAccess::XmlGuiConfig& guiCfg,
-                const std::vector<Zstring>& referenceFiles,
+                const std::vector<Zstring>& cfgFilePaths,
                 bool startComparison)
 {
-    MainDialog::create(globalConfigFile, nullptr, guiCfg, referenceFiles, startComparison);
+    MainDialog::create(globalConfigFilePath, nullptr, guiCfg, cfgFilePaths, startComparison);
 }
 
 
@@ -406,7 +477,7 @@ void showSyntaxHelp()
                            setDetailInstructions(_("Syntax:") + L"\n\n" +
                                                  L"./FreeFileSync " + L"\n" +
                                                  L"    [" + _("config files:") + L" *.ffs_gui/*.ffs_batch]" + L"\n" +
-                                                 L"    [-LeftDir " + _("directory") + L"] [-RightDir " + _("directory") + L"]" + L"\n" +
+                                                 L"    [-DirPair " + _("directory") + L" " + _("directory") + L"]" + L"\n" +
                                                  L"    [-Edit]" + L"\n" +
                                                  L"    [" + _("global config file:") + L" GlobalSettings.xml]" + L"\n" +
                                                  L"\n" +
@@ -414,7 +485,7 @@ void showSyntaxHelp()
                                                  _("config files:") + L"\n" +
                                                  _("Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.") + L"\n\n" +
 
-                                                 L"-LeftDir " + _("directory") + L" -RightDir " + _("directory") + L"\n" +
+                                                 L"-DirPair " + _("directory") + L" " + _("directory") + L"\n" +
                                                  _("Any number of alternative directory pairs for at most one config file.") + L"\n\n" +
 
                                                  L"-Edit" + L"\n" +
@@ -425,7 +496,7 @@ void showSyntaxHelp()
 }
 
 
-void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& batchCfg, const Zstring& referenceFile, FfsReturnCode& returnCode)
+void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& batchCfg, const Zstring& cfgFilePath, FfsReturnCode& returnCode)
 {
     const bool showPopupAllowed = !batchCfg.mainCfg.ignoreErrors && batchCfg.batchExCfg.batchErrorDialog == BatchErrorDialog::SHOW;
 
@@ -476,7 +547,7 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
 
         //class handling status updates and error messages
         BatchStatusHandler statusHandler(!batchCfg.batchExCfg.runMinimized, //throw AbortProcess, BatchRequestSwitchToMainDialog
-                                         extractJobName(referenceFile),
+                                         extractJobName(cfgFilePath),
                                          globalCfg.soundFileSyncFinished,
                                          batchStartTime,
                                          batchCfg.batchExCfg.logFolderPathPhrase,
@@ -525,12 +596,20 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
                     cmpResult,
                     globalCfg.optDialogs,
                     statusHandler); //throw ?
+
+        //not cancelled? => update last sync date for the selected cfg file
+        for (xmlAccess::ConfigFileItem& cfi : globalCfg.gui.mainDlg.cfgFileHistory)
+            if (equalFilePath(cfi.filePath, cfgFilePath))
+            {
+                cfi.lastSyncTime = std::time(nullptr);
+                break;
+            }
     }
     catch (AbortProcess&) {} //exit used by statusHandler
     catch (BatchRequestSwitchToMainDialog&)
     {
         //open new toplevel window *after* progress dialog is gone => run on main event loop
-        return MainDialog::create(globalConfigFilePath, &globalCfg, xmlAccess::convertBatchToGui(batchCfg), { referenceFile }, true /*startComparison*/);
+        return MainDialog::create(globalConfigFilePath, &globalCfg, xmlAccess::convertBatchToGui(batchCfg), { cfgFilePath }, true /*startComparison*/);
     }
 
     try //save global settings to XML: e.g. ignored warnings

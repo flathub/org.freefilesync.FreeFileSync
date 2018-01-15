@@ -9,17 +9,17 @@
 
 #include <vector>
 #include <unordered_map>
-#include "column_attr.h"
+#include "file_grid_attr.h"
 #include "../file_hierarchy.h"
 
 
 namespace zen
 {
 //grid view of FolderComparison
-class GridView
+class FileView
 {
 public:
-    GridView() {}
+    FileView() {}
 
     //direct data access via row number
     const FileSystemObject* getObject(size_t row) const; //returns nullptr if object is not found; complexity: constant!
@@ -101,16 +101,13 @@ public:
     void removeInvalidRows(); //remove references to rows that have been deleted meanwhile: call after manual deletion and synchronization!
 
     //sorting...
-    bool static getDefaultSortDirection(zen::ColumnTypeRim type); //true: ascending; false: descending
-
     void sortView(zen::ColumnTypeRim type, zen::ItemPathFormat pathFmt, bool onLeft, bool ascending); //always call this method for sorting, never sort externally!
 
     struct SortInfo
     {
-        SortInfo(zen::ColumnTypeRim type, bool onLeft, bool ascending) : type_(type), onLeft_(onLeft), ascending_(ascending) {}
-        zen::ColumnTypeRim type_;
-        bool onLeft_;
-        bool ascending_;
+        zen::ColumnTypeRim type = zen::ColumnTypeRim::ITEM_PATH;
+        bool onLeft    = false;
+        bool ascending = false;
     };
     const SortInfo* getSortInfo() const { return currentSort_.get(); } //return nullptr if currently not sorted
 
@@ -121,16 +118,13 @@ public:
     size_t getFolderPairCount() const { return folderPairCount_; } //count non-empty pairs to distinguish single/multiple folder pair cases
 
 private:
-    GridView           (const GridView&) = delete;
-    GridView& operator=(const GridView&) = delete;
+    FileView           (const FileView&) = delete;
+    FileView& operator=(const FileView&) = delete;
 
     struct RefIndex
     {
-        RefIndex(size_t folderInd, FileSystemObject::ObjectId id) :
-            folderIndex(folderInd),
-            objId(id) {}
-        size_t folderIndex; //because of alignment there's no benefit in using "unsigned int" in 64-bit code here!
-        FileSystemObject::ObjectId objId;
+        size_t folderIndex = 0; //because of alignment there's no benefit in using "unsigned int" in 64-bit code here!
+        FileSystemObject::ObjectId objId = nullptr;
     };
 
     template <class Predicate> void updateView(Predicate pred);
@@ -148,7 +142,7 @@ private:
     /*             /|\
                     | (setData...)
                     |                         */
-    //std::shared_ptr<FolderComparison> folderCmp; //actual comparison data: owned by GridView!
+    //std::shared_ptr<FolderComparison> folderCmp; //actual comparison data: owned by FileView!
     size_t folderPairCount_ = 0; //number of non-empty folder pairs
 
 
@@ -191,17 +185,17 @@ private:
 //##################### implementation #########################################
 
 inline
-const FileSystemObject* GridView::getObject(size_t row) const
+const FileSystemObject* FileView::getObject(size_t row) const
 {
     return row < viewRef_.size() ?
            FileSystemObject::retrieve(viewRef_[row]) : nullptr;
 }
 
 inline
-FileSystemObject* GridView::getObject(size_t row)
+FileSystemObject* FileView::getObject(size_t row)
 {
     //code re-use of const method: see Meyers Effective C++
-    return const_cast<FileSystemObject*>(static_cast<const GridView&>(*this).getObject(row));
+    return const_cast<FileSystemObject*>(static_cast<const FileView&>(*this).getObject(row));
 }
 }
 

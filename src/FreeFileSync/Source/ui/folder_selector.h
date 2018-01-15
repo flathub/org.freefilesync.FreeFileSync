@@ -50,7 +50,7 @@ private:
     virtual bool shouldSetDroppedPaths(const std::vector<Zstring>& shellItemPaths) { return true; } //return true if drop should be processed
 
     void onMouseWheel     (wxMouseEvent&   event);
-    void onKeyFileDropped   (FileDropEvent& event);
+    void onItemPathDropped(FileDropEvent&  event);
     void onEditFolderPath (wxCommandEvent& event);
     void onSelectFolder   (wxCommandEvent& event);
     void onSelectAltFolder(wxCommandEvent& event);

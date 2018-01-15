@@ -47,6 +47,8 @@ private:
     void OnToggleGenerateLogfile(wxCommandEvent& event) override { updateGui(); }
     void OnToggleLogfilesLimit  (wxCommandEvent& event) override { updateGui(); }
 
+    void onLocalKeyEvent(wxKeyEvent& event);
+
     void updateGui(); //re-evaluate gui after config changes
 
     void setConfig(const BatchDialogConfig& batchCfg);
@@ -81,6 +83,9 @@ BatchDialog::BatchDialog(wxWindow* parent, BatchDialogConfig& dlgCfg) :
     add(PostSyncAction::SHUTDOWN, _("Shut down"));
 
     setConfig(dlgCfg);
+
+    //enable dialog-specific key local events
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(BatchDialog::onLocalKeyEvent), nullptr, this);
 
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
@@ -158,6 +163,12 @@ BatchDialogConfig BatchDialog::getConfig() const
     //get single parameter "logfiles limit" from all three checkboxes and spin ctrl
 
     return dlgCfg;
+}
+
+
+void BatchDialog::onLocalKeyEvent(wxKeyEvent& event)
+{
+    event.Skip();
 }
 
 

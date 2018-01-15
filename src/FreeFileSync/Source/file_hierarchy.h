@@ -347,7 +347,7 @@ public:
     V& operator* () const { return  **it_; }
     V* operator->() const { return &** it_; }
 private:
-    IterImpl it_;
+    IterImpl it_{};
 };
 
 /*
@@ -505,7 +505,7 @@ private:
     std::unique_ptr<std::wstring> syncDirectionConflict_; //non-empty if we have a conflict setting sync-direction
     //get rid of std::wstring small string optimization (consumes 32/48 byte on VS2010 x86/x64!)
 
-    Zstring itemNameL_; //slightly redundant under linux, but on windows the "same" file paths can differ in case
+    Zstring itemNameL_; //slightly redundant under Linux, but on Windows the "same" file paths can differ in case
     Zstring itemNameR_; //use as indicator: an empty name means: not existing on this side!
 
     ContainerObject& parent_;
@@ -794,7 +794,7 @@ bool FileSystemObject::isPairEmpty() const
 template <SelectedSide side> inline
 Zstring FileSystemObject::getItemName() const
 {
-    assert(!itemNameL_.empty() || !itemNameR_.empty());
+    //assert(!itemNameL_.empty() || !itemNameR_.empty()); -> file pair might be empty (until removed after sync)
 
     const Zstring& itemName = SelectParam<side>::ref(itemNameL_, itemNameR_); //empty if not existing
     if (!itemName.empty()) //avoid ternary-WTF! (implicit copy-constructor call!!!!!!)

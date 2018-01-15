@@ -23,8 +23,10 @@
 #include <wx+/no_flicker.h>
 #include <wx+/rtl.h>
 #include <wx+/font_size.h>
+#include <wx+/focus.h>
 #include <wx+/popup_dlg.h>
 #include <wx+/image_resources.h>
+#include "cfg_grid.h"
 #include "version_check.h"
 #include "gui_status_handler.h"
 #include "small_dlgs.h"
@@ -55,14 +57,6 @@ namespace
 const size_t EXT_APP_MASS_INVOKE_THRESHOLD = 10; //more than this is likely a user mistake (Explorer uses limit of 15)
 
 
-struct wxClientHistoryData : public wxClientData //we need a wxClientData derived class to tell wxWidgets to take object ownership!
-{
-    wxClientHistoryData(const Zstring& cfgFile, int lastUseIndex) : cfgFile_(cfgFile), lastUseIndex_(lastUseIndex) {}
-
-    Zstring cfgFile_;
-    int lastUseIndex_; //support sorting history by last usage, the higher the index the more recent the usage
-};
-
 IconBuffer::IconSize convert(xmlAccess::FileIconSize isize)
 {
     using namespace xmlAccess;
@@ -77,56 +71,6 @@ IconBuffer::IconSize convert(xmlAccess::FileIconSize isize)
     }
     return IconBuffer::SIZE_SMALL;
 }
-
-//pretty much the same like "bool wxWindowBase::IsDescendant(wxWindowBase* child) const" but without the obvious misnomer
-inline
-bool isComponentOf(const wxWindow* child, const wxWindow* top)
-{
-    for (const wxWindow* wnd = child; wnd != nullptr; wnd = wnd->GetParent())
-        if (wnd == top)
-            return true;
-    return false;
-}
-
-
-inline
-wxTopLevelWindow* getTopLevelWindow(wxWindow* child)
-{
-    for (wxWindow* wnd = child; wnd != nullptr; wnd = wnd->GetParent())
-        if (auto tlw = dynamic_cast<wxTopLevelWindow*>(wnd)) //why does wxWidgets use wxWindows::IsTopLevel() ??
-            return tlw;
-    return nullptr;
-}
-
-
-/*
-Preserving input focus has to be more clever than:
-    wxWindow* oldFocus = wxWindow::FindFocus();
-    ZEN_ON_SCOPE_EXIT(if (oldFocus) oldFocus->SetFocus());
-
-=> wxWindow::SetFocus() internally calls Win32 ::SetFocus, which calls ::SetActiveWindow, which - lord knows why - changes the foreground window to the focus window
-    even if the user is currently busy using a different app! More curiosity: this foreground focus stealing happens only during the *first* SetFocus() after app start!
-    It also can be avoided by changing focus back and forth with some other app after start => wxWidgets bug or Win32 feature???
-*/
-struct FocusPreserver
-{
-    ~FocusPreserver()
-    {
-        //wxTopLevelWindow::IsActive() does NOT call Win32 ::GetActiveWindow()!
-        //Instead it checks if ::GetFocus() is set somewhere inside the top level
-        //Note: Both Win32 active and focus windows are *thread-local* values, while foreground window is global! https://blogs.msdn.microsoft.com/oldnewthing/20131016-00/?p=2913
-        if (oldFocus_)
-            if (wxTopLevelWindow* topWin = getTopLevelWindow(oldFocus_))
-                if (topWin->IsActive()) //Linux/macOS: already behaves just like ::GetForegroundWindow() on Windows!
-                    oldFocus_->SetFocus();
-    }
-
-    wxWindow* getFocus()        const { return oldFocus_; }
-    void      setFocus(wxWindow* win) { oldFocus_ = win; }
-
-private:
-    wxWindow* oldFocus_ = wxWindow::FindFocus();
-};
 
 
 bool acceptDialogFileDrop(const std::vector<Zstring>& shellItemPaths)
@@ -158,6 +102,7 @@ public:
     {
         if (acceptDialogFileDrop(shellItemPaths))
         {
+            assert(!shellItemPaths.empty());
             mainDlg_.loadConfiguration(shellItemPaths);
             return false;
         }
@@ -351,21 +296,13 @@ xmlAccess::XmlGlobalSettings tryLoadGlobalConfig(const Zstring& globalConfigFile
 }
 
 
-Zstring MainDialog::getLastRunConfigPath()
-{
-    return zen::getConfigDirPathPf() + Zstr("LastRun.ffs_gui");
-}
-
-
 void MainDialog::create(const Zstring& globalConfigFilePath)
 {
     using namespace xmlAccess;
 
     const XmlGlobalSettings globalSettings = tryLoadGlobalConfig(globalConfigFilePath);
 
-    std::vector<Zstring> cfgFilePaths;
-    for (const ConfigFileItem& item : globalSettings.gui.lastUsedConfigFiles)
-        cfgFilePaths.push_back(item.filePath_);
+    std::vector<Zstring> cfgFilePaths = globalSettings.gui.mainDlg.lastUsedConfigFiles;
 
     //------------------------------------------------------------------------------------------
     //check existence of all files in parallel:
@@ -451,14 +388,15 @@ void MainDialog::create(const Zstring& globalConfigFilePath,
 }
 
 
-MainDialog::MainDialog(const Zstring& globalConfigFile,
+MainDialog::MainDialog(const Zstring& globalConfigFilePath,
                        const xmlAccess::XmlGuiConfig& guiCfg,
                        const std::vector<Zstring>& referenceFiles,
                        const xmlAccess::XmlGlobalSettings& globalSettings,
                        bool startComparison) :
     MainDialogGenerated(nullptr),
-    globalConfigFile_(globalConfigFile),
+    globalConfigFilePath_(globalConfigFilePath),
     lastRunConfigPath_(getLastRunConfigPath())
+
 {
     m_folderPathLeft ->init(folderHistoryLeft_);
     m_folderPathRight->init(folderHistoryRight_);
@@ -539,7 +477,7 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
                     wxAuiPaneInfo().Name(L"ViewFilterPanel").Layer(2).Bottom().Row(1).Caption(_("View Settings")).CaptionVisible(false).PaneBorder(false).Gripper().MinSize(m_bpButtonViewTypeSyncAction->GetSize().GetWidth(), m_panelViewFilter->GetSize().GetHeight()));
 
     auiMgr_.AddPane(m_panelConfig,
-                    wxAuiPaneInfo().Name(L"ConfigPanel").Layer(3).Left().Position(1).Caption(_("Configuration")).MinSize(m_listBoxHistory->GetSize().GetWidth(), m_panelConfig->GetSize().GetHeight()));
+                    wxAuiPaneInfo().Name(L"ConfigPanel").Layer(3).Left().Position(1).Caption(_("Configuration")).MinSize(bSizerCfgHistoryButtons->GetSize()));
 
     auiMgr_.AddPane(m_gridOverview,
                     wxAuiPaneInfo().Name(L"OverviewPanel").Layer(3).Left().Position(2).Caption(_("Overview")).MinSize(300, m_gridOverview->GetSize().GetHeight())); //MinSize(): just default size, see comment below
@@ -573,25 +511,34 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
     m_panelStatusBar ->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainDialog::OnContextSetLayout), nullptr, this);
     //----------------------------------------------------------------------------------
 
-    //sort grids
+    //file grid: sorting
     m_gridMainL->Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(MainDialog::onGridLabelLeftClickL), nullptr, this);
     m_gridMainC->Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(MainDialog::onGridLabelLeftClickC), nullptr, this);
     m_gridMainR->Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(MainDialog::onGridLabelLeftClickR), nullptr, this);
 
-    m_gridMainL->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextL  ), nullptr, this);
-    m_gridMainC->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextC  ), nullptr, this);
-    m_gridMainR->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextR  ), nullptr, this);
+    m_gridMainL->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextL), nullptr, this);
+    m_gridMainC->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextC), nullptr, this);
+    m_gridMainR->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onGridLabelContextR), nullptr, this);
 
-    //grid context menu
-    m_gridMainL   ->Connect(EVENT_GRID_MOUSE_RIGHT_UP,   GridClickEventHandler(MainDialog::onMainGridContextL), nullptr, this);
-    m_gridMainC   ->Connect(EVENT_GRID_MOUSE_RIGHT_DOWN, GridClickEventHandler(MainDialog::onMainGridContextC), nullptr, this);
-    m_gridMainR   ->Connect(EVENT_GRID_MOUSE_RIGHT_UP,   GridClickEventHandler(MainDialog::onMainGridContextR), nullptr, this);
-    m_gridOverview->Connect(EVENT_GRID_MOUSE_RIGHT_UP,   GridClickEventHandler(MainDialog::onNaviGridContext ), nullptr, this);
+    //file grid: context menu
+    m_gridMainL->Connect(EVENT_GRID_MOUSE_RIGHT_UP,   GridClickEventHandler(MainDialog::onMainGridContextL), nullptr, this);
+    m_gridMainC->Connect(EVENT_GRID_MOUSE_RIGHT_DOWN, GridClickEventHandler(MainDialog::onMainGridContextC), nullptr, this);
+    m_gridMainR->Connect(EVENT_GRID_MOUSE_RIGHT_UP,   GridClickEventHandler(MainDialog::onMainGridContextR), nullptr, this);
 
-    m_gridMainL->Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE, GridClickEventHandler(MainDialog::onGridDoubleClickL), nullptr, this );
-    m_gridMainR->Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE, GridClickEventHandler(MainDialog::onGridDoubleClickR), nullptr, this );
+    m_gridMainL->Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE, GridClickEventHandler(MainDialog::onGridDoubleClickL), nullptr, this);
+    m_gridMainR->Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE, GridClickEventHandler(MainDialog::onGridDoubleClickR), nullptr, this);
 
-    m_gridOverview->Connect(EVENT_GRID_SELECT_RANGE, GridRangeSelectEventHandler(MainDialog::onNaviSelection), nullptr, this);
+    //tree grid:
+    m_gridOverview->Connect(EVENT_GRID_MOUSE_RIGHT_UP, GridClickEventHandler(MainDialog::onTreeGridContext),   nullptr, this);
+    m_gridOverview->Connect(EVENT_GRID_SELECT_RANGE,  GridSelectEventHandler(MainDialog::onTreeGridSelection), nullptr, this);
+
+    //cfg grid:
+    m_gridCfgHistory->Connect(EVENT_GRID_SELECT_RANGE,      GridSelectEventHandler(MainDialog::onCfgGridSelection),   nullptr, this);
+    m_gridCfgHistory->Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE,  GridClickEventHandler(MainDialog::onCfgGridDoubleClick), nullptr, this);
+    m_gridCfgHistory->getMainWin().Connect(wxEVT_KEY_DOWN,       wxKeyEventHandler(MainDialog::onCfgGridKeyEvent),    nullptr, this);
+    m_gridCfgHistory->Connect(EVENT_GRID_MOUSE_RIGHT_UP,     GridClickEventHandler(MainDialog::onCfgGridContext),     nullptr, this);
+    m_gridCfgHistory->Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(MainDialog::onCfgGridLabelContext  ), nullptr, this);
+    m_gridCfgHistory->Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(MainDialog::onCfgGridLabelLeftClick), nullptr, this);
     //----------------------------------------------------------------------------------
 
     m_panelSearch->Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(MainDialog::OnSearchPanelKeyPressed), nullptr, this);
@@ -610,9 +557,6 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
 
     m_bpButtonCmpContext ->SetToolTip(m_bpButtonCmpConfig ->GetToolTipText());
     m_bpButtonSyncContext->SetToolTip(m_bpButtonSyncConfig->GetToolTipText());
-
-    gridDataView_ = std::make_shared<GridView>();
-    treeDataView_ = std::make_shared<TreeView>();
 
 
     {
@@ -701,8 +645,9 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
     initViewFilterButtons();
 
     //init grid settings
-    gridview::init(*m_gridMainL, *m_gridMainC, *m_gridMainR, gridDataView_);
-    treeview::init(*m_gridOverview, treeDataView_);
+    filegrid::init(*m_gridMainL, *m_gridMainC, *m_gridMainR);
+    treegrid::init(*m_gridOverview);
+    cfggrid ::init(*m_gridCfgHistory);
 
     //initialize and load configuration
     setGlobalCfgOnInit(globalSettings);
@@ -753,19 +698,16 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
     OnResizeLeftFolderWidth(evtDummy); //
 
     //scroll cfg history to last used position. We cannot do this earlier e.g. in setGlobalCfgOnInit()
-    //1. setConfig() indirectly calls addFileToCfgHistory() which changes cfg history scroll position
-    //2. EnsureVisible() requires final window height! => do this after window resizing is complete
-    if (!m_listBoxHistory->IsEmpty())
-        m_listBoxHistory->SetFirstItem(numeric::clampCpy(globalSettings.gui.cfgFileHistFirstItemPos, //must be set *after* wxAuiManager::LoadPerspective() to have any effect
-                                                         0,  static_cast<int>(m_listBoxHistory->GetCount()) - 1));
+    //1. setConfig() indirectly calls cfggrid::addAndSelect() which changes cfg history scroll position
+    //2. Grid::makeRowVisible() requires final window height! => do this after window resizing is complete
+    if (m_gridCfgHistory->getRowCount() > 0)
+        m_gridCfgHistory->scrollTo(numeric::clampCpy<size_t>(globalSettings.gui.mainDlg.cfgGridTopRowPos, //must be set *after* wxAuiManager::LoadPerspective() to have any effect
+                                                             0,  m_gridCfgHistory->getRowCount() - 1));
 
-    //first selected item must be visible:
-    for (int i = 0; i < static_cast<int>(m_listBoxHistory->GetCount()); ++i)
-        if (m_listBoxHistory->IsSelected(i))
-        {
-            m_listBoxHistory->EnsureVisible(i);
-            break;
-        }
+    //first selected item should always be visible:
+    const std::vector<size_t> selectedRows = m_gridCfgHistory->getSelectedRows();
+    if (!selectedRows.empty())
+        m_gridCfgHistory->makeRowVisible(selectedRows.front());
 
     m_buttonCompare->SetFocus();
 
@@ -824,11 +766,12 @@ MainDialog::MainDialog(const Zstring& globalConfigFile,
                                             !firstMissingDir.get(); //= all directories exist
 
             if (startComparisonNow)
+            {
+                wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED);
+                //better!? => m_buttonCompare->Command(dummy2); //simulate click
                 if (wxEvtHandler* evtHandler = m_buttonCompare->GetEventHandler())
-                {
-                    wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED);
                     evtHandler->AddPendingEvent(dummy2); //simulate button click on "compare"
-                }
+            }
         }
     }
 }
@@ -841,7 +784,7 @@ MainDialog::~MainDialog()
     Opt<FileError> firstError;
     try //save "GlobalSettings.xml"
     {
-        writeConfig(getGlobalCfgBeforeExit(), globalConfigFile_); //throw FileError
+        writeConfig(getGlobalCfgBeforeExit(), globalConfigFilePath_); //throw FileError
     }
     catch (const FileError& e) { firstError = e; }
 
@@ -849,12 +792,15 @@ MainDialog::~MainDialog()
     {
         writeConfig(getConfig(), lastRunConfigPath_); //throw FileError
     }
-    catch (const FileError& e) { firstError = e; }
+    catch (const FileError& e)
+    {
+        if (!firstError)
+            firstError = e;
+    }
 
     //don't annoy users on read-only drives: it's enough to show a single error message when saving global config
     if (firstError)
         showNotificationDialog(this, DialogInfoType::ERROR2, PopupDialogCfg().setDetailInstructions(firstError->toString()));
-
 
     auiMgr_.UnInit();
 
@@ -871,7 +817,7 @@ void MainDialog::onQueryEndSession()
     using namespace xmlAccess;
 
     //we try our best to do something useful in this extreme situation - no reason to notify or even log errors here!
-    try { writeConfig(getGlobalCfgBeforeExit(), globalConfigFile_); }
+    try { writeConfig(getGlobalCfgBeforeExit(), globalConfigFilePath_); }
     catch (const FileError&) {}
 
     try { writeConfig(getConfig(), lastRunConfigPath_); }
@@ -955,40 +901,52 @@ void MainDialog::setGlobalCfgOnInit(const xmlAccess::XmlGlobalSettings& globalSe
     }
 
     //set column attributes
-    m_gridMainL   ->setColumnConfig(gridview::convertConfig(globalSettings.gui.mainDlg.columnAttribLeft));
-    m_gridMainR   ->setColumnConfig(gridview::convertConfig(globalSettings.gui.mainDlg.columnAttribRight));
+    m_gridMainL   ->setColumnConfig(convertColAttributes(globalSettings.gui.mainDlg.columnAttribLeft,  getFileGridDefaultColAttribsLeft()));
+    m_gridMainR   ->setColumnConfig(convertColAttributes(globalSettings.gui.mainDlg.columnAttribRight, getFileGridDefaultColAttribsLeft()));
     m_splitterMain->setSashOffset(globalSettings.gui.mainDlg.sashOffset);
 
-    m_gridOverview->setColumnConfig(treeview::convertConfig(globalSettings.gui.mainDlg.columnAttribNavi));
-    treeview::setShowPercentage(*m_gridOverview, globalSettings.gui.mainDlg.naviGridShowPercentBar);
+    m_gridOverview->setColumnConfig(convertColAttributes(globalSettings.gui.mainDlg.treeGridColumnAttribs, getTreeGridDefaultColAttribs()));
+    treegrid::setShowPercentage(*m_gridOverview, globalSettings.gui.mainDlg.treeGridShowPercentBar);
 
-    treeDataView_->setSortDirection(globalSettings.gui.mainDlg.naviGridLastSortColumn, globalSettings.gui.mainDlg.naviGridLastSortAscending);
+    treegrid::getDataView(*m_gridOverview).setSortDirection(globalSettings.gui.mainDlg.treeGridLastSortColumn, globalSettings.gui.mainDlg.treeGridLastSortAscending);
 
     //--------------------------------------------------------------------------------
-    //load list of last used configuration files
+    //load list of configuration files
     std::vector<Zstring> cfgFilePaths;
-    for (const xmlAccess::ConfigFileItem& item : globalSettings.gui.cfgFileHistory)
-        cfgFilePaths.push_back(item.filePath_);
-    std::reverse(cfgFilePaths.begin(), cfgFilePaths.end());
-    //list is stored with last used files first in xml, however addFileToCfgHistory() needs them last!!!
-
+    std::vector<std::pair<Zstring, time_t>> lastSyncTimes;
+    //list is stored with last used files first in XML, however m_gridCfgHistory needs them last!!!
+    std::for_each(globalSettings.gui.mainDlg.cfgFileHistory.crbegin(),
+                  globalSettings.gui.mainDlg.cfgFileHistory.crend(),
+                  [&](const xmlAccess::ConfigFileItem& item)
+    {
+        cfgFilePaths.push_back(item.filePath);
+        lastSyncTimes.emplace_back(item.filePath, item.lastSyncTime);
+    });
+    warn_static("finish")
     cfgFilePaths.push_back(lastRunConfigPath_); //make sure <Last session> is always part of history list (if existing)
-    addFileToCfgHistory(cfgFilePaths);
+    cfggrid::getDataView(*m_gridCfgHistory).addCfgFiles(cfgFilePaths);
+    cfggrid::getDataView(*m_gridCfgHistory).setLastSyncTime(lastSyncTimes);
+    m_gridCfgHistory->Refresh();
 
-    removeObsoleteCfgHistoryItems(cfgFilePaths); //remove non-existent items (we need this only on startup)
+    m_gridCfgHistory->setColumnConfig(convertColAttributes(globalSettings.gui.mainDlg.cfgGridColumnAttribs, getCfgGridDefaultColAttribs()));
+    cfggrid::getDataView(*m_gridCfgHistory).setSortDirection(globalSettings.gui.mainDlg.cfgGridLastSortColumn, globalSettings.gui.mainDlg.cfgGridLastSortAscending);
+    cfggrid::setSyncOverdueDays(*m_gridCfgHistory, globalSettings.gui.mainDlg.cfgGridSyncOverdueDays);
+    //m_gridCfgHistory->Refresh(); <- implicit in last call
+
+    cfgHistoryRemoveObsolete(cfgFilePaths); //remove non-existent items (we need this only on startup)
 
     //globalSettings.gui.cfgFileHistFirstItemPos => defer evaluation until later within MainDialog constructor
     //--------------------------------------------------------------------------------
 
     //load list of last used folders
-    *folderHistoryLeft_  = FolderHistory(globalSettings.gui.folderHistoryLeft,  globalSettings.gui.folderHistMax);
-    *folderHistoryRight_ = FolderHistory(globalSettings.gui.folderHistoryRight, globalSettings.gui.folderHistMax);
+    *folderHistoryLeft_  = FolderHistory(globalSettings.gui.mainDlg.folderHistoryLeft,  globalSettings.gui.mainDlg.folderHistItemsMax);
+    *folderHistoryRight_ = FolderHistory(globalSettings.gui.mainDlg.folderHistoryRight, globalSettings.gui.mainDlg.folderHistItemsMax);
 
     //show/hide file icons
-    gridview::setupIcons(*m_gridMainL, *m_gridMainC, *m_gridMainR, globalSettings.gui.mainDlg.showIcons, convert(globalSettings.gui.mainDlg.iconSize));
+    filegrid::setupIcons(*m_gridMainL, *m_gridMainC, *m_gridMainR, globalSettings.gui.mainDlg.showIcons, convert(globalSettings.gui.mainDlg.iconSize));
 
-    gridview::setItemPathForm(*m_gridMainL, globalSettings.gui.mainDlg.itemPathFormatLeftGrid);
-    gridview::setItemPathForm(*m_gridMainR, globalSettings.gui.mainDlg.itemPathFormatRightGrid);
+    filegrid::setItemPathForm(*m_gridMainL, globalSettings.gui.mainDlg.itemPathFormatLeftGrid);
+    filegrid::setItemPathForm(*m_gridMainR, globalSettings.gui.mainDlg.itemPathFormatRightGrid);
 
     //------------------------------------------------------------------------------------------------
     m_checkBoxMatchCase->SetValue(globalCfg_.gui.mainDlg.textSearchRespectCase);
@@ -1026,45 +984,48 @@ xmlAccess::XmlGlobalSettings MainDialog::getGlobalCfgBeforeExit()
     globalSettings.programLanguage = getLanguage();
 
     //retrieve column attributes
-    globalSettings.gui.mainDlg.columnAttribLeft  = gridview::convertConfig(m_gridMainL->getColumnConfig());
-    globalSettings.gui.mainDlg.columnAttribRight = gridview::convertConfig(m_gridMainR->getColumnConfig());
+    globalSettings.gui.mainDlg.columnAttribLeft  = convertColAttributes<ColAttributesRim>(m_gridMainL->getColumnConfig());
+    globalSettings.gui.mainDlg.columnAttribRight = convertColAttributes<ColAttributesRim>(m_gridMainR->getColumnConfig());
     globalSettings.gui.mainDlg.sashOffset        = m_splitterMain->getSashOffset();
 
-    globalSettings.gui.mainDlg.columnAttribNavi       = treeview::convertConfig(m_gridOverview->getColumnConfig());
-    globalSettings.gui.mainDlg.naviGridShowPercentBar = treeview::getShowPercentage(*m_gridOverview);
+    globalSettings.gui.mainDlg.treeGridColumnAttribs  = convertColAttributes<ColAttributesTree>(m_gridOverview->getColumnConfig());
+    globalSettings.gui.mainDlg.treeGridShowPercentBar = treegrid::getShowPercentage(*m_gridOverview);
 
-    const std::pair<ColumnTypeNavi, bool> sortInfo = treeDataView_->getSortDirection();
-    globalSettings.gui.mainDlg.naviGridLastSortColumn    = sortInfo.first;
-    globalSettings.gui.mainDlg.naviGridLastSortAscending = sortInfo.second;
+    std::tie(globalSettings.gui.mainDlg.treeGridLastSortColumn,
+             globalSettings.gui.mainDlg.treeGridLastSortAscending) = treegrid::getDataView(*m_gridOverview).getSortDirection();
 
     //--------------------------------------------------------------------------------
-    //write list of last used configuration files
-    std::map<int, Zstring> historyDetail; //(cfg-file/last use index)
-    for (unsigned int i = 0; i < m_listBoxHistory->GetCount(); ++i)
-        if (auto clientString = dynamic_cast<const wxClientHistoryData*>(m_listBoxHistory->GetClientObject(i)))
-            historyDetail.emplace(clientString->lastUseIndex_, clientString->cfgFile_);
+    //write list of configuration files
+    std::map<int, xmlAccess::ConfigFileItem> cfgItemsSorted; //(last use index/cfg file path)
+    for (size_t i = 0; i < m_gridCfgHistory->getRowCount(); ++i)
+        if (const ConfigView::Details* cfg = cfggrid::getDataView(*m_gridCfgHistory).getItem(i))
+            cfgItemsSorted.emplace(cfg->lastUseIndex, xmlAccess::ConfigFileItem{ cfg->filePath, cfg->lastSyncTime });
         else
             assert(false);
 
-    //sort by last use; put most recent items *first* (looks better in xml than reverted)
-    std::vector<xmlAccess::ConfigFileItem> history;
-    for (const auto& item : historyDetail)
-        history.emplace_back(item.second);
-    std::reverse(history.begin(), history.end());
+    //sort by last use; put most recent items *first* (looks better in XML than reverted)
+    std::vector<xmlAccess::ConfigFileItem> cfgHistory;
+    std::for_each(cfgItemsSorted.crbegin(),
+                  cfgItemsSorted.crend(),
+    [&](const auto& item) { cfgHistory.emplace_back(item.second); });
 
-    if (history.size() > globalSettings.gui.cfgFileHistMax) //erase oldest elements
-        history.resize(globalSettings.gui.cfgFileHistMax);
+    if (cfgHistory.size() > globalSettings.gui.mainDlg.cfgHistItemsMax) //erase oldest elements
+        cfgHistory.resize(globalSettings.gui.mainDlg.cfgHistItemsMax);
 
-    globalSettings.gui.cfgFileHistory = history;
-    globalSettings.gui.cfgFileHistFirstItemPos = m_listBoxHistory->GetTopItem();
+    globalSettings.gui.mainDlg.cfgFileHistory = cfgHistory;
+
+    globalSettings.gui.mainDlg.cfgGridTopRowPos       = m_gridCfgHistory->getTopRow();
+    globalSettings.gui.mainDlg.cfgGridColumnAttribs   = convertColAttributes<ColAttributesCfg>(m_gridCfgHistory->getColumnConfig());
+    globalSettings.gui.mainDlg.cfgGridSyncOverdueDays = cfggrid::getSyncOverdueDays(*m_gridCfgHistory);
+
+    std::tie(globalSettings.gui.mainDlg.cfgGridLastSortColumn,
+             globalSettings.gui.mainDlg.cfgGridLastSortAscending) = cfggrid::getDataView(*m_gridCfgHistory).getSortDirection();
     //--------------------------------------------------------------------------------
-    globalSettings.gui.lastUsedConfigFiles.clear();
-    for (const Zstring& cfgFilePath : activeConfigFiles_)
-        globalSettings.gui.lastUsedConfigFiles.emplace_back(cfgFilePath);
+    globalSettings.gui.mainDlg.lastUsedConfigFiles = activeConfigFiles_;
 
     //write list of last used folders
-    globalSettings.gui.folderHistoryLeft  = folderHistoryLeft_ ->getList();
-    globalSettings.gui.folderHistoryRight = folderHistoryRight_->getList();
+    globalSettings.gui.mainDlg.folderHistoryLeft  = folderHistoryLeft_ ->getList();
+    globalSettings.gui.mainDlg.folderHistoryRight = folderHistoryRight_->getList();
 
     globalSettings.gui.mainDlg.textSearchRespectCase = m_checkBoxMatchCase->GetValue();
 
@@ -1143,18 +1104,18 @@ void MainDialog::copySelectionToClipboard(const std::vector<const Grid*>& gridRe
         {
             if (auto prov = grid.getDataProvider())
             {
-                std::vector<Grid::ColumnAttribute> colAttr = grid.getColumnConfig();
-                erase_if(colAttr, [](const Grid::ColumnAttribute& ca) { return !ca.visible_; });
+                std::vector<Grid::ColAttributes> colAttr = grid.getColumnConfig();
+                erase_if(colAttr, [](const Grid::ColAttributes& ca) { return !ca.visible; });
                 if (!colAttr.empty())
                     for (size_t row : grid.getSelectedRows())
                     {
                         std::for_each(colAttr.begin(), colAttr.end() - 1,
-                                      [&](const Grid::ColumnAttribute& ca)
+                                      [&](const Grid::ColAttributes& ca)
                         {
-                            clipboardString += copyStringTo<zxString>(prov->getValue(row, ca.type_));
+                            clipboardString += copyStringTo<zxString>(prov->getValue(row, ca.type));
                             clipboardString += L'\t';
                         });
-                        clipboardString += copyStringTo<zxString>(prov->getValue(row, colAttr.back().type_));
+                        clipboardString += copyStringTo<zxString>(prov->getValue(row, colAttr.back().type));
                         clipboardString += L'\n';
                     }
             }
@@ -1190,7 +1151,7 @@ std::vector<FileSystemObject*> MainDialog::getGridSelection(bool fromLeft, bool 
     removeDuplicates(selectedRows);
     assert(std::is_sorted(selectedRows.begin(), selectedRows.end()));
 
-    return gridDataView_->getAllFileRef(selectedRows);
+    return filegrid::getDataView(*m_gridMainC).getAllFileRef(selectedRows);
 }
 
 
@@ -1199,7 +1160,7 @@ std::vector<FileSystemObject*> MainDialog::getTreeSelection() const
     std::vector<FileSystemObject*> output;
 
     for (size_t row : m_gridOverview->getSelectedRows())
-        if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
+        if (std::unique_ptr<TreeView::Node> node = treegrid::getDataView(*m_gridOverview).getLine(row))
         {
             if (auto root = dynamic_cast<const TreeView::RootNode*>(node.get()))
             {
@@ -1313,7 +1274,7 @@ void MainDialog::deleteSelectedFiles(const std::vector<FileSystemObject*>& selec
     catch (AbortProcess&) {} //do not clear grids, if aborted!
 
     //remove rows that are empty: just a beautification, invalid rows shouldn't cause issues
-    gridDataView_->removeInvalidRows();
+    filegrid::getDataView(*m_gridMainC).removeInvalidRows();
 
     updateGui();
 }
@@ -1554,10 +1515,10 @@ void MainDialog::setStatusBarFileStatistics(size_t filesOnLeftView,
     setText(*m_staticTextStatusRightBytes, L"(" + formatFilesizeShort(filesizeRightView) + L")");
     //------------------------------------------------------------------------------
     wxString statusCenterNew;
-    if (gridDataView_->rowsTotal() > 0)
+    if (filegrid::getDataView(*m_gridMainC).rowsTotal() > 0)
     {
-        statusCenterNew = _P("Showing %y of 1 row", "Showing %y of %x rows", gridDataView_->rowsTotal());
-        replace(statusCenterNew, L"%y", formatNumber(gridDataView_->rowsOnView())); //%x is already used as plural form placeholder!
+        statusCenterNew = _P("Showing %y of 1 row", "Showing %y of %x rows", filegrid::getDataView(*m_gridMainC).rowsTotal());
+        replace(statusCenterNew, L"%y", formatNumber(filegrid::getDataView(*m_gridMainC).rowsOnView())); //%x is already used as plural form placeholder!
     }
 
     //fill middle text (considering flashStatusInformation())
@@ -1655,6 +1616,7 @@ void MainDialog::disableAllElements(bool enableAbort)
     m_panelViewFilter    ->Disable();
     m_panelConfig        ->Disable();
     m_gridOverview       ->Disable();
+    m_gridCfgHistory     ->Disable();
     m_panelSearch        ->Disable();
     m_bpButtonCmpContext ->Disable();
     m_bpButtonSyncContext->Disable();
@@ -1700,6 +1662,7 @@ void MainDialog::enableAllElements()
     m_panelViewFilter    ->Enable();
     m_panelConfig        ->Enable();
     m_gridOverview       ->Enable();
+    m_gridCfgHistory     ->Enable();
     m_panelSearch        ->Enable();
     m_bpButtonCmpContext ->Enable();
     m_bpButtonSyncContext->Enable();
@@ -1969,24 +1932,21 @@ void MainDialog::onLocalKeyEvent(wxKeyEvent& event) //process key events without
         //case WXK_F6:
         //{
         //    wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED); //simulate button click
-        //    if (wxEvtHandler* evtHandler = m_bpButtonCmpConfig->GetEventHandler())
-        //        evtHandler->ProcessEvent(dummy2); //synchronous call
+        //    m_bpButtonCmpConfig->Command(dummy2); //simulate click
         //}
         //return; //-> swallow event!
 
         //case WXK_F7:
         //{
         //    wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED); //simulate button click
-        //    if (wxEvtHandler* evtHandler = m_bpButtonFilter->GetEventHandler())
-        //        evtHandler->ProcessEvent(dummy2); //synchronous call
+        //    m_bpButtonFilter->Command(dummy2); //simulate click
         //}
         //return; //-> swallow event!
 
         //case WXK_F8:
         //{
         //    wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED); //simulate button click
-        //    if (wxEvtHandler* evtHandler = m_bpButtonSyncConfig->GetEventHandler())
-        //        evtHandler->ProcessEvent(dummy2); //synchronous call
+        //    m_bpButtonSyncConfig->Command(dummy2); //simulate click
         //}
         //return; //-> swallow event!
 
@@ -2018,9 +1978,9 @@ void MainDialog::onLocalKeyEvent(wxKeyEvent& event) //process key events without
                 !isComponentOf(focus, m_gridMainC     ) && //don't propagate keyboard commands if grid is already in focus
                 !isComponentOf(focus, m_gridMainR     ) && //
                 !isComponentOf(focus, m_gridOverview  ) &&
-                !isComponentOf(focus, m_listBoxHistory) && //don't propagate if selecting config
+                !isComponentOf(focus, m_gridCfgHistory) && //don't propagate if selecting config
                 !isComponentOf(focus, m_panelSearch   ) &&
-                !isComponentOf(focus, m_panelTopLeft  ) &&  //don't propagate if changing directory fields
+                !isComponentOf(focus, m_panelTopLeft  ) && //don't propagate if changing directory fields
                 !isComponentOf(focus, m_panelTopCenter) &&
                 !isComponentOf(focus, m_panelTopRight ) &&
                 !isComponentOf(focus, m_scrolledWindowFolderPairs) &&
@@ -2042,26 +2002,26 @@ void MainDialog::onLocalKeyEvent(wxKeyEvent& event) //process key events without
 }
 
 
-void MainDialog::onNaviSelection(GridRangeSelectEvent& event)
+void MainDialog::onTreeGridSelection(GridSelectEvent& event)
 {
     //scroll m_gridMain to user's new selection on m_gridOverview
     ptrdiff_t leadRow = -1;
     if (event.positive_ && event.rowFirst_ != event.rowLast_)
-        if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(event.rowFirst_))
+        if (std::unique_ptr<TreeView::Node> node = treegrid::getDataView(*m_gridOverview).getLine(event.rowFirst_))
         {
             if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
-                leadRow = gridDataView_->findRowFirstChild(&(root->baseFolder_));
+                leadRow = filegrid::getDataView(*m_gridMainC).findRowFirstChild(&(root->baseFolder_));
             else if (const TreeView::DirNode* dir = dynamic_cast<const TreeView::DirNode*>(node.get()))
             {
-                leadRow = gridDataView_->findRowDirect(&(dir->folder_));
+                leadRow = filegrid::getDataView(*m_gridMainC).findRowDirect(&(dir->folder_));
                 if (leadRow < 0) //directory was filtered out! still on tree view (but NOT on grid view)
-                    leadRow = gridDataView_->findRowFirstChild(&(dir->folder_));
+                    leadRow = filegrid::getDataView(*m_gridMainC).findRowFirstChild(&(dir->folder_));
             }
             else if (const TreeView::FilesNode* files = dynamic_cast<const TreeView::FilesNode*>(node.get()))
             {
                 assert(!files->filesAndLinks_.empty());
                 if (!files->filesAndLinks_.empty())
-                    leadRow = gridDataView_->findRowDirect(files->filesAndLinks_[0]->getId());
+                    leadRow = filegrid::getDataView(*m_gridMainC).findRowDirect(files->filesAndLinks_[0]->getId());
             }
         }
 
@@ -2076,12 +2036,12 @@ void MainDialog::onNaviSelection(GridRangeSelectEvent& event)
         m_gridOverview->getMainWin().Update(); //draw cursor immediately rather than on next idle event (required for slow CPUs, netbook)
     }
 
-    //get selection on navigation tree and set corresponding markers on main grid
+    //get selection on overview panel and set corresponding markers on main grid
     std::unordered_set<const FileSystemObject*> markedFilesAndLinks; //mark files/symlinks directly
     std::unordered_set<const ContainerObject*> markedContainer;      //mark full container including child-objects
 
     for (size_t row : m_gridOverview->getSelectedRows())
-        if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
+        if (std::unique_ptr<TreeView::Node> node = treegrid::getDataView(*m_gridOverview).getLine(row))
         {
             if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
                 markedContainer.insert(&(root->baseFolder_));
@@ -2091,13 +2051,13 @@ void MainDialog::onNaviSelection(GridRangeSelectEvent& event)
                 markedFilesAndLinks.insert(files->filesAndLinks_.begin(), files->filesAndLinks_.end());
         }
 
-    gridview::setNavigationMarker(*m_gridMainL, std::move(markedFilesAndLinks), std::move(markedContainer));
+    filegrid::setNavigationMarker(*m_gridMainL, std::move(markedFilesAndLinks), std::move(markedContainer));
 
     event.Skip();
 }
 
 
-void MainDialog::onNaviGridContext(GridClickEvent& event)
+void MainDialog::onTreeGridContext(GridClickEvent& event)
 {
     const auto& selection = getTreeSelection(); //referenced by lambdas!
     ContextMenu menu;
@@ -2198,13 +2158,13 @@ void MainDialog::onMainGridContextC(GridClickEvent& event)
     {
         zen::setActiveStatus(true, folderCmp_);
         updateGui();
-    }, nullptr, gridDataView_->rowsTotal() > 0);
+    }, nullptr, filegrid::getDataView(*m_gridMainC).rowsTotal() > 0);
 
     menu.addItem(_("Exclude all"), [&]
     {
         zen::setActiveStatus(false, folderCmp_);
         updateGuiDelayedIf(!m_bpButtonShowExcluded->isActive()); //show update GUI before removing rows
-    }, nullptr, gridDataView_->rowsTotal() > 0);
+    }, nullptr, filegrid::getDataView(*m_gridMainC).rowsTotal() > 0);
 
     menu.popup(*this);
 }
@@ -2476,38 +2436,38 @@ void MainDialog::onGridLabelContextR(GridLabelClickEvent& event)
 void MainDialog::onGridLabelContextRim(Grid& grid, ColumnTypeRim type, bool left)
 {
     ContextMenu menu;
-
+    //--------------------------------------------------------------------------------------------------------
     auto toggleColumn = [&](ColumnType ct)
     {
         auto colAttr = grid.getColumnConfig();
 
-        Grid::ColumnAttribute* caItemPath = nullptr;
-        Grid::ColumnAttribute* caToggle   = nullptr;
+        Grid::ColAttributes* caItemPath = nullptr;
+        Grid::ColAttributes* caToggle   = nullptr;
 
-        for (Grid::ColumnAttribute& ca : colAttr)
-            if (ca.type_ == static_cast<ColumnType>(ColumnTypeRim::ITEM_PATH))
+        for (Grid::ColAttributes& ca : colAttr)
+            if (ca.type == static_cast<ColumnType>(ColumnTypeRim::ITEM_PATH))
                 caItemPath = &ca;
-            else if (ca.type_ == ct)
+            else if (ca.type == ct)
                 caToggle = &ca;
 
-        assert(caItemPath && caItemPath->stretch_ > 0 && caItemPath->visible_);
-        assert(caToggle   && caToggle->stretch_ == 0);
+        assert(caItemPath && caItemPath->stretch > 0 && caItemPath->visible);
+        assert(caToggle   && caToggle  ->stretch == 0);
 
         if (caItemPath && caToggle)
         {
-            caToggle->visible_ = !caToggle->visible_;
+            caToggle->visible = !caToggle->visible;
 
             //take width of newly visible column from stretched item path column
-            caItemPath->offset_ -= caToggle->visible_ ? caToggle->offset_ : -caToggle->offset_;
+            caItemPath->offset -= caToggle->visible ? caToggle->offset : -caToggle->offset;
 
             grid.setColumnConfig(colAttr);
         }
     };
 
     if (const GridData* prov = grid.getDataProvider())
-        for (const Grid::ColumnAttribute& ca : grid.getColumnConfig())
-            menu.addCheckBox(prov->getColumnLabel(ca.type_), [ct = ca.type_, toggleColumn] { toggleColumn(ct); },
-                             ca.visible_, ca.type_ != static_cast<ColumnType>(ColumnTypeRim::ITEM_PATH)); //do not allow user to hide this column!
+        for (const Grid::ColAttributes& ca : grid.getColumnConfig())
+            menu.addCheckBox(prov->getColumnLabel(ca.type), [ct = ca.type, toggleColumn] { toggleColumn(ct); },
+                             ca.visible, ca.type != static_cast<ColumnType>(ColumnTypeRim::ITEM_PATH)); //do not allow user to hide this column!
     //----------------------------------------------------------------------------------------------
     menu.addSeparator();
 
@@ -2516,7 +2476,7 @@ void MainDialog::onGridLabelContextRim(Grid& grid, ColumnTypeRim type, bool left
     auto setItemPathFormat = [&](ItemPathFormat fmt)
     {
         itemPathFormat = fmt;
-        gridview::setItemPathForm(grid, fmt);
+        filegrid::setItemPathForm(grid, fmt);
     };
     auto addFormatEntry = [&](const wxString& label, ItemPathFormat fmt)
     {
@@ -2527,37 +2487,39 @@ void MainDialog::onGridLabelContextRim(Grid& grid, ColumnTypeRim type, bool left
     addFormatEntry(_("Item name"    ), ItemPathFormat::ITEM_NAME);
 
     //----------------------------------------------------------------------------------------------
-
     menu.addSeparator();
+
+    auto setIconSize = [&](xmlAccess::FileIconSize sz, bool showIcons)
+    {
+        globalCfg_.gui.mainDlg.iconSize  = sz;
+        globalCfg_.gui.mainDlg.showIcons = showIcons;
+        filegrid::setupIcons(*m_gridMainL, *m_gridMainC, *m_gridMainR, globalCfg_.gui.mainDlg.showIcons, convert(globalCfg_.gui.mainDlg.iconSize));
+    };
 
     auto setDefault = [&]
     {
-        grid.setColumnConfig(gridview::convertConfig(left ? getDefaultColumnAttributesLeft() : getDefaultColumnAttributesRight()));
+        const xmlAccess::XmlGlobalSettings defaultCfg;
+
+        grid.setColumnConfig(convertColAttributes(left ? defaultCfg.gui.mainDlg.columnAttribLeft : defaultCfg.gui.mainDlg.columnAttribRight, defaultCfg.gui.mainDlg.columnAttribLeft));
+
+        setItemPathFormat(left ? defaultCfg.gui.mainDlg.itemPathFormatLeftGrid : defaultCfg.gui.mainDlg.itemPathFormatRightGrid);
+
+        setIconSize(defaultCfg.gui.mainDlg.iconSize, defaultCfg.gui.mainDlg.showIcons);
     };
     menu.addItem(_("&Default"), setDefault); //'&' -> reuse text from "default" buttons elsewhere
     //----------------------------------------------------------------------------------------------
     menu.addSeparator();
-    menu.addCheckBox(_("Show icons:"), [&]
-    {
-        globalCfg_.gui.mainDlg.showIcons = !globalCfg_.gui.mainDlg.showIcons;
-        gridview::setupIcons(*m_gridMainL, *m_gridMainC, *m_gridMainR, globalCfg_.gui.mainDlg.showIcons, convert(globalCfg_.gui.mainDlg.iconSize));
+    menu.addCheckBox(_("Show icons:"), [&] { setIconSize(globalCfg_.gui.mainDlg.iconSize, !globalCfg_.gui.mainDlg.showIcons); }, globalCfg_.gui.mainDlg.showIcons);
 
-    }, globalCfg_.gui.mainDlg.showIcons);
-
-    auto setIconSize = [&](xmlAccess::FileIconSize sz)
-    {
-        globalCfg_.gui.mainDlg.iconSize = sz;
-        gridview::setupIcons(*m_gridMainL, *m_gridMainC, *m_gridMainR, globalCfg_.gui.mainDlg.showIcons, convert(sz));
-    };
     auto addSizeEntry = [&](const wxString& label, xmlAccess::FileIconSize sz)
     {
-        menu.addRadio(label, [sz, &setIconSize] { setIconSize(sz); }, globalCfg_.gui.mainDlg.iconSize == sz, globalCfg_.gui.mainDlg.showIcons);
+        menu.addRadio(label, [sz, &setIconSize] { setIconSize(sz, true /*showIcons*/); }, globalCfg_.gui.mainDlg.iconSize == sz, globalCfg_.gui.mainDlg.showIcons);
     };
     addSizeEntry(L"    " + _("Small" ), xmlAccess::ICON_SIZE_SMALL );
     addSizeEntry(L"    " + _("Medium"), xmlAccess::ICON_SIZE_MEDIUM);
     addSizeEntry(L"    " + _("Large" ), xmlAccess::ICON_SIZE_LARGE );
     //----------------------------------------------------------------------------------------------
-    if (type == ColumnTypeRim::DATE)
+    //    if (type == ColumnTypeRim::DATE)
     {
         menu.addSeparator();
 
@@ -2572,8 +2534,9 @@ void MainDialog::onGridLabelContextRim(Grid& grid, ColumnTypeRim type, bool left
         };
         menu.addItem(_("Select time span..."), selectTimeSpan);
     }
-
+    //--------------------------------------------------------------------------------------------------------
     menu.popup(*this);
+    //event.Skip();
 }
 
 
@@ -2702,6 +2665,7 @@ void MainDialog::OnSyncSettingsContext(wxEvent& event)
 
 void MainDialog::onDialogFilesDropped(FileDropEvent& event)
 {
+    assert(!event.getPaths().empty());
     loadConfiguration(event.getPaths());
     //event.Skip();
 }
@@ -2722,95 +2686,7 @@ void MainDialog::onDirManualCorrection(wxCommandEvent& event)
 }
 
 
-Zstring getFormattedHistoryElement(const Zstring& filepath)
-{
-    Zstring output = afterLast(filepath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
-    if (endsWith(output, Zstr(".ffs_gui")))
-        output = beforeLast(output, Zstr('.'), IF_MISSING_RETURN_NONE);
-    return output;
-}
-
-
-void MainDialog::addFileToCfgHistory(const std::vector<Zstring>& filePaths)
-{
-    //determine highest "last use" index number of m_listBoxHistory
-    int lastUseIndexMax = 0;
-    for (unsigned int i = 0; i < m_listBoxHistory->GetCount(); ++i)
-        if (auto histData = dynamic_cast<const wxClientHistoryData*>(m_listBoxHistory->GetClientObject(i)))
-            lastUseIndexMax = std::max(lastUseIndexMax, histData->lastUseIndex_);
-        else
-            assert(false);
-
-    std::deque<bool> selections(m_listBoxHistory->GetCount()); //items to select after update of history list
-
-    for (const Zstring& filePath : filePaths)
-    {
-        //Do we need to additionally check for aliases of the same physical files here? (and aliases for lastRunConfigName?)
-
-        const auto itemPos = [&]() -> std::pair<wxClientHistoryData*, unsigned int>
-        {
-            for (unsigned int i = 0; i < m_listBoxHistory->GetCount(); ++i)
-                if (auto histData = dynamic_cast<wxClientHistoryData*>(m_listBoxHistory->GetClientObject(i)))
-                {
-                    if (equalFilePath(filePath, histData->cfgFile_))
-                        return std::make_pair(histData, i);
-                }
-                else
-                    assert(false);
-            return std::make_pair(nullptr, 0);
-        }();
-
-        if (itemPos.first) //update
-        {
-            itemPos.first->lastUseIndex_ = ++lastUseIndexMax;
-            selections[itemPos.second] = true;
-        }
-        else //insert
-        {
-            const wxString lastSessionLabel = L"<" + _("Last session") + L">";
-
-            wxString newLabel;
-            unsigned int newPos = 0;
-
-            if (equalFilePath(filePath, lastRunConfigPath_))
-                newLabel = lastSessionLabel;
-            else
-            {
-                //workaround wxWidgets 2.9 bug on GTK screwing up the client data if the list box is sorted:
-                const Zstring labelFmt = getFormattedHistoryElement(filePath);
-                newLabel = utfTo<wxString>(labelFmt);
-
-                //"linear-time insertion sort":
-                for (; newPos < m_listBoxHistory->GetCount(); ++newPos)
-                {
-                    if (auto histData = dynamic_cast<wxClientHistoryData*>(m_listBoxHistory->GetClientObject(newPos)))
-                        if (equalFilePath(histData->cfgFile_, lastRunConfigPath_))
-                            continue; //last session label should always be at top position!
-
-                    if (LessNaturalSort()(labelFmt, utfTo<Zstring>(m_listBoxHistory->GetString(newPos))))
-                        break;
-                }
-            }
-
-            assert(!m_listBoxHistory->IsSorted());
-            m_listBoxHistory->Insert(newLabel, newPos, new wxClientHistoryData(filePath, ++lastUseIndexMax));
-
-            selections.insert(selections.begin() + newPos, true);
-        }
-    }
-
-    assert(selections.size() == m_listBoxHistory->GetCount());
-
-    //do not apply selections immediately but only when needed!
-    //this prevents problems with m_listBoxHistory losing keyboard selection focus if identical selection is redundantly reapplied
-    for (int pos = 0; pos < static_cast<int>(selections.size()); ++pos)
-        if (m_listBoxHistory->IsSelected(pos) != selections[pos])
-            m_listBoxHistory->SetSelection(pos, selections[pos]);
-    //note: a *positive* SetSelection() will include a EnsureVisible()!
-}
-
-
-void MainDialog::removeObsoleteCfgHistoryItems(const std::vector<Zstring>& filePaths)
+void MainDialog::cfgHistoryRemoveObsolete(const std::vector<Zstring>& filePaths)
 {
     auto getUnavailableCfgFilesAsync = [filePaths] //don't use wxString: NOT thread-safe! (e.g. non-atomic ref-count)
     {
@@ -2822,33 +2698,21 @@ void MainDialog::removeObsoleteCfgHistoryItems(const std::vector<Zstring>& fileP
         //potentially slow network access => limit maximum wait time!
         wait_for_all_timed(availableFiles.begin(), availableFiles.end(), std::chrono::milliseconds(1000));
 
-        std::vector<Zstring> filePathsForRemoval;
+        std::vector<Zstring> pathsToRemove;
 
         auto itFut = availableFiles.begin();
         for (auto it = filePaths.begin(); it != filePaths.end(); ++it, ++itFut)
             if (isReady(*itFut) && !itFut->get()) //remove only files that are confirmed to be non-existent
-                filePathsForRemoval.push_back(*it); //file access error? probably not accessible network share or usb stick => remove cfg
+                pathsToRemove.push_back(*it); //file access error? probably not accessible network share or usb stick => remove cfg
 
-        return filePathsForRemoval;
+        return pathsToRemove;
     };
 
-    guiQueue_.processAsync(getUnavailableCfgFilesAsync, [this](const std::vector<Zstring>& files) { removeCfgHistoryItems(files); });
-}
-
-
-void MainDialog::removeCfgHistoryItems(const std::vector<Zstring>& filePaths)
-{
-    for (const Zstring& filepath : filePaths)
+    guiQueue_.processAsync(getUnavailableCfgFilesAsync, [this](const std::vector<Zstring>& filePaths2)
     {
-        const int histSize = m_listBoxHistory->GetCount();
-        for (int i = 0; i < histSize; ++i)
-            if (auto histData = dynamic_cast<wxClientHistoryData*>(m_listBoxHistory->GetClientObject(i)))
-                if (equalFilePath(filepath, histData->cfgFile_))
-                {
-                    m_listBoxHistory->Delete(i);
-                    break;
-                }
-    }
+        cfggrid::getDataView(*m_gridCfgHistory).removeItems(filePaths2);
+        m_gridCfgHistory->Refresh();
+    });
 }
 
 
@@ -2856,7 +2720,7 @@ void MainDialog::updateUnsavedCfgStatus()
 {
     const Zstring activeCfgFilePath = activeConfigFiles_.size() == 1 && !equalFilePath(activeConfigFiles_[0], lastRunConfigPath_) ? activeConfigFiles_[0] : Zstring();
 
-    const bool haveUnsavedCfg = lastConfigurationSaved_ != getConfig();
+    const bool haveUnsavedCfg = lastSavedCfg_ != getConfig();
 
     //update save config button
     const bool allowSave = haveUnsavedCfg ||
@@ -2952,7 +2816,7 @@ bool MainDialog::trySaveConfig(const Zstring* guiFilename) //return true if save
     {
         Zstring defaultFileName = activeConfigFiles_.size() == 1 && !equalFilePath(activeConfigFiles_[0], lastRunConfigPath_) ? activeConfigFiles_[0] : Zstr("SyncSettings.ffs_gui");
         //attention: activeConfigFiles may be an imported *.ffs_batch file! We don't want to overwrite it with a GUI config!
-        if (endsWith(defaultFileName, Zstr(".ffs_batch")))
+        if (endsWith(defaultFileName, Zstr(".ffs_batch"), CmpFilePath()))
             defaultFileName = beforeLast(defaultFileName, Zstr("."), IF_MISSING_RETURN_NONE) + Zstr(".ffs_gui");
 
         wxFileDialog filePicker(this, //put modal dialog on stack: creating this on freestore leads to memleak!
@@ -3037,7 +2901,7 @@ bool MainDialog::trySaveBatchConfig(const Zstring* batchFileToUpdate)
 
         Zstring defaultFileName = !activeCfgFilePath.empty() ? activeCfgFilePath : Zstr("BatchRun.ffs_batch");
         //attention: activeConfigFiles may be a *.ffs_gui file! We don't want to overwrite it with a BATCH config!
-        if (endsWith(defaultFileName, Zstr(".ffs_gui")))
+        if (endsWith(defaultFileName, Zstr(".ffs_gui"), CmpFilePath()))
             defaultFileName = beforeLast(defaultFileName, Zstr("."), IF_MISSING_RETURN_NONE) + Zstr(".ffs_batch");
 
         wxFileDialog filePicker(this, //put modal dialog on stack: creating this on freestore leads to memleak!
@@ -3073,7 +2937,7 @@ bool MainDialog::trySaveBatchConfig(const Zstring* batchFileToUpdate)
 
 bool MainDialog::saveOldConfig() //return false on user abort
 {
-    if (lastConfigurationSaved_ != getConfig())
+    if (lastSavedCfg_ != getConfig())
     {
         const Zstring activeCfgFilePath = activeConfigFiles_.size() == 1 && !equalFilePath(activeConfigFiles_[0], lastRunConfigPath_) ? activeConfigFiles_[0] : Zstring();
 
@@ -3125,7 +2989,7 @@ bool MainDialog::saveOldConfig() //return false on user abort
             }
 
         //discard current reference file(s), this ensures next app start will load <last session> instead of the original non-modified config selection
-        setLastUsedConfig(std::vector<Zstring>(), lastConfigurationSaved_);
+        setLastUsedConfig(std::vector<Zstring>(), lastSavedCfg_);
         //this seems to make theoretical sense also: the job of this function is to make sure current (volatile) config and reference file name are in sync
         // => if user does not save cfg, it is not attached to a physical file names anymore!
     }
@@ -3152,6 +3016,7 @@ void MainDialog::OnConfigLoad(wxCommandEvent& event)
         for (const wxString& path : tmp)
             filePaths.push_back(utfTo<Zstring>(path));
 
+        assert(!filePaths.empty());
         loadConfiguration(filePaths);
     }
 }
@@ -3159,6 +3024,9 @@ void MainDialog::OnConfigLoad(wxCommandEvent& event)
 
 void MainDialog::OnConfigNew(wxCommandEvent& event)
 {
+    warn_static("replace by loadConfiguration({});")
+    warn_static("replace excludeFilter handling below with: cfgGrid context menu /new default configuration/")
+
     if (!saveOldConfig()) //notify user about changed settings
         return;
 
@@ -3175,86 +3043,70 @@ void MainDialog::OnConfigNew(wxCommandEvent& event)
 }
 
 
-void MainDialog::OnLoadFromHistory(wxCommandEvent& event)
+void MainDialog::onCfgGridSelection(GridSelectEvent& event)
 {
-    wxArrayInt selections;
-    m_listBoxHistory->GetSelections(selections);
+    if (event.mouseSelect_ && !event.mouseSelect_->complete)
+        return; //skip the preliminary "clear range" event for mouse-down!
+    //the mouse is still captured, so we don't want to show a modal dialog (e.g. save changes?) before mouse-up!
+    //what if mouse capture is lost? minor glitch: grid selection is empty, but parameter owner is "activeConfigFiles_" in any case
 
-    std::vector<Zstring> filepaths;
-    for (int pos : selections)
-        if (auto histData = dynamic_cast<const wxClientHistoryData*>(m_listBoxHistory->GetClientObject(pos)))
-            filepaths.push_back(histData->cfgFile_);
+    std::vector<Zstring> filePaths;
+    for (size_t row : m_gridCfgHistory->getSelectedRows())
+        if (const ConfigView::Details* cfg = cfggrid::getDataView(*m_gridCfgHistory).getItem(row))
+            filePaths.push_back(cfg->filePath);
         else
             assert(false);
-
-    if (!filepaths.empty())
-        loadConfiguration(filepaths);
-
-    //user changed m_listBoxHistory selection so it's this method's responsibility to synchronize with activeConfigFiles:
-    //- if user cancelled saving old config
-    //- there's an error loading new config
-    //- filepaths is empty and user tried to unselect the current config
-    addFileToCfgHistory(activeConfigFiles_);
+#if 1
+    if (!loadConfiguration(filePaths))
+        //user changed m_gridCfgHistory selection so it's this method's responsibility to synchronize with activeConfigFiles:
+        //- if user cancelled saving old config
+        //- there's an error loading new config
+        //- filePaths is empty and user tried to unselect the current config
+        cfggrid::addAndSelect(*m_gridCfgHistory, activeConfigFiles_, false /*scrollToSelection*/);
+#endif
+    warn_static("support the last one??? does NOT support newConfig.mainCfg.globalFilter.excludeFilter!!!")
 }
 
 
-void MainDialog::OnLoadFromHistoryDoubleClick(wxCommandEvent& event)
+void MainDialog::onCfgGridDoubleClick(GridClickEvent& event)
 {
-    wxArrayInt selections;
-    m_listBoxHistory->GetSelections(selections);
-
-    std::vector<Zstring> filepaths;
-    for (int pos : selections)
-        if (auto histData = dynamic_cast<const wxClientHistoryData*>(m_listBoxHistory->GetClientObject(pos)))
-            filepaths.push_back(histData->cfgFile_);
-        else
-            assert(false);
-
-    if (!filepaths.empty())
-        if (loadConfiguration(filepaths))
-        {
-            //simulate button click on "compare"
-            wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED);
-            if (wxEvtHandler* evtHandler = m_buttonCompare->GetEventHandler())
-                evtHandler->ProcessEvent(dummy2); //synchronous call
-        }
-
-    //synchronize m_listBoxHistory and activeConfigFiles, see OnLoadFromHistory()
-    addFileToCfgHistory(activeConfigFiles_);
+    if (!activeConfigFiles_.empty())
+    {
+        wxCommandEvent dummy(wxEVT_COMMAND_BUTTON_CLICKED);
+        m_buttonCompare->Command(dummy); //simulate click
+    }
 }
 
 
-bool MainDialog::loadConfiguration(const std::vector<Zstring>& filepaths)
+bool MainDialog::loadConfiguration(const std::vector<Zstring>& filePaths)
 {
-    if (filepaths.empty())
-        return true;
-
     if (!saveOldConfig())
         return false; //cancelled by user
 
-    //load XML
-    xmlAccess::XmlGuiConfig newGuiCfg; //structure to receive gui settings, already defaulted!!
-    try
-    {
-        //allow reading batch configurations also
-        std::wstring warningMsg;
-        xmlAccess::readAnyConfig(filepaths, newGuiCfg, warningMsg); //throw FileError
+    xmlAccess::XmlGuiConfig newGuiCfg; //contains default values
 
-        if (!warningMsg.empty())
+    if (!filePaths.empty()) //empty cfg file list means "use default"
+        try
         {
-            showNotificationDialog(this, DialogInfoType::WARNING, PopupDialogCfg().setDetailInstructions(warningMsg));
-            setConfig(newGuiCfg, filepaths);
-            setLastUsedConfig(filepaths, xmlAccess::XmlGuiConfig()); //simulate changed config due to parsing errors
+            //allow reading batch configurations also
+            std::wstring warningMsg;
+            xmlAccess::readAnyConfig(filePaths, newGuiCfg, warningMsg); //throw FileError
+
+            if (!warningMsg.empty())
+            {
+                showNotificationDialog(this, DialogInfoType::WARNING, PopupDialogCfg().setDetailInstructions(warningMsg));
+                setConfig(newGuiCfg, filePaths);
+                setLastUsedConfig(filePaths, xmlAccess::XmlGuiConfig()); //simulate changed config due to parsing errors
+                return true;
+            }
+        }
+        catch (const FileError& e)
+        {
+            showNotificationDialog(this, DialogInfoType::ERROR2, PopupDialogCfg().setDetailInstructions(e.toString()));
             return false;
         }
-    }
-    catch (const FileError& e)
-    {
-        showNotificationDialog(this, DialogInfoType::ERROR2, PopupDialogCfg().setDetailInstructions(e.toString()));
-        return false;
-    }
 
-    setConfig(newGuiCfg, filepaths);
+    setConfig(newGuiCfg, filePaths);
     //flashStatusInformation("Configuration loaded"); -> irrelevant!?
     return true;
 }
@@ -3262,33 +3114,33 @@ bool MainDialog::loadConfiguration(const std::vector<Zstring>& filepaths)
 
 void MainDialog::deleteSelectedCfgHistoryItems()
 {
-    wxArrayInt tmp;
-    m_listBoxHistory->GetSelections(tmp);
-
-    std::set<int> selections(tmp.begin(), tmp.end()); //sort ascending!
-    //delete starting with high positions:
-    std::for_each(selections.rbegin(), selections.rend(), [&](int pos) { m_listBoxHistory->Delete(pos); });
-
-    //set active selection on next element to allow "batch-deletion" by holding down DEL key
-    if (!selections.empty() && !m_listBoxHistory->IsEmpty())
+    const std::vector<size_t> selectedRows = m_gridCfgHistory->getSelectedRows();
+    if (!selectedRows.empty())
     {
-        int newSelection = *selections.begin();
-        if (newSelection >= static_cast<int>(m_listBoxHistory->GetCount()))
-            newSelection = m_listBoxHistory->GetCount() - 1;
-        m_listBoxHistory->SetSelection(newSelection);
+        std::vector<Zstring> filePaths;
+        for (size_t row : selectedRows)
+            if (const ConfigView::Details* cfg = cfggrid::getDataView(*m_gridCfgHistory).getItem(row))
+                filePaths.push_back(cfg->filePath);
+            else
+                assert(false);
+
+        cfggrid::getDataView(*m_gridCfgHistory).removeItems(filePaths);
+        m_gridCfgHistory->Refresh(); //grid size changed => clears selection!
+
+        //set active selection on next element to allow "batch-deletion" by holding down DEL key
+        if (m_gridCfgHistory->getRowCount() > 0)
+        {
+            size_t nextRow = selectedRows.front();
+            if (nextRow >= m_gridCfgHistory->getRowCount())
+                nextRow = m_gridCfgHistory->getRowCount() - 1;
+
+            m_gridCfgHistory->selectRow(nextRow, GridEventPolicy::DENY_GRID_EVENT);
+        }
     }
 }
 
 
-void MainDialog::OnCfgHistoryRightClick(wxMouseEvent& event)
-{
-    ContextMenu menu;
-    menu.addItem(_("Remove entry from list") + L"\tDel", [this] { deleteSelectedCfgHistoryItems(); });
-    menu.popup(*this);
-}
-
-
-void MainDialog::OnCfgHistoryKeyEvent(wxKeyEvent& event)
+void MainDialog::onCfgGridKeyEvent(wxKeyEvent& event)
 {
     const int keyCode = event.GetKeyCode();
     if (keyCode == WXK_DELETE ||
@@ -3301,17 +3153,110 @@ void MainDialog::OnCfgHistoryKeyEvent(wxKeyEvent& event)
 }
 
 
+void MainDialog::onCfgGridContext(GridClickEvent& event)
+{
+    ContextMenu menu;
+    //--------------------------------------------------------------------------------------------------------
+    const std::vector<size_t> selectedRows = m_gridCfgHistory->getSelectedRows();
+
+    menu.addItem(_("Hide configuration") + L"\tDel", [this] { deleteSelectedCfgHistoryItems(); }, nullptr, !selectedRows.empty());
+    //--------------------------------------------------------------------------------------------------------
+    menu.popup(*this);
+    //event.Skip();
+}
+
+
+void MainDialog::onCfgGridLabelContext(GridLabelClickEvent& event)
+{
+    ContextMenu menu;
+    //--------------------------------------------------------------------------------------------------------
+    auto toggleColumn = [&](ColumnType ct)
+    {
+        auto colAttr = m_gridCfgHistory->getColumnConfig();
+
+        Grid::ColAttributes* caName   = nullptr;
+        Grid::ColAttributes* caToggle = nullptr;
+
+        for (Grid::ColAttributes& ca : colAttr)
+            if (ca.type == static_cast<ColumnType>(ColumnTypeCfg::NAME))
+                caName = &ca;
+            else if (ca.type == ct)
+                caToggle = &ca;
+
+        assert(caName && caName->stretch > 0 && caName->visible);
+        assert(caToggle && caToggle->stretch == 0);
+
+        if (caName && caToggle)
+        {
+            caToggle->visible = !caToggle->visible;
+
+            //take width of newly visible column from stretched folder name column
+            caName->offset -= caToggle->visible ? caToggle->offset : -caToggle->offset;
+
+            m_gridCfgHistory->setColumnConfig(colAttr);
+        }
+    };
+
+    if (auto prov = m_gridCfgHistory->getDataProvider())
+        for (const Grid::ColAttributes& ca : m_gridCfgHistory->getColumnConfig())
+            menu.addCheckBox(prov->getColumnLabel(ca.type), [ct = ca.type, toggleColumn] { toggleColumn(ct); },
+                             ca.visible, ca.type != static_cast<ColumnType>(ColumnTypeCfg::NAME)); //do not allow user to hide name column!
+    else assert(false);
+    //--------------------------------------------------------------------------------------------------------
+    menu.addSeparator();
+
+    auto setDefault = [&]
+    {
+        const xmlAccess::XmlGlobalSettings defaultCfg;
+        m_gridCfgHistory->setColumnConfig(convertColAttributes(defaultCfg.gui.mainDlg.cfgGridColumnAttribs, getCfgGridDefaultColAttribs()));
+    };
+    menu.addItem(_("&Default"), setDefault); //'&' -> reuse text from "default" buttons elsewhere
+    //--------------------------------------------------------------------------------------------------------
+    menu.addSeparator();
+
+    auto setCfgHighlight = [&]
+    {
+        int cfgGridSyncOverdueDays = cfggrid::getSyncOverdueDays(*m_gridCfgHistory);
+
+        if (showCfgHighlightDlg(this, cfgGridSyncOverdueDays) == ReturnSmallDlg::BUTTON_OKAY)
+            cfggrid::setSyncOverdueDays(*m_gridCfgHistory, cfgGridSyncOverdueDays);
+    };
+    menu.addItem(_("Highlight..."), setCfgHighlight);
+    //--------------------------------------------------------------------------------------------------------
+
+    menu.popup(*m_gridCfgHistory);
+    //event.Skip();
+}
+
+
+void MainDialog::onCfgGridLabelLeftClick(GridLabelClickEvent& event)
+{
+    const auto colType = static_cast<ColumnTypeCfg>(event.colType_);
+    bool sortAscending = getDefaultSortDirection(colType);
+
+    const auto sortInfo = cfggrid::getDataView(*m_gridCfgHistory).getSortDirection();
+    if (sortInfo.first == colType)
+        sortAscending = !sortInfo.second;
+
+    cfggrid::getDataView(*m_gridCfgHistory).setSortDirection(colType, sortAscending);
+    m_gridCfgHistory->Refresh();
+
+    //re-apply selection:
+    cfggrid::addAndSelect(*m_gridCfgHistory, activeConfigFiles_, false /*scrollToSelection*/);
+}
+
+
 void MainDialog::onCheckRows(CheckRowsEvent& event)
 {
     std::vector<size_t> selectedRows;
 
-    const size_t rowLast = std::min(event.rowLast_, gridDataView_->rowsOnView()); //consider dummy rows
+    const size_t rowLast = std::min(event.rowLast_, filegrid::getDataView(*m_gridMainC).rowsOnView()); //consider dummy rows
     for (size_t i = event.rowFirst_; i < rowLast; ++i)
         selectedRows.push_back(i);
 
     if (!selectedRows.empty())
     {
-        std::vector<FileSystemObject*> objects = gridDataView_->getAllFileRef(selectedRows);
+        std::vector<FileSystemObject*> objects = filegrid::getDataView(*m_gridMainC).getAllFileRef(selectedRows);
         setFilterManually(objects, event.setIncluded_);
     }
 }
@@ -3321,13 +3266,13 @@ void MainDialog::onSetSyncDirection(SyncDirectionEvent& event)
 {
     std::vector<size_t> selectedRows;
 
-    const size_t rowLast = std::min(event.rowLast_, gridDataView_->rowsOnView()); //consider dummy rows
+    const size_t rowLast = std::min(event.rowLast_, filegrid::getDataView(*m_gridMainC).rowsOnView()); //consider dummy rows
     for (size_t i = event.rowFirst_; i < rowLast; ++i)
         selectedRows.push_back(i);
 
     if (!selectedRows.empty())
     {
-        std::vector<FileSystemObject*> objects = gridDataView_->getAllFileRef(selectedRows);
+        std::vector<FileSystemObject*> objects = filegrid::getDataView(*m_gridMainC).getAllFileRef(selectedRows);
         setSyncDirManually(objects, event.direction_);
     }
 }
@@ -3337,9 +3282,9 @@ void MainDialog::setLastUsedConfig(const std::vector<Zstring>& cfgFilePaths,
                                    const xmlAccess::XmlGuiConfig& guiConfig)
 {
     activeConfigFiles_ = cfgFilePaths;
-    lastConfigurationSaved_ = guiConfig;
+    lastSavedCfg_ = guiConfig;
 
-    addFileToCfgHistory(activeConfigFiles_); //put filepath on list of last used config files
+    cfggrid::addAndSelect(*m_gridCfgHistory, activeConfigFiles_, true /*scrollToSelection*/); //put filepath on list of last used config files
 
     updateUnsavedCfgStatus();
 }
@@ -3400,7 +3345,7 @@ void MainDialog::updateGuiDelayedIf(bool condition)
 
     if (condition)
     {
-        gridview::refresh(*m_gridMainL, *m_gridMainC, *m_gridMainR);
+        filegrid::refresh(*m_gridMainL, *m_gridMainC, *m_gridMainR);
         m_gridMainL->Update();
         m_gridMainC->Update();
         m_gridMainR->Update();
@@ -3467,7 +3412,7 @@ void MainDialog::showConfigDialog(SyncConfigPanel panelToShow, int localPairInde
                           currentCfg_.mainCfg.postSyncCommand,
                           currentCfg_.mainCfg.postSyncCondition,
                           globalCfg_.gui.commandHistory,
-                          globalCfg_.gui.commandHistoryMax) == ReturnSyncConfig::BUTTON_OKAY)
+                          globalCfg_.gui.commandHistItemsMax) == ReturnSyncConfig::BUTTON_OKAY)
     {
         assert(folderPairConfig.size() == folderPairConfigOld.size());
 
@@ -3780,8 +3725,8 @@ void MainDialog::OnCompare(wxCommandEvent& event)
         return;
     }
 
-    gridDataView_->setData(folderCmp_); //update view on data
-    treeDataView_->setData(folderCmp_); //
+    filegrid::getDataView(*m_gridMainC).setData(folderCmp_); //update view on data
+    treegrid::getDataView(*m_gridOverview).setData(folderCmp_); //
     updateGui();
 
     m_gridMainL->clearSelection(ALLOW_GRID_EVENT);
@@ -3844,8 +3789,8 @@ void MainDialog::clearGrid(ptrdiff_t pos)
             folderCmp_.erase(folderCmp_.begin() + pos);
     }
 
-    gridDataView_->setData(folderCmp_);
-    treeDataView_->setData(folderCmp_);
+    filegrid::getDataView(*m_gridMainC).setData(folderCmp_);
+    treegrid::getDataView(*m_gridOverview).setData(folderCmp_);
     updateGui();
 }
 
@@ -3912,9 +3857,8 @@ void MainDialog::OnStartSync(wxCommandEvent& event)
     if (folderCmp_.empty())
     {
         //quick sync: simulate button click on "compare"
-        wxCommandEvent dummy2(wxEVT_COMMAND_BUTTON_CLICKED);
-        if (wxEvtHandler* evtHandler = m_buttonCompare->GetEventHandler())
-            evtHandler->ProcessEvent(dummy2); //synchronous call
+        wxCommandEvent dummy(wxEVT_COMMAND_BUTTON_CLICKED);
+        m_buttonCompare->Command(dummy); //simulate click
 
         if (folderCmp_.empty()) //check if user aborted or error occurred, ect...
             return;
@@ -3999,11 +3943,21 @@ void MainDialog::OnStartSync(wxCommandEvent& event)
                     folderCmp_,
                     globalCfg_.optDialogs,
                     statusHandler);
+
+        //not cancelled? => update last sync date for selected cfg files
+        std::vector<std::pair<Zstring, time_t>> lastSyncTimes;
+        for (const Zstring& cfgPath : activeConfigFiles_)
+            lastSyncTimes.emplace_back(cfgPath, std::time(nullptr));
+
+        cfggrid::getDataView(*m_gridCfgHistory).setLastSyncTime(lastSyncTimes);
+        //re-apply selection: sort order changed if sorted by last sync time
+        cfggrid::addAndSelect(*m_gridCfgHistory, activeConfigFiles_, false /*scrollToSelection*/);
+        //m_gridCfgHistory->Refresh(); <- implicit in last call
     }
     catch (AbortProcess&) {}
 
     //remove empty rows: just a beautification, invalid rows shouldn't cause issues
-    gridDataView_->removeInvalidRows();
+    filegrid::getDataView(*m_gridMainC).removeInvalidRows();
 
     updateGui();
 
@@ -4030,7 +3984,7 @@ void MainDialog::onGridDoubleClickRim(size_t row, bool leftSide)
     {
         std::vector<FileSystemObject*> selectionLeft;
         std::vector<FileSystemObject*> selectionRight;
-        if (FileSystemObject* fsObj = gridDataView_->getObject(row)) //selection must be a list of BOUND pointers!
+        if (FileSystemObject* fsObj = filegrid::getDataView(*m_gridMainC).getObject(row)) //selection must be a list of BOUND pointers!
             (leftSide ? selectionLeft : selectionRight) = { fsObj };
 
         openExternalApplication(globalCfg_.gui.externelApplications[0].second, leftSide, selectionLeft, selectionRight);
@@ -4040,15 +3994,15 @@ void MainDialog::onGridDoubleClickRim(size_t row, bool leftSide)
 
 void MainDialog::onGridLabelLeftClick(bool onLeft, ColumnTypeRim type)
 {
-    auto sortInfo = gridDataView_->getSortInfo();
+    auto sortInfo = filegrid::getDataView(*m_gridMainC).getSortInfo();
 
-    bool sortAscending = GridView::getDefaultSortDirection(type);
-    if (sortInfo && sortInfo->onLeft_ == onLeft && sortInfo->type_ == type)
-        sortAscending = !sortInfo->ascending_;
+    bool sortAscending = getDefaultSortDirection(type);
+    if (sortInfo && sortInfo->onLeft == onLeft && sortInfo->type == type)
+        sortAscending = !sortInfo->ascending;
 
     const ItemPathFormat itemPathFormat = onLeft ? globalCfg_.gui.mainDlg.itemPathFormatLeftGrid : globalCfg_.gui.mainDlg.itemPathFormatRightGrid;
 
-    gridDataView_->sortView(type, itemPathFormat, onLeft, sortAscending);
+    filegrid::getDataView(*m_gridMainC).sortView(type, itemPathFormat, onLeft, sortAscending);
 
     m_gridMainL->clearSelection(ALLOW_GRID_EVENT);
     m_gridMainC->clearSelection(ALLOW_GRID_EVENT);
@@ -4143,16 +4097,16 @@ void MainDialog::updateGridViewData()
 
     if (m_bpButtonViewTypeSyncAction->isActive())
     {
-        const GridView::StatusSyncPreview result = gridDataView_->updateSyncPreview(m_bpButtonShowExcluded   ->isActive(),
-                                                                                    m_bpButtonShowCreateLeft ->isActive(),
-                                                                                    m_bpButtonShowCreateRight->isActive(),
-                                                                                    m_bpButtonShowDeleteLeft ->isActive(),
-                                                                                    m_bpButtonShowDeleteRight->isActive(),
-                                                                                    m_bpButtonShowUpdateLeft ->isActive(),
-                                                                                    m_bpButtonShowUpdateRight->isActive(),
-                                                                                    m_bpButtonShowDoNothing  ->isActive(),
-                                                                                    m_bpButtonShowEqual      ->isActive(),
-                                                                                    m_bpButtonShowConflict   ->isActive());
+        const FileView::StatusSyncPreview result = filegrid::getDataView(*m_gridMainC).updateSyncPreview(m_bpButtonShowExcluded   ->isActive(),
+                                                   m_bpButtonShowCreateLeft ->isActive(),
+                                                   m_bpButtonShowCreateRight->isActive(),
+                                                   m_bpButtonShowDeleteLeft ->isActive(),
+                                                   m_bpButtonShowDeleteRight->isActive(),
+                                                   m_bpButtonShowUpdateLeft ->isActive(),
+                                                   m_bpButtonShowUpdateRight->isActive(),
+                                                   m_bpButtonShowDoNothing  ->isActive(),
+                                                   m_bpButtonShowEqual      ->isActive(),
+                                                   m_bpButtonShowConflict   ->isActive());
         filesOnLeftView    = result.filesOnLeftView;
         foldersOnLeftView  = result.foldersOnLeftView;
         filesOnRightView   = result.filesOnRightView;
@@ -4181,14 +4135,14 @@ void MainDialog::updateGridViewData()
     }
     else
     {
-        const GridView::StatusCmpResult result = gridDataView_->updateCmpResult(m_bpButtonShowExcluded  ->isActive(),
-                                                                                m_bpButtonShowLeftOnly  ->isActive(),
-                                                                                m_bpButtonShowRightOnly ->isActive(),
-                                                                                m_bpButtonShowLeftNewer ->isActive(),
-                                                                                m_bpButtonShowRightNewer->isActive(),
-                                                                                m_bpButtonShowDifferent ->isActive(),
-                                                                                m_bpButtonShowEqual     ->isActive(),
-                                                                                m_bpButtonShowConflict  ->isActive());
+        const FileView::StatusCmpResult result = filegrid::getDataView(*m_gridMainC).updateCmpResult(m_bpButtonShowExcluded  ->isActive(),
+                                                 m_bpButtonShowLeftOnly  ->isActive(),
+                                                 m_bpButtonShowRightOnly ->isActive(),
+                                                 m_bpButtonShowLeftNewer ->isActive(),
+                                                 m_bpButtonShowRightNewer->isActive(),
+                                                 m_bpButtonShowDifferent ->isActive(),
+                                                 m_bpButtonShowEqual     ->isActive(),
+                                                 m_bpButtonShowConflict  ->isActive());
         filesOnLeftView    = result.filesOnLeftView;
         foldersOnLeftView  = result.foldersOnLeftView;
         filesOnRightView   = result.filesOnRightView;
@@ -4242,29 +4196,29 @@ void MainDialog::updateGridViewData()
     m_panelViewFilter->Layout();
 
     //all three grids retrieve their data directly via gridDataView
-    gridview::refresh(*m_gridMainL, *m_gridMainC, *m_gridMainR);
+    filegrid::refresh(*m_gridMainL, *m_gridMainC, *m_gridMainR);
 
-    //navigation tree
+    //overview panel
     if (m_bpButtonViewTypeSyncAction->isActive())
-        treeDataView_->updateSyncPreview(m_bpButtonShowExcluded   ->isActive(),
-                                         m_bpButtonShowCreateLeft ->isActive(),
-                                         m_bpButtonShowCreateRight->isActive(),
-                                         m_bpButtonShowDeleteLeft ->isActive(),
-                                         m_bpButtonShowDeleteRight->isActive(),
-                                         m_bpButtonShowUpdateLeft ->isActive(),
-                                         m_bpButtonShowUpdateRight->isActive(),
-                                         m_bpButtonShowDoNothing  ->isActive(),
-                                         m_bpButtonShowEqual      ->isActive(),
-                                         m_bpButtonShowConflict   ->isActive());
+        treegrid::getDataView(*m_gridOverview).updateSyncPreview(m_bpButtonShowExcluded   ->isActive(),
+                                                                 m_bpButtonShowCreateLeft ->isActive(),
+                                                                 m_bpButtonShowCreateRight->isActive(),
+                                                                 m_bpButtonShowDeleteLeft ->isActive(),
+                                                                 m_bpButtonShowDeleteRight->isActive(),
+                                                                 m_bpButtonShowUpdateLeft ->isActive(),
+                                                                 m_bpButtonShowUpdateRight->isActive(),
+                                                                 m_bpButtonShowDoNothing  ->isActive(),
+                                                                 m_bpButtonShowEqual      ->isActive(),
+                                                                 m_bpButtonShowConflict   ->isActive());
     else
-        treeDataView_->updateCmpResult(m_bpButtonShowExcluded  ->isActive(),
-                                       m_bpButtonShowLeftOnly  ->isActive(),
-                                       m_bpButtonShowRightOnly ->isActive(),
-                                       m_bpButtonShowLeftNewer ->isActive(),
-                                       m_bpButtonShowRightNewer->isActive(),
-                                       m_bpButtonShowDifferent ->isActive(),
-                                       m_bpButtonShowEqual     ->isActive(),
-                                       m_bpButtonShowConflict  ->isActive());
+        treegrid::getDataView(*m_gridOverview).updateCmpResult(m_bpButtonShowExcluded  ->isActive(),
+                                                               m_bpButtonShowLeftOnly  ->isActive(),
+                                                               m_bpButtonShowRightOnly ->isActive(),
+                                                               m_bpButtonShowLeftNewer ->isActive(),
+                                                               m_bpButtonShowRightNewer->isActive(),
+                                                               m_bpButtonShowDifferent ->isActive(),
+                                                               m_bpButtonShowEqual     ->isActive(),
+                                                               m_bpButtonShowConflict  ->isActive());
     m_gridOverview->Refresh();
 
     //update status bar information
@@ -4387,7 +4341,7 @@ void MainDialog::startFindNext(bool searchAscending) //F3 or ENTER in m_textCtrl
         {
             assert(result.second >= 0);
 
-            gridview::setScrollMaster(*grid);
+            filegrid::setScrollMaster(*grid);
             grid->setGridCursor(result.second);
 
             focusWindowAfterSearch_ = &grid->getMainWin();
@@ -4682,8 +4636,8 @@ void MainDialog::moveAddFolderPairUp(size_t pos)
         if (!folderCmp_.empty())
             std::swap(folderCmp_[pos], folderCmp_[pos + 1]); //invariant: folderCmp is empty or matches number of all folder pairs
 
-        gridDataView_->setData(folderCmp_);
-        treeDataView_->setData(folderCmp_);
+        filegrid::getDataView(*m_gridMainC   ).setData(folderCmp_);
+        treegrid::getDataView(*m_gridOverview).setData(folderCmp_);
         updateGui();
     }
 }
@@ -4784,31 +4738,31 @@ void MainDialog::OnMenuExportFileList(wxCommandEvent& event)
     auto colAttrCenter = m_gridMainC->getColumnConfig();
     auto colAttrRight  = m_gridMainR->getColumnConfig();
 
-    erase_if(colAttrLeft,   [](const Grid::ColumnAttribute& ca) { return !ca.visible_; });
-    erase_if(colAttrCenter, [](const Grid::ColumnAttribute& ca) { return !ca.visible_ || static_cast<ColumnTypeCenter>(ca.type_) == ColumnTypeCenter::CHECKBOX; });
-    erase_if(colAttrRight,  [](const Grid::ColumnAttribute& ca) { return !ca.visible_; });
+    erase_if(colAttrLeft,   [](const Grid::ColAttributes& ca) { return !ca.visible; });
+    erase_if(colAttrCenter, [](const Grid::ColAttributes& ca) { return !ca.visible || static_cast<ColumnTypeCenter>(ca.type) == ColumnTypeCenter::CHECKBOX; });
+    erase_if(colAttrRight,  [](const Grid::ColAttributes& ca) { return !ca.visible; });
 
     if (provLeft && provCenter && provRight)
     {
-        for (const Grid::ColumnAttribute& ca : colAttrLeft)
+        for (const Grid::ColAttributes& ca : colAttrLeft)
         {
-            header += fmtValue(provLeft->getColumnLabel(ca.type_));
+            header += fmtValue(provLeft->getColumnLabel(ca.type));
             header += CSV_SEP;
         }
-        for (const Grid::ColumnAttribute& ca : colAttrCenter)
+        for (const Grid::ColAttributes& ca : colAttrCenter)
         {
-            header += fmtValue(provCenter->getColumnLabel(ca.type_));
+            header += fmtValue(provCenter->getColumnLabel(ca.type));
             header += CSV_SEP;
         }
         if (!colAttrRight.empty())
         {
             std::for_each(colAttrRight.begin(), colAttrRight.end() - 1,
-                          [&](const Grid::ColumnAttribute& ca)
+                          [&](const Grid::ColAttributes& ca)
             {
-                header += fmtValue(provRight->getColumnLabel(ca.type_));
+                header += fmtValue(provRight->getColumnLabel(ca.type));
                 header += CSV_SEP;
             });
-            header += fmtValue(provRight->getColumnLabel(colAttrRight.back().type_));
+            header += fmtValue(provRight->getColumnLabel(colAttrRight.back().type));
         }
         header += LINE_BREAK;
 
@@ -4828,21 +4782,21 @@ void MainDialog::OnMenuExportFileList(wxCommandEvent& event)
             const size_t rowCount = m_gridMainL->getRowCount();
             for (size_t row = 0; row < rowCount; ++row)
             {
-                for (const Grid::ColumnAttribute& ca : colAttrLeft)
+                for (const Grid::ColAttributes& ca : colAttrLeft)
                 {
-                    buffer += fmtValue(provLeft->getValue(row, ca.type_));
+                    buffer += fmtValue(provLeft->getValue(row, ca.type));
                     buffer += CSV_SEP;
                 }
 
-                for (const Grid::ColumnAttribute& ca : colAttrCenter)
+                for (const Grid::ColAttributes& ca : colAttrCenter)
                 {
-                    buffer += fmtValue(provCenter->getValue(row, ca.type_));
+                    buffer += fmtValue(provCenter->getValue(row, ca.type));
                     buffer += CSV_SEP;
                 }
 
-                for (const Grid::ColumnAttribute& ca : colAttrRight)
+                for (const Grid::ColAttributes& ca : colAttrRight)
                 {
-                    buffer += fmtValue(provRight->getValue(row, ca.type_));
+                    buffer += fmtValue(provRight->getValue(row, ca.type));
                     buffer += CSV_SEP;
                 }
                 buffer += LINE_BREAK;
@@ -4951,7 +4905,7 @@ void MainDialog::switchProgramLanguage(wxLanguage langId)
     newGlobalCfg.programLanguage = langId;
 
     //show new dialog, then delete old one
-    MainDialog::create(globalConfigFile_, &newGlobalCfg, getConfig(), activeConfigFiles_, false);
+    MainDialog::create(globalConfigFilePath_, &newGlobalCfg, getConfig(), activeConfigFiles_, false);
 
     //we don't use Close():
     //1. we don't want to show the prompt to save current config in OnClose()
@@ -4970,7 +4924,7 @@ void MainDialog::setViewTypeSyncAction(bool value)
     m_bpButtonViewTypeSyncAction->SetToolTip((value ? _("Action") : _("Category")) + L" (F10)");
 
     //toggle display of sync preview in middle grid
-    gridview::highlightSyncAction(*m_gridMainC, value);
+    filegrid::highlightSyncAction(*m_gridMainC, value);
 
     updateGui();
 }

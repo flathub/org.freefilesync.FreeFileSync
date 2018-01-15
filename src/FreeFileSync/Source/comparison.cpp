@@ -86,25 +86,25 @@ ResolvedBaseFolders initializeBaseFolders(const std::vector<FolderPairCfg>& cfgL
 
         if (!status.notExisting.empty() || !status.failedChecks.empty())
         {
-            std::wstring errorMsg = _("Cannot find the following folders:") + L"\n";
+            std::wstring msg = _("Cannot find the following folders:") + L"\n";
 
             for (const AbstractPath& folderPath : status.notExisting)
-                errorMsg += L"\n" + AFS::getDisplayPath(folderPath);
+                msg += L"\n" + AFS::getDisplayPath(folderPath);
 
             for (const auto& fc : status.failedChecks)
-                errorMsg += L"\n" + AFS::getDisplayPath(fc.first);
+                msg += L"\n" + AFS::getDisplayPath(fc.first);
 
-            errorMsg += L"\n\n";
-            errorMsg +=  _("If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.");
+            msg += L"\n\n";
+            msg +=  _("If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.");
 
             if (!status.failedChecks.empty())
             {
-                errorMsg += L"\n___________________________________________";
+                msg += L"\n___________________________________________";
                 for (const auto& fc : status.failedChecks)
-                    errorMsg += L"\n\n" + replaceCpy(fc.second.toString(), L"\n\n", L"\n");
+                    msg += L"\n\n" + replaceCpy(fc.second.toString(), L"\n\n", L"\n");
             }
 
-            throw FileError(errorMsg);
+            throw FileError(msg);
         }
     }, callback); //throw X?
 

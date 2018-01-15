@@ -150,36 +150,36 @@ namespace
 
 
 //expand volume name if possible, return original input otherwise
-Zstring expandVolumeName(const Zstring& text)  // [volname]:\folder       [volname]\folder       [volname]folder     -> C:\folder
+Zstring expandVolumeName(Zstring pathPhrase)  // [volname]:\folder       [volname]\folder       [volname]folder     -> C:\folder
 {
     //this would be a nice job for a C++11 regex...
 
     //we only expect the [.*] pattern at the beginning => do not touch dir names like "C:\somedir\[stuff]"
-    const Zstring textTmp = trimCpy(text, true, false);
-    if (startsWith(textTmp, Zstr("[")))
+    trim(pathPhrase, true, false);
+    if (startsWith(pathPhrase, Zstr("[")))
     {
-        size_t posEnd = textTmp.find(Zstr("]"));
+        size_t posEnd = pathPhrase.find(Zstr("]"));
         if (posEnd != Zstring::npos)
         {
-            Zstring volname = Zstring(textTmp.c_str() + 1, posEnd - 1);
-            Zstring rest    = Zstring(textTmp.c_str() + posEnd + 1);
+            Zstring volName = Zstring(pathPhrase.c_str() + 1, posEnd - 1);
+            Zstring relPath = Zstring(pathPhrase.c_str() + posEnd + 1);
 
-            if (startsWith(rest, Zstr(':')))
-                rest = afterFirst(rest, Zstr(':'), IF_MISSING_RETURN_NONE);
-            if (startsWith(rest, FILE_NAME_SEPARATOR))
-                rest = afterFirst(rest, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
-            return "/.../[" + volname + "]/" + rest;
+            if (startsWith(relPath, Zstr(':')))
+                relPath = afterFirst(relPath, Zstr(':'), IF_MISSING_RETURN_NONE);
+            if (startsWith(relPath, FILE_NAME_SEPARATOR))
+                relPath = afterFirst(relPath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
+            return "/.../[" + volName + "]/" + relPath;
         }
     }
-    return text;
+    return pathPhrase;
 }
 }
 
 
-void getDirectoryAliasesRecursive(const Zstring& dirPath, std::set<Zstring, LessFilePath>& output)
+void getDirectoryAliasesRecursive(const Zstring& pathPhrase, std::set<Zstring, LessFilePath>& output)
 {
 
-    //3. environment variables: C:\Users\<user> -> %UserProfile%, C:\Users\%UserName%
+    //3. environment variables: C:\Users\<user> -> %UserProfile%
     {
         std::vector<std::pair<Zstring, Zstring>> macroList;
 
@@ -197,16 +197,16 @@ void getDirectoryAliasesRecursive(const Zstring& dirPath, std::set<Zstring, Less
             const Zstring& macroName = item.first;
             const Zstring& macroPath = item.second;
 
-            const Zstring pathSubst = ciReplaceCpy(dirPath, macroPath, MACRO_SEP + macroName + MACRO_SEP); //ci on Linux, too? okay
-            if (pathSubst != dirPath)
+            const Zstring pathSubst = ciReplaceCpy(pathPhrase, macroPath, MACRO_SEP + macroName + MACRO_SEP); //ci on Linux, too? okay
+            if (pathSubst != pathPhrase)
                 output.insert(pathSubst);
         }
     }
 
     //4. replace (all) macros: %UserProfile% -> C:\Users\<user>
     {
-        const Zstring pathExp = expandMacros(dirPath);
-        if (pathExp != dirPath)
+        const Zstring pathExp = expandMacros(pathPhrase);
+        if (pathExp != pathPhrase)
             if (output.insert(pathExp).second)
                 getDirectoryAliasesRecursive(pathExp, output); //recurse!
     }
@@ -217,7 +217,7 @@ std::vector<Zstring> zen::getDirectoryAliases(const Zstring& folderPathPhrase)
 {
     const Zstring dirPath = trimCpy(folderPathPhrase, true, false);
     if (dirPath.empty())
-        return std::vector<Zstring>();
+        return {};
 
     std::set<Zstring, LessFilePath> tmp;
     getDirectoryAliasesRecursive(dirPath, tmp);
@@ -225,7 +225,7 @@ std::vector<Zstring> zen::getDirectoryAliases(const Zstring& folderPathPhrase)
     tmp.erase(dirPath);
     tmp.erase(Zstring());
 
-    return std::vector<Zstring>(tmp.begin(), tmp.end());
+    return { tmp.begin(), tmp.end() };
 }
 
 
@@ -261,12 +261,11 @@ Zstring zen::getResolvedFilePath(const Zstring& pathPhrase) //noexcept
     //remove trailing slash, unless volume root:
     if (Opt<PathComponents> pc = parsePathComponents(path))
     {
-        //keep this brace for GCC: -Wparentheses
         if (pc->relPath.empty())
             path = pc->rootPath;
         else
             path = appendSeparator(pc->rootPath) + pc->relPath;
-    }
+    } //keep this brace for GCC: -Wparentheses
 
     return path;
 }

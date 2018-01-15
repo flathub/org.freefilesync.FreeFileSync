@@ -308,6 +308,7 @@ BatchStatusHandler::~BatchStatusHandler()
     {
         //post sync action
         bool showSummary = true;
+        bool triggerSleep = false;
         if (!getAbortStatus() || *getAbortStatus() != AbortTrigger::USER) //user cancelled => don't run post sync action!
             switch (progressDlg_->getOptionPostSyncAction())
             {
@@ -317,11 +318,7 @@ BatchStatusHandler::~BatchStatusHandler()
                     showSummary = false;
                     break;
                 case PostSyncAction::SLEEP:
-                    try
-                    {
-                        tryReportingError([&] { suspendSystem(); /*throw FileError*/ }, *this); //throw X
-                    }
-                    catch (...) {}
+                    triggerSleep = true;
                     break;
                 case PostSyncAction::SHUTDOWN:
                     showSummary = false;
@@ -342,6 +339,13 @@ BatchStatusHandler::~BatchStatusHandler()
             progressDlg_->showSummary(finalStatus, errorLog_);
         else
             progressDlg_->closeDirectly(true /*restoreParentFrame: n/a here*/); //progressDlg_ is main window => program will quit shortly after
+
+        if (triggerSleep) //sleep *after* showing results dialog (consider total time!)
+            try
+            {
+                tryReportingError([&] { suspendSystem(); /*throw FileError*/ }, *this); //throw X
+            }
+            catch (...) {}
 
         //wait until progress dialog notified shutdown via onProgressDialogTerminate()
         //-> required since it has our "this" pointer captured in lambda "notifyWindowTerminate"!

@@ -20,7 +20,7 @@
 			<param name="Local" value="html\freefilesync.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="Command Line Usage">
+			<param name="Name" value="Command Line">
 			<param name="Local" value="html\command-line.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">

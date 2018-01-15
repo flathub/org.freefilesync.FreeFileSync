@@ -23,7 +23,6 @@
 #include <wx+/popup_dlg.h>
 #include <wx+/image_resources.h>
 #include "gui_generated.h"
-#include "custom_grid.h"
 #include "folder_selector.h"
 #include "version_check.h"
 #include "../algorithm.h"
@@ -47,6 +46,7 @@ private:
     void OnOK    (wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_OKAY); }
     void OnClose (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
     void OnDonate(wxCommandEvent& event) override { wxLaunchDefaultBrowser(L"https://www.freefilesync.org/donate.php"); }
+    void onLocalKeyEvent(wxKeyEvent& event);
 };
 
 
@@ -136,11 +136,20 @@ AboutDlg::AboutDlg(wxWindow* parent) : AboutDlgGenerated(parent)
     }
     m_bitmapLogo->SetBitmap(headerBmp);
 
+    //enable dialog-specific key local events
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(AboutDlg::onLocalKeyEvent), nullptr, this);
+
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
     Center(); //needs to be re-applied after a dialog size change!
 
     m_buttonClose->SetFocus(); //on GTK ESC is only associated with wxID_OK correctly if we set at least *any* focus at all!!!
+}
+
+
+void AboutDlg::onLocalKeyEvent(wxKeyEvent& event) //process key events without explicit menu entry :)
+{
+    event.Skip();
 }
 
 
@@ -170,6 +179,8 @@ private:
     void OnOK    (wxCommandEvent& event) override;
     void OnCancel(wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
     void OnClose (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
+
+    void onLocalKeyEvent(wxKeyEvent& event);
 
     std::unique_ptr<FolderSelector> targetFolder; //always bound
     std::shared_ptr<FolderHistory> folderHistory_;
@@ -228,11 +239,20 @@ CopyToDialog::CopyToDialog(wxWindow* parent,
     m_checkBoxOverwriteIfExists->SetValue(overwriteIfExists);
     //----------------- /set config --------------------------------
 
+    //enable dialog-specific key local events
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(CopyToDialog::onLocalKeyEvent), nullptr, this);
+
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
     Center(); //needs to be re-applied after a dialog size change!
 
     m_buttonOK->SetFocus();
+}
+
+
+void CopyToDialog::onLocalKeyEvent(wxKeyEvent& event) //process key events without explicit menu entry :)
+{
+    event.Skip();
 }
 
 
@@ -288,10 +308,12 @@ public:
                  bool& useRecycleBin);
 
 private:
-    void OnOK    (wxCommandEvent& event) override;
-    void OnCancel(wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
-    void OnClose (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
-    void OnUseRecycler   (wxCommandEvent& event) override;
+    void OnUseRecycler(wxCommandEvent& event) override { updateGui(); }
+    void OnOK         (wxCommandEvent& event) override;
+    void OnCancel     (wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
+    void OnClose      (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
+
+    void onLocalKeyEvent(wxKeyEvent& event);
 
     void updateGui();
 
@@ -321,6 +343,9 @@ DeleteDialog::DeleteDialog(wxWindow* parent,
 
 
     updateGui();
+
+    //enable dialog-specific key local events
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(DeleteDialog::onLocalKeyEvent), nullptr, this);
 
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
@@ -368,6 +393,12 @@ void DeleteDialog::updateGui()
 }
 
 
+void DeleteDialog::onLocalKeyEvent(wxKeyEvent& event)
+{
+    event.Skip();
+}
+
+
 void DeleteDialog::OnOK(wxCommandEvent& event)
 {
     //additional safety net, similar to Windows Explorer: time delta between DEL and ENTER must be at least 50ms to avoid accidental deletion!
@@ -377,12 +408,6 @@ void DeleteDialog::OnOK(wxCommandEvent& event)
     useRecycleBinOut_ = m_checkBoxUseRecycler->GetValue();
 
     EndModal(ReturnSmallDlg::BUTTON_OKAY);
-}
-
-
-void DeleteDialog::OnUseRecycler(wxCommandEvent& event)
-{
-    updateGui();
 }
 
 
@@ -409,6 +434,8 @@ private:
     void OnCancel   (wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
     void OnClose    (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
 
+    void onLocalKeyEvent(wxKeyEvent& event);
+
     //output-only parameters:
     bool& dontShowAgainOut_;
 };
@@ -428,6 +455,8 @@ SyncConfirmationDlg::SyncConfirmationDlg(wxWindow* parent,
 
     m_staticTextVariant->SetLabel(variantName);
     m_checkBoxDontShowAgain->SetValue(dontShowAgain);
+
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(SyncConfirmationDlg::onLocalKeyEvent), nullptr, this);
 
     //update preview of item count and bytes to be transferred:
     auto setValue = [](wxStaticText& txtControl, bool isZeroValue, const wxString& valueAsString, wxStaticBitmap& bmpControl, const wchar_t* bmpName)
@@ -464,6 +493,12 @@ SyncConfirmationDlg::SyncConfirmationDlg(wxWindow* parent,
     Center(); //needs to be re-applied after a dialog size change!
 
     m_buttonStartSync->SetFocus();
+}
+
+
+void SyncConfirmationDlg::onLocalKeyEvent(wxKeyEvent& event)
+{
+    event.Skip();
 }
 
 
@@ -504,6 +539,9 @@ private:
     void OnHelpShowExamples(wxHyperlinkEvent& event) override { displayHelpEntry(L"external-applications", this); }
     void onResize(wxSizeEvent& event);
     void updateGui();
+
+    //work around defunct keyboard focus on macOS (or is it wxMac?) => not needed for this dialog!
+    //void onLocalKeyEvent(wxKeyEvent& event);
 
     void OnToggleAutoRetryCount(wxCommandEvent& event) override { updateGui(); }
 
@@ -745,6 +783,8 @@ private:
             m_calendarFrom->SetDate(m_calendarTo->GetDate());
     }
 
+    void onLocalKeyEvent(wxKeyEvent& event);
+
     //output-only parameters:
     time_t& timeFromOut_;
     time_t& timeToOut_;
@@ -778,11 +818,20 @@ SelectTimespanDlg::SelectTimespanDlg(wxWindow* parent, time_t& timeFrom, time_t&
     m_calendarFrom->SetDate(timeFromTmp);
     m_calendarTo  ->SetDate(timeToTmp  );
 
+    //enable dialog-specific key local events
+    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(SelectTimespanDlg::onLocalKeyEvent), nullptr, this);
+
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
     Center(); //needs to be re-applied after a dialog size change!
 
     m_buttonOkay->SetFocus();
+}
+
+
+void SelectTimespanDlg::onLocalKeyEvent(wxKeyEvent& event) //process key events without explicit menu entry :)
+{
+    event.Skip();
 }
 
 
@@ -821,6 +870,55 @@ ReturnSmallDlg::ButtonPressed zen::showSelectTimespanDlg(wxWindow* parent, time_
 {
     SelectTimespanDlg timeSpanDlg(parent, timeFrom, timeTo);
     return static_cast<ReturnSmallDlg::ButtonPressed>(timeSpanDlg.ShowModal());
+}
+
+//########################################################################################
+
+class CfgHighlightDlg : public CfgHighlightDlgGenerated
+{
+public:
+    CfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays);
+
+private:
+    void OnOkay  (wxCommandEvent& event) override;
+    void OnCancel(wxCommandEvent& event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
+    void OnClose (wxCloseEvent&   event) override { EndModal(ReturnSmallDlg::BUTTON_CANCEL); }
+
+    //work around defunct keyboard focus on macOS (or is it wxMac?) => not needed for this dialog!
+    //void onLocalKeyEvent(wxKeyEvent& event);
+
+    //output-only parameters:
+    int& cfgHistSyncOverdueDaysOut_;
+};
+
+
+CfgHighlightDlg::CfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays) :
+    CfgHighlightDlgGenerated(parent),
+    cfgHistSyncOverdueDaysOut_(cfgHistSyncOverdueDays)
+{
+    setStandardButtonLayout(*bSizerStdButtons, StdButtons().setAffirmative(m_buttonOkay).setCancel(m_buttonCancel));
+
+    m_spinCtrlSyncOverdueDays->SetValue(cfgHistSyncOverdueDays);
+
+    GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
+    //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
+    Center(); //needs to be re-applied after a dialog size change!
+
+    m_spinCtrlSyncOverdueDays->SetFocus();
+}
+
+
+void CfgHighlightDlg::OnOkay(wxCommandEvent& event)
+{
+    cfgHistSyncOverdueDaysOut_ = m_spinCtrlSyncOverdueDays->GetValue();
+    EndModal(ReturnSmallDlg::BUTTON_OKAY);
+}
+
+
+ReturnSmallDlg::ButtonPressed zen::showCfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays)
+{
+    CfgHighlightDlg cfgHighDlg(parent, cfgHistSyncOverdueDays);
+    return static_cast<ReturnSmallDlg::ButtonPressed>(cfgHighDlg.ShowModal());
 }
 
 //########################################################################################

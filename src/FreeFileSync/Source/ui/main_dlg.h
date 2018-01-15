@@ -11,16 +11,14 @@
 #include <list>
 #include <stack>
 #include <memory>
-//#include <zen/error_log.h>
 #include <wx+/async_task.h>
 #include <wx+/file_drop.h>
 #include <wx/aui/aui.h>
 #include "gui_generated.h"
-#include "custom_grid.h"
+#include "file_grid.h"
+#include "tree_grid.h"
 #include "sync_cfg.h"
-#include "tree_view.h"
 #include "folder_history_box.h"
-//#include "../lib/process_xml.h"
 #include "../algorithm.h"
 
 class FolderPairFirst;
@@ -32,12 +30,12 @@ class MainDialog : public MainDialogGenerated
 {
 public:
     //default behavior, application start, restores last used config
-    static void create(const Zstring& globalConfigFile);
+    static void create(const Zstring& globalConfigFilePath);
 
     //when loading dynamically assembled config,
     //when switching language,
     //or switching from batch run to GUI on warnings
-    static void create(const Zstring& globalConfigFile,
+    static void create(const Zstring& globalConfigFilePath,
                        const xmlAccess::XmlGlobalSettings* globalSettings, //optional: take over ownership => save on exit
                        const xmlAccess::XmlGuiConfig& guiCfg,
                        const std::vector<Zstring>& referenceFiles,
@@ -49,7 +47,7 @@ public:
     void onQueryEndSession(); //last chance to do something useful before killing the application!
 
 private:
-    MainDialog(const Zstring& globalConfigFile,
+    MainDialog(const Zstring& globalConfigFilePath,
                const xmlAccess::XmlGuiConfig& guiCfg,
                const std::vector<Zstring>& referenceFiles,
                const xmlAccess::XmlGlobalSettings& globalSettings, //take over ownership => save on exit
@@ -87,9 +85,7 @@ private:
     void initViewFilterButtons();
     void setViewFilterDefault();
 
-    void addFileToCfgHistory(const std::vector<Zstring>& filepaths); //= update/insert + apply selection
-    void removeObsoleteCfgHistoryItems(const std::vector<Zstring>& filepaths);
-    void removeCfgHistoryItems(const std::vector<Zstring>& filepaths);
+    void cfgHistoryRemoveObsolete(const std::vector<Zstring>& filepaths);
 
     void insertAddFolderPair(const std::vector<zen::FolderPairEnh>& newPairs, size_t pos);
     void moveAddFolderPairUp(size_t pos);
@@ -162,9 +158,9 @@ private:
     void onMainGridContextR(zen::GridClickEvent& event);
     void onMainGridContextRim(bool leftSide);
 
-    void onNaviGridContext(zen::GridClickEvent& event);
+    void onTreeGridContext(zen::GridClickEvent& event);
 
-    void onNaviSelection(zen::GridRangeSelectEvent& event);
+    void onTreeGridSelection(zen::GridSelectEvent& event);
 
     void onDialogFilesDropped(zen::FileDropEvent& event);
 
@@ -196,13 +192,16 @@ private:
     void OnConfigSaveAs   (wxCommandEvent& event) override;
     void OnSaveAsBatchJob (wxCommandEvent& event) override;
     void OnConfigLoad     (wxCommandEvent& event) override;
-    void OnLoadFromHistory(wxCommandEvent& event) override;
-    void OnLoadFromHistoryDoubleClick(wxCommandEvent& event) override;
+
+    void onCfgGridSelection  (zen::GridSelectEvent& event);
+    void onCfgGridDoubleClick(zen::GridClickEvent& event);
+    void onCfgGridKeyEvent            (wxKeyEvent& event);
+    void onCfgGridContext       (zen::GridClickEvent& event);
+    void onCfgGridLabelContext  (zen::GridLabelClickEvent& event);
+    void onCfgGridLabelLeftClick(zen::GridLabelClickEvent& event);
 
     void deleteSelectedCfgHistoryItems();
 
-    void OnCfgHistoryRightClick(wxMouseEvent& event) override;
-    void OnCfgHistoryKeyEvent  (wxKeyEvent&   event) override;
     void OnRegularUpdateCheck  (wxIdleEvent&  event);
     void OnLayoutWindowAsync   (wxIdleEvent&  event);
 
@@ -281,24 +280,19 @@ private:
     //global settings shared by GUI and batch mode
     xmlAccess::XmlGlobalSettings globalCfg_;
 
-    const Zstring globalConfigFile_;
+    const Zstring globalConfigFilePath_;
 
     //-------------------------------------
     //program configuration
     xmlAccess::XmlGuiConfig currentCfg_;
 
     //used when saving configuration
-    std::vector<Zstring> activeConfigFiles_; //name of currently loaded config file (may be more than 1)
+    std::vector<Zstring> activeConfigFiles_; //name of currently loaded config files: NOT owned by m_gridCfgHistory, see onCfgGridSelection()
 
-    xmlAccess::XmlGuiConfig lastConfigurationSaved_; //support for: "Save changed configuration?" dialog
+    xmlAccess::XmlGuiConfig lastSavedCfg_; //support for: "Save changed configuration?" dialog
 
-    static Zstring getLastRunConfigPath();
     const Zstring lastRunConfigPath_; //let's not use another static...
     //-------------------------------------
-
-    //UI view of FolderComparison structure (partially owns folderCmp)
-    std::shared_ptr<zen::GridView> gridDataView_; //always bound!
-    std::shared_ptr<zen::TreeView> treeDataView_; //
 
     //the prime data structure of this tool *bling*:
     zen::FolderComparison folderCmp_; //optional!: sync button not available if empty

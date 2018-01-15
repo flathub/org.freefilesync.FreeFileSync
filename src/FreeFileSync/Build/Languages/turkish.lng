@@ -53,7 +53,7 @@
 <target>%x klasörü için Geri Dönüşüm Kutusu kullanılabilir mi diye bakılıyor...</target>
 
 <source>The recycle bin is not supported by the following folders. Deleted or overwritten files will not be able to be restored:</source>
-<target></target>
+<target>Geri Dönüşüm Kutusu şu klasörler tarafından desteklenmiyor. Silinmiş ya da üzerine yazılmış klasörler geri yüklenemez:</target>
 
 <source>An exception occurred</source>
 <target>Olağan dışı bir durumla karşılaşıldı</target>
@@ -71,7 +71,7 @@
 <target>Hata</target>
 
 <source>File %x does not contain a valid configuration.</source>
-<target>%x dosyası geçerli ayar bilgilerini içermiyor.</target>
+<target>%x dosyası geçerli yapılandırma bilgilerini içermiyor.</target>
 
 <source>Unequal number of left and right directories specified.</source>
 <target>Sağdan ve soldan seçilen klasör sayısı aynı değil.</target>
@@ -80,7 +80,7 @@
 <target>Klasörler komut satırından seçildiği zaman, ayar dosyasında klasör çifti düzeyinde ayarlar bulunmamalıdır.</target>
 
 <source>Directories cannot be set for more than one configuration file.</source>
-<target>Klasörler birden fazla ayar dosyasında kullanılamaz.</target>
+<target>Klasörler birden fazla yapılandırma dosyasında kullanılamaz.</target>
 
 <source>Command line</source>
 <target>Komut Satırı</target>
@@ -98,13 +98,13 @@
 <target>genel ayar dosyası:</target>
 
 <source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>FreeFileSync .ffs_gui ya da .ffs_batch ayar dosyalarının sayısı.</target>
+<target>FreeFileSync .ffs_gui ya da .ffs_batch yapılandırma dosyalarının sayısı.</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>En fazla bir ayar dosyası için herhangi bir sayıda alternatif klasör çifti.</target>
 
 <source>Open the selected configuration for editing only without executing it.</source>
-<target></target>
+<target>Seçilmiş yapılandırmayı yürütmeden yalnız düzenlemek için açar.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
 <target>Alternatif GlobalSettings.xml dosyasının yolu.</target>
@@ -316,7 +316,7 @@ Gerçekleşen: %y bayt
 <target>%x sembolik bağlantısı çözümlenemedi.</target>
 
 <source>Unable to move %x to the recycle bin.</source>
-<target>%x çöp kutusuna atılamadı.</target>
+<target>%x geri dönüşüm kutusuna atılamadı.</target>
 
 <source>Cannot open file %x.</source>
 <target>%x dosyası açılamadı.</target>
@@ -597,7 +597,7 @@ Komut şu durumlarda yürütülür:
 <target>Otomatik Eşitleme</target>
 
 <source>The %x protocol does not support directory monitoring:</source>
-<target></target>
+<target>%x iletişim kuralı klasör izlemesini desteklemiyor:</target>
 
 <source>Directory monitoring active</source>
 <target>Klasör izlemesi yapılıyor</target>
@@ -714,7 +714,7 @@ Komut şu durumlarda yürütülür:
 <target>Temel klasör:</target>
 
 <source>The versioning folder is contained in a base folder.</source>
-<target></target>
+<target>Sürümlendirme klasörü bir temel klasör içinde bulunuyor.</target>
 
 <source>Synchronizing folder pair:</source>
 <target>Eşitlenen klasör çifti:</target>
@@ -729,10 +729,10 @@ Komut şu durumlarda yürütülür:
 <target>iş adı</target>
 
 <source>Show summary</source>
-<target></target>
+<target>Özet Görüntülensin</target>
 
 <source>Sleep</source>
-<target></target>
+<target>Bilgisayar Uykuya Dalsın</target>
 
 <source>Shut down</source>
 <target>Bilgisayar Kapatılsın</target>
@@ -759,7 +759,7 @@ Komut şu durumlarda yürütülür:
 <target>Eşitleme tamamlandı</target>
 
 <source>Executing command %x</source>
-<target></target>
+<target>%x komutu yürütülüyor</target>
 
 <source>Cleaning up old log files...</source>
 <target>Eski günlük dosyaları temizleniyor...</target>
@@ -789,7 +789,7 @@ Komut şu durumlarda yürütülür:
 </target>
 
 <source>Ignore &all</source>
-<target></target>
+<target>Tümünü Yok S&ay</target>
 
 <source>Retrying operation...</source>
 <target>İşlem yeniden deneniyor...</target>
@@ -1067,13 +1067,13 @@ Komut şu durumlarda yürütülür:
 <target>Adlandırma Kuralı:</target>
 
 <source>&Ignore errors</source>
-<target></target>
+<target>&Hatalar yok sayılsın</target>
 
 <source>Show pop-up on errors or warnings</source>
 <target>Hata ya da uyarılar açılır pencerede görüntülenir</target>
 
 <source>Run a command after synchronization:</source>
-<target></target>
+<target>Eşitleme sonrası yürütülecek komut:</target>
 
 <source>OK</source>
 <target>Tamam</target>
@@ -1112,7 +1112,7 @@ Komut şu durumlarda yürütülür:
 <target>Anahtar &Dosyası</target>
 
 <source>&SSH agent</source>
-<target></target>
+<target>&SSH İstemcisi</target>
 
 <source>User name:</source>
 <target>Kullanıcı Adı:</target>
@@ -1133,7 +1133,7 @@ Komut şu durumlarda yürütülür:
 <target>En iyi başarım nasıl elde edilir?</target>
 
 <source>Connections for directory reading:</source>
-<target></target>
+<target>Klasör okuma bağlantıları:</target>
 
 <source>SFTP channels per connection:</source>
 <target>Bir Bağlantı için SFTP Kanalı Sayısı:</target>
@@ -1181,7 +1181,7 @@ Komut şu durumlarda yürütülür:
 <target>Kopyalanan bayt:</target>
 
 <source>When finished:</source>
-<target></target>
+<target>Tamamlandığında:</target>
 
 <source>Close</source>
 <target>Kapat</target>
@@ -1196,19 +1196,19 @@ Komut şu durumlarda yürütülür:
 <target>Eşitleme işleminin hiç bir soru sorulmadan yapılması için bir toplu iş dosyası oluşturun. İşlemi başlatmak için bu dosyaya çift tıklayın ya da bir görev zamanlayıcıya şu şekilde ekleyin: %x</target>
 
 <source>Run minimized</source>
-<target>Küçülterek Çalıştır</target>
+<target>Küçültülmüş Çalıştırılsın</target>
 
 <source>&Show error dialog</source>
-<target></target>
+<target>Hata &penceresi görüntülensin</target>
 
 <source>&Cancel</source>
-<target></target>
+<target>İ&ptal edilsin</target>
 
 <source>Stop synchronization at first error</source>
 <target>Oluşacak ilk hatada eşitleme durdurulsun</target>
 
 <source>Save log:</source>
-<target>İşlem Günlüğünü Kaydet:</target>
+<target>İşlem Günlüğü Kaydedilsin:</target>
 
 <source>Limit:</source>
 <target>Sınır:</target>
@@ -1244,7 +1244,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Paylaşılan ya da kilitlenmiş dosyalar Birim Gölge Hizmetini kullanılarak kopyalanır.</target>
 
 <source>requires administrator rights</source>
-<target></target>
+<target>yönetici izinleri gerekir</target>
 
 <source>Transfer file and folder permissions.</source>
 <target>Dosya ve klasör izinleri de aktarılır.</target>
@@ -1280,13 +1280,13 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>FreeFileSync hoşunuza gittiyse:</target>
 
 <source>Support with a donation</source>
-<target></target>
+<target>Bağış yaparak destek olun</target>
 
 <source>Donation details</source>
 <target>Bağış Bilgileri</target>
 
 <source>The auto updater was disabled by the administrator.</source>
-<target></target>
+<target>Otomatik güncelleme yönetici tarafından devre dışı bırakılmış.</target>
 
 <source>Feedback and suggestions are welcome</source>
 <target>Öneri ve geri bildirimlerinizi bekleriz</target>
@@ -1325,7 +1325,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Çevrimdışı Etkinleştir</target>
 
 <source>Save as a Batch Job</source>
-<target></target>
+<target>Toplu İş Olarak Kaydet</target>
 
 <source>Delete Items</source>
 <target>Ögeleri Sil</target>
@@ -1370,7 +1370,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>&Ayrıntılara Bakın</target>
 
 <source>FreeFileSync %x is available!</source>
-<target></target>
+<target>FreeFileSync %x sürümü yayınlanmış!</target>
 
 <source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
 <target>Kurulum dosyaları bozulmuş. Lütfen FreeFileSync uygulamasını yeniden kurun.</target>
@@ -1472,7 +1472,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Klasör Karşılaştırma ve Eşitleme</target>
 
 <source>Configuration saved</source>
-<target>Ayarlar kaydedildi</target>
+<target>Yapılandırma kaydedildi</target>
 
 <source>FreeFileSync batch</source>
 <target>FreeFileSync toplu işi</target>
@@ -1598,7 +1598,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Sevgili %x, bağışın ve desteğin için teşekkürler!</target>
 
 <source>Recommended range:</source>
-<target></target>
+<target>Önerilen Aralık:</target>
 
 <source>Password:</source>
 <target>Parola:</target>
@@ -1607,7 +1607,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Anahtar Parolası:</target>
 
 <source>Please enter a file path.</source>
-<target></target>
+<target>Lütfen bir dosya yolu yazın.</target>
 
 <source>
 <pluralform>Copy the following item to another folder?</pluralform>
@@ -1691,7 +1691,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Eşitleme kuralları kullanıcının isteğine göre belirlenir.</target>
 
 <source>Synchronization Settings</source>
-<target>Eşitleme ayarları</target>
+<target>Eşitleme Ayarları</target>
 
 <source>Comparison</source>
 <target>Karşılaştırma</target>
@@ -1724,10 +1724,10 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>MB</target>
 
 <source>Retain deleted and overwritten files in the recycle bin</source>
-<target></target>
+<target>Silinmiş ve üzerine yazılmış dosyalar geri dönüşüm kutusunda korunsun</target>
 
 <source>Delete and overwrite files permanently</source>
-<target></target>
+<target>Dosyalar silinsin ve kalıcı olarak üzerine yazılsın</target>
 
 <source>Move files to a user-defined folder</source>
 <target>Dosyalar kullanıcı tarafından belirtilen bir klasöre taşınır</target>
@@ -1745,16 +1745,16 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Dosya adlarına zaman damgası eklensin</target>
 
 <source>On completion:</source>
-<target>İşlem Tamamlandığında:</target>
+<target>Tamamlandığında:</target>
 
 <source>On errors:</source>
-<target></target>
+<target>Sorun Çıktığında:</target>
 
 <source>On success:</source>
-<target></target>
+<target>Başarılı Olduğunda:</target>
 
 <source>Main config</source>
-<target>Temel ayarlar</target>
+<target>Temel Yapılandırma</target>
 
 <source>empty</source>
 <target>boş</target>
@@ -1904,7 +1904,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Giriş/Çıkış işlemi öncelikleri değiştirilemedi.</target>
 
 <source>Unable to shut down the system.</source>
-<target></target>
+<target>Bilgisayar kapatılamıyor.</target>
 
 <source>Checking recycle bin failed for folder %x.</source>
 <target>%x klasörü için Geri Dönüşüm Kutusu denetlenemedi.</target>
@@ -1913,7 +1913,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>Şu XML bileşenleri okunamadı:</target>
 
 <source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>%x ayar dosyası tam değil. Eksik bileşenler için varsayılan değerler kullanılacak.</target>
+<target>%x yapılandırma dosyası tam değil. Eksik bileşenler için varsayılan değerler kullanılacak.</target>
 
 <source>Prepare installation</source>
 <target>Kuruluma hazırlanıyor</target>
@@ -1967,7 +1967,7 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>FreeFileSync dosya uzantıları kayıt defterinden siliniyor</target>
 
 <source>FreeFileSync Configuration</source>
-<target>FreeFileSync Ayarları</target>
+<target>FreeFileSync Yapılandırması</target>
 
 <source>FreeFileSync Batch File</source>
 <target>FreeFileSync Toplu İşlem Dosyası</target>
@@ -1976,13 +1976,13 @@ Bu yöntem, ciddi bir hata oluşması durumunda bile işlemin tutarlı olarak ya
 <target>FreeFileSync Eşitleme Veritabanı</target>
 
 <source>RealTimeSync Configuration</source>
-<target>RealTimeSync Ayarları</target>
+<target>RealTimeSync Yapılandırması</target>
 
 <source>Edit with FreeFileSync</source>
 <target>FreeFileSync ile Düzenlensin</target>
 
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
-<target></target>
+<target>FreeFileSync taşınabilir sürümü bir %x alt klasörüne yüklenemez.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Kurulum için farklı bir klasör ya da yerel kurulum türünü seçin.</target>

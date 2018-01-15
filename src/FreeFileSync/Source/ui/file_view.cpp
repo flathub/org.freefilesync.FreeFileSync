@@ -4,7 +4,7 @@
 // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
 // *****************************************************************************
 
-#include "grid_view.h"
+#include "file_view.h"
 #include "sorting.h"
 #include "../synchronization.h"
 #include <zen/stl_tools.h>
@@ -51,7 +51,7 @@ void addNumbers(const FileSystemObject& fsObj, StatusResult& result)
 
 
 template <class Predicate>
-void GridView::updateView(Predicate pred)
+void FileView::updateView(Predicate pred)
 {
     viewRef_.clear();
     rowPositions_.clear();
@@ -87,20 +87,21 @@ void GridView::updateView(Predicate pred)
 }
 
 
-ptrdiff_t GridView::findRowDirect(FileSystemObject::ObjectIdConst objId) const
+ptrdiff_t FileView::findRowDirect(FileSystemObject::ObjectIdConst objId) const
 {
     auto it = rowPositions_.find(objId);
     return it != rowPositions_.end() ? it->second : -1;
 }
 
-ptrdiff_t GridView::findRowFirstChild(const ContainerObject* hierObj) const
+
+ptrdiff_t FileView::findRowFirstChild(const ContainerObject* hierObj) const
 {
     auto it = rowPositionsFirstChild_.find(hierObj);
     return it != rowPositionsFirstChild_.end() ? it->second : -1;
 }
 
 
-GridView::StatusCmpResult GridView::updateCmpResult(bool showExcluded, //maps sortedRef to viewRef
+FileView::StatusCmpResult FileView::updateCmpResult(bool showExcluded, //maps sortedRef to viewRef
                                                     bool leftOnlyFilesActive,
                                                     bool rightOnlyFilesActive,
                                                     bool leftNewerFilesActive,
@@ -161,7 +162,7 @@ GridView::StatusCmpResult GridView::updateCmpResult(bool showExcluded, //maps so
 }
 
 
-GridView::StatusSyncPreview GridView::updateSyncPreview(bool showExcluded, //maps sortedRef to viewRef
+FileView::StatusSyncPreview FileView::updateSyncPreview(bool showExcluded, //maps sortedRef to viewRef
                                                         bool syncCreateLeftActive,
                                                         bool syncCreateRightActive,
                                                         bool syncDeleteLeftActive,
@@ -238,7 +239,7 @@ GridView::StatusSyncPreview GridView::updateSyncPreview(bool showExcluded, //map
 }
 
 
-std::vector<FileSystemObject*> GridView::getAllFileRef(const std::vector<size_t>& rows)
+std::vector<FileSystemObject*> FileView::getAllFileRef(const std::vector<size_t>& rows)
 {
     const size_t viewSize = viewRef_.size();
 
@@ -253,7 +254,7 @@ std::vector<FileSystemObject*> GridView::getAllFileRef(const std::vector<size_t>
 }
 
 
-void GridView::removeInvalidRows()
+void FileView::removeInvalidRows()
 {
     viewRef_.clear();
     rowPositions_.clear();
@@ -264,15 +265,16 @@ void GridView::removeInvalidRows()
 }
 
 
-class GridView::SerializeHierarchy
+class FileView::SerializeHierarchy
 {
 public:
-    static void execute(ContainerObject& hierObj, std::vector<GridView::RefIndex>& sortedRef, size_t index) { SerializeHierarchy(sortedRef, index).recurse(hierObj); }
+    static void execute(ContainerObject& hierObj, std::vector<FileView::RefIndex>& sortedRef, size_t index) { SerializeHierarchy(sortedRef, index).recurse(hierObj); }
 
 private:
-    SerializeHierarchy(std::vector<GridView::RefIndex>& sortedRef, size_t index) :
+    SerializeHierarchy(std::vector<FileView::RefIndex>& sortedRef, size_t index) :
         index_(index),
         output_(sortedRef) {}
+#if  0
     /*
     Spend additional CPU cycles to sort the standard file list?
 
@@ -283,7 +285,6 @@ private:
         CmpAsciiNoCase: 189 ms
         No sorting:      30 ms
     */
-#if  0
     template <class ItemPair>
     static std::vector<ItemPair*> getItemsSorted(FixedList<ItemPair>& itemList)
     {
@@ -298,24 +299,24 @@ private:
     void recurse(ContainerObject& hierObj)
     {
         for (FilePair& file : hierObj.refSubFiles())
-            output_.emplace_back(index_, file.getId());
+            output_.push_back({ index_, file.getId() });
 
         for (SymlinkPair& symlink : hierObj.refSubLinks())
-            output_.emplace_back(index_, symlink.getId());
+            output_.push_back({ index_, symlink.getId() });
 
         for (FolderPair& folder : hierObj.refSubFolders())
         {
-            output_.emplace_back(index_, folder.getId());
+            output_.push_back({ index_, folder.getId() });
             recurse(folder); //add recursion here to list sub-objects directly below parent!
         }
     }
 
     const size_t index_;
-    std::vector<GridView::RefIndex>& output_;
+    std::vector<FileView::RefIndex>& output_;
 };
 
 
-void GridView::setData(FolderComparison& folderCmp)
+void FileView::setData(FolderComparison& folderCmp)
 {
     //clear everything
     std::vector<FileSystemObject::ObjectId>().swap(viewRef_); //free mem
@@ -336,7 +337,7 @@ void GridView::setData(FolderComparison& folderCmp)
 
 //------------------------------------ SORTING TEMPLATES ------------------------------------------------
 template <bool ascending, SelectedSide side>
-struct GridView::LessFullPath
+struct FileView::LessFullPath
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -353,7 +354,7 @@ struct GridView::LessFullPath
 
 
 template <bool ascending>
-struct GridView::LessRelativeFolder
+struct FileView::LessRelativeFolder
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -376,7 +377,7 @@ struct GridView::LessRelativeFolder
 
 
 template <bool ascending, SelectedSide side>
-struct GridView::LessShortFileName
+struct FileView::LessShortFileName
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -393,7 +394,7 @@ struct GridView::LessShortFileName
 
 
 template <bool ascending, SelectedSide side>
-struct GridView::LessFilesize
+struct FileView::LessFilesize
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -410,7 +411,7 @@ struct GridView::LessFilesize
 
 
 template <bool ascending, SelectedSide side>
-struct GridView::LessFiletime
+struct FileView::LessFiletime
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -427,7 +428,7 @@ struct GridView::LessFiletime
 
 
 template <bool ascending, SelectedSide side>
-struct GridView::LessExtension
+struct FileView::LessExtension
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -444,7 +445,7 @@ struct GridView::LessExtension
 
 
 template <bool ascending>
-struct GridView::LessCmpResult
+struct FileView::LessCmpResult
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -461,7 +462,7 @@ struct GridView::LessCmpResult
 
 
 template <bool ascending>
-struct GridView::LessSyncDirection
+struct FileView::LessSyncDirection
 {
     bool operator()(const RefIndex a, const RefIndex b) const
     {
@@ -477,29 +478,13 @@ struct GridView::LessSyncDirection
 };
 
 //-------------------------------------------------------------------------------------------------------
-bool GridView::getDefaultSortDirection(ColumnTypeRim type) //true: ascending; false: descending
-{
-    switch (type)
-    {
-        case ColumnTypeRim::SIZE:
-        case ColumnTypeRim::DATE:
-            return false;
 
-        case ColumnTypeRim::ITEM_PATH:
-        case ColumnTypeRim::EXTENSION:
-            return true;
-    }
-    assert(false);
-    return true;
-}
-
-
-void GridView::sortView(ColumnTypeRim type, ItemPathFormat pathFmt, bool onLeft, bool ascending)
+void FileView::sortView(ColumnTypeRim type, ItemPathFormat pathFmt, bool onLeft, bool ascending)
 {
     viewRef_.clear();
     rowPositions_.clear();
     rowPositionsFirstChild_.clear();
-    currentSort_ = SortInfo(type, onLeft, ascending);
+    currentSort_ = SortInfo({ type, onLeft, ascending });
 
     switch (type)
     {

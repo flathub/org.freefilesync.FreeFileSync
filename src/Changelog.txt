@@ -1,5 +1,22 @@
-FreeFileSync 9.6
-----------------
+FreeFileSync 9.7 [2018-01-12]
+-----------------------------
+New configuration management panel
+New column showing days since last sync
+Support starting FreeFileSync via Windows Send To
+Minimized memory operations for I/O buffer
+Allow multiple config selections on Linux
+New command line option -DirPair
+Fixed ENTER key not working for most dialogs (macOS)
+Show only one warning about failed directory locks
+Show correct synchronization time when resuming from system sleep
+Don't resolve symlinks that are dropped via mouse
+Detect and notify LCMapString compatibility mode bug
+Fixed incorrect file permissions within macOS bundle
+Fixed wrong results dialog panel selection (Linux)
+
+
+FreeFileSync 9.6 [2017-12-07]
+-----------------------------
 New installation command line option /disable_updates
 Fixed crash when closing main dialog during sync
 Fixed RealTimeSync crash after recursive mutex locking

@@ -1,6 +1,6 @@
 <header>
 	<language>Slovenščina</language>
-	<translator>Karlo Konc</translator>
+	<translator>dr.Vinko Kastelic</translator>
 	<locale>sl_SI</locale>
 	<image>flag_slovenia.png</image>
 	<plural_count>4</plural_count>
@@ -8,19 +8,19 @@
 </header>
 
 <source>Both sides have changed since last synchronization.</source>
-<target>Obe strani sta se spremenili od zadnje sinhronizacije.</target>
+<target>Obe strani sta spremenjeni po zadnji sinhronizaciji.</target>
 
 <source>Cannot determine sync-direction:</source>
 <target>Ne morem določiti sinhronizacijske smeri:</target>
 
 <source>No change since last synchronization.</source>
-<target>Ni sprememb od zadnje sinhronizacije.</target>
+<target>Ni sprememb po zadnji sinhronizaciji.</target>
 
 <source>The database entry is not in sync considering current settings.</source>
-<target>Glede na trenutne nastavitve vnos v podatkovni bazi ni sinhroniziran.</target>
+<target>Vnos podatkovne zbirke ni sinhroniziran ob upoštevanju trenutnih nastavitev.</target>
 
 <source>Setting default synchronization directions: Old files will be overwritten with newer files.</source>
-<target>Nastavljanje privzetih smeri sinhronizacije: Stare datoteke bodo prepisane z novimi datotekami.</target>
+<target>Nastavitve privzetih smeri sinhronizacije: Stare datoteke bodo prepisane z novimi datotekami.</target>
 
 <source>Creating file %x</source>
 <target>Ustvarjam datoteko %x</target>
@@ -53,7 +53,7 @@
 <target>Preverjam razpoložljivost koša za mapo %x...</target>
 
 <source>The recycle bin is not supported by the following folders. Deleted or overwritten files will not be able to be restored:</source>
-<target></target>
+<target>Koš ne podpira sledečih map. Izbrisane ali prepisane datoteke ne bo mogoče obnoviti:</target>
 
 <source>An exception occurred</source>
 <target>Prišlo je do izjeme</target>
@@ -63,6 +63,9 @@
 
 <source>Syntax error</source>
 <target>Sintaktična napaka</target>
+
+<source>A left and a right directory path are expected after %x.</source>
+<target>Levo in desno pot imenika se pričakuje po %x.</target>
 
 <source>Cannot find file %x.</source>
 <target>Ne najdem datoteke %x.</target>
@@ -77,10 +80,10 @@
 <target>Vnešeno je neenako število levih in desnih imenikov.</target>
 
 <source>The config file must not contain settings at directory pair level when directories are set via command line.</source>
-<target>Konfiguracijska datoteka ne sme vsebovati nastavitev na ravni imeniških parov, ko so imeniki nastavljeni prek ukazne vrstice.</target>
+<target>Konfiguracijska datoteka ne sme vsebovati nastavitev na ravni imeniških parov, ko so imeniki nastavljeni preko ukazne vrstice.</target>
 
 <source>Directories cannot be set for more than one configuration file.</source>
-<target>Imeniki ne morejo biti nastavljeni za več kot eno konfiguracijsko datoteko.</target>
+<target>Imenikov ni mogoče nastaviti za več kot eno nastavitveno datoteko.</target>
 
 <source>Command line</source>
 <target>Ukazna vrstica</target>
@@ -98,13 +101,13 @@
 <target>datoteka z globalnimi konfiguracijami:</target>
 
 <source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>Poljubno število FreeFileSync .ffs_gui in/ali .ffs_batch konfigracijskih datotek.</target>
+<target>Poljubno število FreeFileSync .ffs_gui in/ali .ffs_batch nastavitvenih datotek.</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>Poljubno število alternativnih parov imenikov za največ eno nastavitveno datoteko.</target>
 
 <source>Open the selected configuration for editing only without executing it.</source>
-<target></target>
+<target>Odprite izbrano nastavitev samo za urejanje, ne da bi jo izvedli.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
 <target>Pot do alternativne datoteke GlobalSettings.xml.</target>
@@ -113,7 +116,7 @@
 <target>Ne najdem naslednjih map:</target>
 
 <source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
-<target>V primeru ignoriranja te napake bo mapa smatrana kot prazna. Manjkajoče mape se ustvarijo avtomatično, ko je to potrebno.</target>
+<target>V primeru prezrtja te napake bo mapa smatrana kot prazna. Manjkajoče mape se po potrebi ustvarijo samodejno.</target>
 
 <source>File %x has an invalid date.</source>
 <target>Datoteka %x ima neveljaven datum.</target>
@@ -122,16 +125,16 @@
 <target>Datum:</target>
 
 <source>Files have the same date but a different size.</source>
-<target>Datoteke imajo isti datum a različno velikost.</target>
+<target>Datoteke imajo isti datum toda različno velikost.</target>
 
 <source>Size:</source>
 <target>Velikost:</target>
 
 <source>Content comparison was skipped for excluded files.</source>
-<target>Primerjava vsebine je bila preskočena za neizbrane datoteke.</target>
+<target>Primerjava vsebine je bila preskočena zaradi izključenih datotek.</target>
 
 <source>Items differ in attributes only</source>
-<target>Elementi se razlikujejo samo v atributih</target>
+<target>Postavke se razlikujejo samo po atributih</target>
 
 <source>Resolving symbolic link %x</source>
 <target>Razrešujem simbolično povezavo %x</target>
@@ -143,7 +146,7 @@
 <target>Ustvarjam seznam datotek...</target>
 
 <source>Fail-safe file copy</source>
-<target>Kopiranje datotek varno pred odpovedjo</target>
+<target>Pred napako varno kopiranje datotek</target>
 
 <source>Enabled</source>
 <target>Omogočeno</target>
@@ -155,7 +158,7 @@
 <target>Kopiraj zaklenjene datoteke</target>
 
 <source>Copy file access permissions</source>
-<target>Kopiraj dovoljenja dostopov datoteke</target>
+<target>Kopiraj dovoljenja za dostop do datotek</target>
 
 <source>File time tolerance</source>
 <target>Časovna toleranca datoteke</target>
@@ -167,7 +170,7 @@
 <target>Zaženi s prioriteto v ozadju</target>
 
 <source>Lock directories during sync</source>
-<target>Zakleni direktorije med sinhroniziranjem</target>
+<target>Zakleni imenike med sinhronizacijo</target>
 
 <source>Verify copied files</source>
 <target>Preveri kopirane datoteke</target>
@@ -179,7 +182,7 @@
 <target>Začenjam primerjavo</target>
 
 <source>A folder input field is empty.</source>
-<target>Vnosno polje za mapo je prazno.</target>
+<target>Polje za vnos mape je prazno.</target>
 
 <source>The corresponding folder will be considered as empty.</source>
 <target>Ustrezna mapa bo smatrana kot prazna.</target>
@@ -194,16 +197,16 @@
 <target>Mapa mora biti izvzeta iz sinhronizacije z uporabo filtra.</target>
 
 <source>Calculating sync directions...</source>
-<target>Preračunavam sinhronizacijske smeri...</target>
+<target>Izračunavam smeri sinhronizacije...</target>
 
 <source>Out of memory.</source>
 <target>Ni dovolj pomnilnika.</target>
 
 <source>Item exists on left side only</source>
-<target>Element obstaja samo na levi strani</target>
+<target>Postavka obstaja samo na levi strani</target>
 
 <source>Item exists on right side only</source>
-<target>Element obstaja samo na desni strani</target>
+<target>Postavka obstaja samo na desni strani</target>
 
 <source>Left side is newer</source>
 <target>Leva stran je novejša</target>
@@ -212,25 +215,25 @@
 <target>Desna stran je novejša</target>
 
 <source>Items have different content</source>
-<target>Elementi imajo različno vsebino</target>
+<target>Postavke imajo različno vsebino</target>
 
 <source>Both sides are equal</source>
 <target>Obe strani sta enaki</target>
 
 <source>Conflict/item cannot be categorized</source>
-<target>Spora/elementa ni mogoče kategorizirati</target>
+<target>Konflikt/postavka ni mogoče kategorizirati</target>
 
 <source>Copy new item to left</source>
-<target>Kopiraj nov element na levo</target>
+<target>Kopiraj novo postavko na levo</target>
 
 <source>Copy new item to right</source>
-<target>Kopiraj nov element na desno</target>
+<target>Kopiraj novo postavko na desno</target>
 
 <source>Delete left item</source>
-<target>Izbriši levi element</target>
+<target>Izbriši postavko na levi strani</target>
 
 <source>Delete right item</source>
-<target>Izbriši desni element</target>
+<target>Izbriši postavko na desni strani</target>
 
 <source>Move file on left</source>
 <target>Premakni datoteko na levo stran</target>
@@ -239,10 +242,10 @@
 <target>Premakni datoteko na desno stran</target>
 
 <source>Update left item</source>
-<target>Posodobi levi predmet</target>
+<target>Posodobi postavko na levi strani</target>
 
 <source>Update right item</source>
-<target>Posodobi desni predmet</target>
+<target>Posodobi postavko na desni strani</target>
 
 <source>Do nothing</source>
 <target>Ne naredi ničesar</target>
@@ -268,10 +271,10 @@ Dejansko: %y bajtov
 </target>
 
 <source>Cannot write permissions of %x.</source>
-<target>Ne morem zapisati dovoljenj od %x.</target>
+<target>Ne morem zapisati dovoljenj za %x.</target>
 
 <source>Operation not supported for different base folder types.</source>
-<target>Operacija ni podprta za različne osnovne tipe map.</target>
+<target>Operacija ni podprta za različne vrste osnovnih map.</target>
 
 <source>Cannot write file %x.</source>
 <target>Ne morem zapisati datoteke %x.</target>
@@ -286,7 +289,7 @@ Dejansko: %y bajtov
 <target>Ne morem povezati na %x.</target>
 
 <source>Failed to get information about server %x.</source>
-<target>Ne morem pridobiti informacije o serverju %x.</target>
+<target>Ne morem pridobiti informacije o strežniku %x.</target>
 
 <source>Cannot open directory %x.</source>
 <target>Ne morem odpreti imenika %x.</target>
@@ -328,7 +331,7 @@ Dejansko: %y bajtov
 <target>Ne najdem %x.</target>
 
 <source>Type of item %x is not supported:</source>
-<target>Element tipa %x ni podprt:</target>
+<target>Vrsta postavke %x ni podprta:</target>
 
 <source>Cannot delete symbolic link %x.</source>
 <target>Ne morem izbrisati simbolične povezave %x.</target>
@@ -343,7 +346,7 @@ Dejansko: %y bajtov
 <target>Napačna koda %x.</target>
 
 <source>The server does not support authentication via %x.</source>
-<target>Server ne podpira preverjanja pristnosti preko %x.</target>
+<target>Strežnik ne podpira preverjanja pristnosti preko %x.</target>
 
 <source>Required:</source>
 <target>Zahtevano:</target>
@@ -453,10 +456,10 @@ Dejansko: %y bajtov
 <target>Zaznavanje opuščenega zaklepa...</target>
 
 <source>Items processed:</source>
-<target>Obdelanih elementov:</target>
+<target>Obdelanih postavk:</target>
 
 <source>Items remaining:</source>
-<target>Preostalih elementov:</target>
+<target>Preostalih postavk:</target>
 
 <source>Total time:</source>
 <target>Celoten čas:</target>
@@ -464,8 +467,8 @@ Dejansko: %y bajtov
 <source>Error parsing file %x, row %y, column %z.</source>
 <target>Napaka pri razčlenjevanju datoteke %x, vrstica %y, stolpec %z.</target>
 
-<source>Cannot set directory lock for %x.</source>
-<target>Ne morem nastaviti zaklepanja imenikov za %x.</target>
+<source>Cannot set directory locks for the following folders:</source>
+<target>Ne morem nastaviti zaklepanje imenika za naslednje mape:</target>
 
 <source>
 <pluralform>1 thread</pluralform>
@@ -479,13 +482,13 @@ Dejansko: %y bajtov
 </target>
 
 <source>Scanning:</source>
-<target>Pregledujem:</target>
+<target>Skeniranje:</target>
 
 <source>/sec</source>
 <target>/sek</target>
 
 <source>%x items/sec</source>
-<target>%x elementov/s</target>
+<target>%x postavk/sek</target>
 
 <source>Show in Explorer</source>
 <target>Prikaži v Raziskovalcu</target>
@@ -497,10 +500,10 @@ Dejansko: %y bajtov
 <target>Brskaj po imeniku</target>
 
 <source>Cannot access the Volume Shadow Copy Service.</source>
-<target>Ne morem dostopati do Volume Shadov Copy servisa.</target>
+<target>Ne morem dostopati do Volume Shadov Copy storitve.</target>
 
 <source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
-<target>Prosim zaženite 64 bitno različico FreeFileSync, da ustvarite samodejne kopije v ozadju na tem sistemu.</target>
+<target>Prosimo, zaženite 64-bitno različico FreeFileSync za ustvarjanje senčnih kopij v tem sistemu.</target>
 
 <source>Cannot determine volume name for %x.</source>
 <target>Ne morem določiti ime nosilca za %x.</target>
@@ -512,7 +515,7 @@ Dejansko: %y bajtov
 <target>Zahteva za ustavitev: čakam da se trenutni proces zaključi...</target>
 
 <source>Unable to create time stamp for versioning:</source>
-<target>Časovnega žiga za verzioniranje ni bilo mogoče ustvariti:</target>
+<target>Časovnega žiga za oznčitev ni bilo mogoče ustvariti:</target>
 
 <source>Drag && drop</source>
 <target>Povleci && spusti</target>
@@ -539,7 +542,7 @@ Dejansko: %y bajtov
 <target>&Prikaži pomoč</target>
 
 <source>&About</source>
-<target>&O programu</target>
+<target>&Vizitka</target>
 
 <source>&Help</source>
 <target>&Pomoč</target>
@@ -557,7 +560,7 @@ Dejansko: %y bajtov
 <target>3. Pritisnite 'Začni'.</target>
 
 <source>To get started just import a .ffs_batch file.</source>
-<target>Da začnete uvozite datoteko .ffs_batch.</target>
+<target>Če želite začeti, uvozite datoteko .ffs_batch.</target>
 
 <source>Folders to watch:</source>
 <target>Mape za pregled:</target>
@@ -572,10 +575,10 @@ Dejansko: %y bajtov
 <target>Brskaj</target>
 
 <source>Idle time (in seconds):</source>
-<target>Nedejavni čas (v sekundah):</target>
+<target>Čas mirovanja (v sekundah):</target>
 
 <source>Idle time between last detected change and execution of command</source>
-<target>Čas nedejavnosti med zadnjo zaznano spremembo in izvršitvijo ukaza</target>
+<target>Čas mirovanja med zadnjo zaznano spremembo in izvedbo ukaza</target>
 
 <source>Command line:</source>
 <target>Ukazna vrstica:</target>
@@ -588,32 +591,32 @@ The command is triggered if:
 <target>
 Ukaz se sproži če:
 - se spremenijo datoteke ali podmape
-- pridejo nove mape (npr. ob vstavitvi USB ključka)
+- pojavijo nove mape (npr. ob vstavitvi USB ključka)
 </target>
 
 <source>Start</source>
 <target>Začni</target>
 
 <source>About</source>
-<target>O programu(1)</target>
+<target>Vizitka</target>
 
 <source>Build: %x</source>
-<target>Verzija: %x</target>
+<target>Grsdnja: %x</target>
 
 <source>All files</source>
 <target>Vse datoteke</target>
 
 <source>Automated Synchronization</source>
-<target>Avtomatska sinhnorizacija</target>
+<target>Samodejna sinhronizacija</target>
 
 <source>The %x protocol does not support directory monitoring:</source>
-<target></target>
+<target>Protokol %x ne podpira nadzora imenikov:</target>
 
 <source>Directory monitoring active</source>
 <target>Nadzor imenikov je aktiven</target>
 
 <source>Waiting until all directories are available...</source>
-<target>Čakam, da so vsi imeniki dostopni...</target>
+<target>Čakam, dokler ne bodo na voljo vsi imeniki...</target>
 
 <source>&Restore</source>
 <target>&Obnovi</target>
@@ -637,7 +640,7 @@ Ukaz se sproži če:
 <target>Velikost datoteke</target>
 
 <source>Two way</source>
-<target>Obojesmerno</target>
+<target>Dvosmerno</target>
 
 <source>Mirror</source>
 <target>Zrcalno</target>
@@ -691,19 +694,19 @@ Ukaz se sproži če:
 <target>Ciljna mapa %x že obstaja.</target>
 
 <source>Target folder input field must not be empty.</source>
-<target>Vnosno polje za ciljno mapo ne sme biti prazno.</target>
+<target>Vnosno polje ciljnë mape ne sme biti prazno.</target>
 
 <source>Source folder %x not found.</source>
 <target>Izvorne mape %x ni moč najti.</target>
 
 <source>Please enter a target folder for versioning.</source>
-<target>Prosim vnesite ciljno mapo za verzioniranje.</target>
+<target>Prosim vnesite ciljno mapo za označitev.</target>
 
 <source>The following items have unresolved conflicts and will not be synchronized:</source>
-<target>Naslednji elementi imajo nerešene konflikte in ne bodo sinhronizirani:</target>
+<target>Naslednje postavke imajo nerešene konflikte in ne bodo sinhronizirane:</target>
 
 <source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
-<target>Naslednje mape so bistveno različne. Prosimo preverite, da so izbrane pravilne mape za sinhroniziranje.</target>
+<target>Naslednje mape so bistveno različne. Prosimo preverite, ali so izbrane pravilne mape za sinhroniziranje.</target>
 
 <source>Not enough free disk space available in:</source>
 <target>Na voljo ni dovolj prostega prostora na disku v:</target>
@@ -718,16 +721,16 @@ Ukaz se sproži če:
 <target>Da bi se izognili sporom, nastavite izključno filtre tako, da je vsaka posodobljena datoteka upoštevana samo v eni osnovni mapi.</target>
 
 <source>Versioning folder:</source>
-<target>Verzioniranje mape:</target>
+<target>Označitev mape:</target>
 
 <source>Base folder:</source>
 <target>Osnovna mapa:</target>
 
 <source>The versioning folder is contained in a base folder.</source>
-<target></target>
+<target>Mapa različic je vsebovana v osnovni mapi.</target>
 
 <source>Synchronizing folder pair:</source>
-<target>Sinhroniziram par map:</target>
+<target>Sinhroniziram parne mape:</target>
 
 <source>Generating database...</source>
 <target>Ustvarjam podatkovno bazo...</target>
@@ -739,19 +742,19 @@ Ukaz se sproži če:
 <target>naziv opravila</target>
 
 <source>Show summary</source>
-<target></target>
+<target>Pokaži povzetek</target>
 
 <source>Sleep</source>
-<target></target>
+<target>Spanje</target>
 
 <source>Shut down</source>
-<target>Ugasni</target>
+<target>Izključi računalnik</target>
 
 <source>Synchronization stopped</source>
 <target>Sinhnorizacija zaustavljena</target>
 
 <source>Stopped</source>
-<target>Ustavljen</target>
+<target>Ustavljeno</target>
 
 <source>Synchronization completed with errors</source>
 <target>Sinhronizacija dokončana z napakami</target>
@@ -760,54 +763,77 @@ Ukaz se sproži če:
 <target>Sinhronizacija dokončana z opozorili</target>
 
 <source>Warning</source>
-<target>Pozor</target>
+<target>Opozorilo</target>
 
 <source>Nothing to synchronize</source>
-<target>Ni ničesar za sinhroniziranje</target>
+<target>Nič za sinhroniziranje</target>
 
 <source>Synchronization completed successfully</source>
-<target>Sinhronizacija se je uspešno končala</target>
+<target>Sinhronizacija je uspešno končana</target>
 
 <source>Executing command %x</source>
-<target></target>
+<target>Izvedba ukaza %x</target>
 
 <source>Cleaning up old log files...</source>
-<target>Čistim stare datoteke beleženja...</target>
+<target>Čiščenje starih datotek dnevnika...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
-<target>Preklopite na FreeFileSync glavno okno za odpravo težave.</target>
+<target>Če želite odpraviti to težavo, lahko preklopite na glavno okno FreeFileSync.</target>
 
 <source>&Don't show this warning again</source>
-<target>&Ne pokaži več tega opozorila</target>
+<target>&Ne prikazuj več tega opozorila</target>
 
 <source>&Ignore</source>
-<target>&Ignoriraj</target>
+<target>&Prezri</target>
 
 <source>&Switch</source>
 <target>&Preklopi</target>
 
 <source>Switching to FreeFileSync's main window</source>
-<target>Preklopi na FreeFileSync glavno okno</target>
+<target>Preklop na glavno okno FreeFileSync</target>
 
 <source>
 <pluralform>Automatic retry in 1 second...</pluralform>
 <pluralform>Automatic retry in %x seconds...</pluralform>
 </source>
 <target>
-<pluralform>Ponovni poskus čez %x sekundo...</pluralform>
-<pluralform>Ponovni poskus čez %x sekundi...</pluralform>
-<pluralform>Ponovni poskus čez %x sekunde...</pluralform>
-<pluralform>Ponovni poskus čez %x sekund...</pluralform>
+<pluralform>Samodejni poskus znova čez %x sekundo...</pluralform>
+<pluralform>Samodejni poskus znova čez %x sekundi...</pluralform>
+<pluralform>Samodejni poskus znova čez %x sekunde...</pluralform>
+<pluralform>Samodejni poskus znova čez %x sekund...</pluralform>
 </target>
 
 <source>Ignore &all</source>
-<target></target>
+<target>Prezri &vse</target>
 
 <source>Retrying operation...</source>
 <target>Ponovni poizkus operacije...</target>
 
 <source>Serious Error</source>
 <target>Resna napaka</target>
+
+<source>Last session</source>
+<target>Zadnja seja</target>
+
+<source>Today</source>
+<target>Danes</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>%x dan</pluralform>
+<pluralform>%x dneva</pluralform>
+<pluralform>%x dnevi</pluralform>
+<pluralform>%x dni</pluralform>
+</target>
+
+<source>Name</source>
+<target>Ime</target>
+
+<source>Last sync</source>
+<target>Zadnja sinhronizacija</target>
 
 <source>Folder</source>
 <target>Mapa</target>
@@ -816,13 +842,13 @@ Ukaz se sproži če:
 <target>Simbolična povezava</target>
 
 <source>Full path</source>
-<target>Polna pot</target>
+<target>Celotna pot</target>
 
 <source>Relative path</source>
 <target>Relativna pot</target>
 
 <source>Item name</source>
-<target>Ime objekta</target>
+<target>Ime postavke</target>
 
 <source>Size</source>
 <target>Velikost</target>
@@ -831,7 +857,7 @@ Ukaz se sproži če:
 <target>Datum</target>
 
 <source>Extension</source>
-<target>Razširitev</target>
+<target>Pripona</target>
 
 <source>Category</source>
 <target>Kategorija</target>
@@ -840,10 +866,10 @@ Ukaz se sproži če:
 <target>Ukrep</target>
 
 <source>Local comparison settings</source>
-<target>Lokalne primerjalne nastavitve</target>
+<target>Lokalne nastavitve primerjave</target>
 
 <source>Local synchronization settings</source>
-<target>Lokalne sinhnorizacijske nastavitve</target>
+<target>Lokalne nastavitve sinhnorizacije</target>
 
 <source>Local filter</source>
 <target>Lokalni filter</target>
@@ -870,7 +896,7 @@ Ukaz se sproži če:
 <target>Izbrana mapa %x ne more biti uprabljena s FreeFileSync.</target>
 
 <source>Please select a folder on a local file system, network or an MTP device.</source>
-<target>Prosim izberite mapo na lokalnem sistemu datotek, mreži ali na MTP napravi.</target>
+<target>Prosim izberite mapo na lokalnem datotečnem sistemu, mreži ali na MTP napravi.</target>
 
 <source>&New</source>
 <target>&Nova</target>
@@ -879,13 +905,13 @@ Ukaz se sproži če:
 <target>&Shrani</target>
 
 <source>Save as &batch job...</source>
-<target>Shrani kot serijsko op&ravilo...</target>
+<target>Shrani kot paketno op&ravilo...</target>
 
 <source>Start &comparison</source>
 <target>Začni &primerjavo</target>
 
 <source>C&omparison settings</source>
-<target>P&rimerjalne nastavitve</target>
+<target>N&astavitve primerjave</target>
 
 <source>&Filter settings</source>
 <target>Nastavitve &filtra</target>
@@ -912,13 +938,13 @@ Ukaz se sproži če:
 <target>&Izvozi seznam datotek...</target>
 
 <source>&Reset layout</source>
-<target>&Ponastavi razporeditev</target>
+<target>&Ponastavi postavitev</target>
 
 <source>&Tools</source>
 <target>&Orodja</target>
 
 <source>&Check for updates now</source>
-<target>&Preveri posodobitve sedaj</target>
+<target>&Preveri, ali so zdaj na voljo posodobitve</target>
 
 <source>Check &automatically once a week</source>
 <target>S&amodejno preveri enkrat tedensko</target>
@@ -933,10 +959,10 @@ Ukaz se sproži če:
 <target>Sinhroniziraj</target>
 
 <source>Add folder pair</source>
-<target>Dodaj par imenikov</target>
+<target>Dodaj pare imenikov</target>
 
 <source>Remove folder pair</source>
-<target>Odstrani par imenikov</target>
+<target>Odstrani pare imenikov</target>
 
 <source>Access online storage</source>
 <target>Dostop do spletnega prostora za shranjevanje</target>
@@ -951,7 +977,7 @@ Ukaz se sproži če:
 <target>Išči:</target>
 
 <source>Match case</source>
-<target>Ujemanje s primerom</target>
+<target>Ujemanje primera</target>
 
 <source>New</source>
 <target>Nova</target>
@@ -966,10 +992,10 @@ Ukaz se sproži če:
 <target>Shrani kot...</target>
 
 <source>View type:</source>
-<target>Tip pogleda:</target>
+<target>Vrsta prikaza:</target>
 
 <source>Select view:</source>
-<target>Izberi pogled:</target>
+<target>Izberi prikaz:</target>
 
 <source>Statistics:</source>
 <target>Statistika:</target>
@@ -996,10 +1022,10 @@ Ukaz se sproži če:
 <target>Uporabi lokalne nastavitve:</target>
 
 <source>Select a variant:</source>
-<target>Izberi možnost:</target>
+<target>Izberi varianto:</target>
 
 <source>Include &symbolic links:</source>
-<target>Vključuje &simbolične povezave:</target>
+<target>Vključi &simbolične povezave:</target>
 
 <source>&Follow</source>
 <target>&Sledi</target>
@@ -1014,7 +1040,7 @@ Ukaz se sproži če:
 <target>&Prezri časovni zamik [hh:mm]</target>
 
 <source>List of file time offsets to ignore</source>
-<target>Seznam časovnih zamikov datotek, ki bodo prezrte</target>
+<target>Seznam časovnih zamikov datotek, ki jih je treba prezreti</target>
 
 <source>Example:</source>
 <target>Primer:</target>
@@ -1058,8 +1084,8 @@ Ukaz se sproži če:
 - Detection not available for first sync
 </source>
 <target>
-- Ni podprto z vsemi sistemi datotek
-- Zahteva in ustvari datoteke v podatkovni bazi
+- Ni podprto z vsemi datotečnimi sistemi
+- Zahteva in ustvari datoteke v bazi podatkov
 - Zaznavanje ni na voljo pri prvem sinhroniziranju
 </target>
 
@@ -1070,37 +1096,37 @@ Ukaz se sproži če:
 <target>&Koš</target>
 
 <source>&Permanent</source>
-<target>&Dokončno</target>
+<target>&Trajno</target>
 
 <source>&Versioning</source>
-<target>&Verzioniranje</target>
+<target>&Označitev</target>
 
 <source>Naming convention:</source>
-<target>Konvencija poimenovanja:</target>
+<target>Imenovanje konvencije:</target>
 
 <source>&Ignore errors</source>
-<target></target>
+<target>&Prezri napake</target>
 
 <source>Show pop-up on errors or warnings</source>
-<target>Prikaži pojavne napaka ali opozorila</target>
+<target>Pokaži pojavna okna napak ali opozoril</target>
 
 <source>Run a command after synchronization:</source>
-<target></target>
+<target>Zaženi ukaz po sinhronizaciji:</target>
 
 <source>OK</source>
 <target>V redu</target>
 
 <source>Arrange folder pair</source>
-<target>Uredi par map</target>
+<target>Uredi pare map</target>
 
 <source>Enter your login details:</source>
-<target>Vnestite vaše podatke za prijavo:</target>
+<target>Vnestite podatke za prijavo:</target>
 
 <source>Connection type:</source>
-<target>Tip povezave:</target>
+<target>Vrsta povezave:</target>
 
 <source>Server name or IP address:</source>
-<target>Ime serverja ali IP naslova:</target>
+<target>Ime strežnika ali naslov IP:</target>
 
 <source>Port:</source>
 <target>Vrata:</target>
@@ -1121,37 +1147,37 @@ Ukaz se sproži če:
 <target>&Geslo</target>
 
 <source>&Key file</source>
-<target>&Ključna datoteka</target>
+<target>&Datoteka ključa</target>
 
 <source>&SSH agent</source>
-<target></target>
+<target>&SSH agent</target>
 
 <source>User name:</source>
 <target>Uporabniško ime:</target>
 
 <source>Private key file:</source>
-<target>Zasebni ključ datoteke:</target>
+<target>Zasebna datoteka ključa:</target>
 
 <source>&Show password</source>
 <target>&Prikaži geslo</target>
 
 <source>Directory on server:</source>
-<target>Imenik na serverju:</target>
+<target>Imenik na strežniku:</target>
 
 <source>Performance improvements:</source>
-<target>Izboljšanje izvedbe:</target>
+<target>Izboljšave zmogljivosti:</target>
 
 <source>How to get best performance?</source>
-<target>Kako dobiti najboljšo izvedbo?</target>
+<target>Kako doseči najboljšo učinkovitost?</target>
 
 <source>Connections for directory reading:</source>
-<target></target>
+<target>Povezave za branje imenika:</target>
 
 <source>SFTP channels per connection:</source>
 <target>SFTP kanali za povezavo:</target>
 
 <source>Detect server limit</source>
-<target>Zaznaj omejitve serverja</target>
+<target>Zaznaj omejitve strežnika</target>
 
 <source>Select a directory on the server:</source>
 <target>Izberite imenik na strežniku:</target>
@@ -1163,13 +1189,13 @@ Ukaz se sproži če:
 <target>Zaženem sinhronizacijo zdaj?</target>
 
 <source>Variant:</source>
-<target>Možnost:</target>
+<target>Varianta:</target>
 
 <source>&Don't show this dialog again</source>
-<target>&Ne pokaži več tega sporočila</target>
+<target>&Tega pogovornega okna ne prikazuj znova</target>
 
 <source>Items found:</source>
-<target>Najdenih elementov:</target>
+<target>Najdenih postavk:</target>
 
 <source>Time remaining:</source>
 <target>Preostali čas:</target>
@@ -1181,7 +1207,7 @@ Ukaz se sproži če:
 <target>Bitov</target>
 
 <source>Items</source>
-<target>Objektov</target>
+<target>Postavk</target>
 
 <source>Synchronizing...</source>
 <target>Sinhroniziram...</target>
@@ -1193,7 +1219,7 @@ Ukaz se sproži če:
 <target>Prepisanih bajtov:</target>
 
 <source>When finished:</source>
-<target></target>
+<target>Po zaključku:</target>
 
 <source>Close</source>
 <target>Zapri</target>
@@ -1205,16 +1231,16 @@ Ukaz se sproži če:
 <target>Ustavi</target>
 
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
-<target>Ustvari skriptno datoteko za nenadzorovano sinhnorizacijo. Za zagon dvojno kliknite to datoteko ali pa jo umestite v razporejevalnik opravil: %x</target>
+<target>Ustvari paketno datoteko za nenadzorovano sinhronizacijo. Za začetek dvokliknite to datoteko ali določite v načrtovalniku nalog: %x</target>
 
 <source>Run minimized</source>
-<target>Začeni minimizirano</target>
+<target>Zaženi minimirano</target>
 
 <source>&Show error dialog</source>
-<target></target>
+<target>&Prikaži pogovorno okno napak</target>
 
 <source>&Cancel</source>
-<target></target>
+<target>&Prekliči</target>
 
 <source>Stop synchronization at first error</source>
 <target>Ustavi sinhronizacijo ob prvi napaki</target>
@@ -1226,10 +1252,10 @@ Ukaz se sproži če:
 <target>Omejitev:</target>
 
 <source>Limit maximum number of log files</source>
-<target>Omeji maksimalno število datotek beleženja</target>
+<target>Omeji največje število dnevnikov</target>
 
 <source>How can I schedule a batch job?</source>
-<target>Kako nastavim urnik za serijsko opravilo?</target>
+<target>Kako lahko načrtujem opravilo v paketu?</target>
 
 <source>&Keep relative paths</source>
 <target>&Ohrani relativne poti</target>
@@ -1246,23 +1272,23 @@ This guarantees a consistent state even in case of a serious error.
 </source>
 <target>
 Kopiraj v začasno datoteko (*.ffs_tmp) preden prepišeš cilj.
-To zagotavlja konsistenčnost podatkov v primeru napake.
+To zagotavlja dosledno stanje tudi v primeru resne napake.
 </target>
 
 <source>recommended</source>
 <target>priporočeno</target>
 
 <source>Copy shared or locked files using the Volume Shadow Copy Service.</source>
-<target>Kopiraj zaklenjene in datoteke v skupni rabi s pomočjo Shadow Copy Service.</target>
+<target>Kopiraj skupne ali zaklenjene datoteke s storitvijo Volume Shadow Copy Service.</target>
 
 <source>requires administrator rights</source>
-<target></target>
+<target>zahteva skrbniške pravice</target>
 
 <source>Transfer file and folder permissions.</source>
-<target>Prenesi pravice datotek in map.</target>
+<target>Prenesi dovoljenja za datoteke in mape.</target>
 
 <source>Automatic retry on error:</source>
-<target>Ob napaki avtomatsko poskusi znova:</target>
+<target>Ob napaki samodejo poskusi znova:</target>
 
 <source>Retry count:</source>
 <target>Število poiskusov:</target>
@@ -1271,16 +1297,16 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Zakasnitev (v sekundah):</target>
 
 <source>Customize context menu:</source>
-<target>Prilagodi vsebinski meni:</target>
+<target>Prilagodi kontekstni meni:</target>
 
 <source>Description</source>
 <target>Opis</target>
 
 <source>Show hidden dialogs again</source>
-<target>Zopet prikaži skrite dilaoge</target>
+<target>Ponovno prikaži skrita pogovorna okna</target>
 
 <source>Show all permanently hidden dialogs and warning messages again</source>
-<target>Znova prikaži vse dokončno skrite dialoge in opozorila</target>
+<target>Prikaži vsa trajno skrita pogovorna okna in opozorilna sporočila</target>
 
 <source>&Default</source>
 <target>&Privzeto</target>
@@ -1292,13 +1318,13 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Če vam je FreeFileSync všeč:</target>
 
 <source>Support with a donation</source>
-<target></target>
+<target>Podpora z donacijo</target>
 
 <source>Donation details</source>
 <target>Podrobnosti o donaciji</target>
 
 <source>The auto updater was disabled by the administrator.</source>
-<target></target>
+<target>Skrbnik je onemogočil samodejno posodabljanje.</target>
 
 <source>Feedback and suggestions are welcome</source>
 <target>Povratne informacije in predlogi so dobrodošli</target>
@@ -1316,13 +1342,13 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Zahvala prevajalcem za lokalizacijo:</target>
 
 <source>Activate the FreeFileSync Donation Edition by one of the following methods:</source>
-<target>Aktivirajte FreeFileSync Donacijsko Verzijo z eno izmed naslednjih metod:</target>
+<target>Aktivirajte FreeFileSync Donation Edition na en od naslednjih načinov:</target>
 
 <source>1. Activate via internet now:</source>
-<target>1. Aktivirajte z uporabo interneta sedaj:</target>
+<target>1. Aktivirajte preko interneta zdaj:</target>
 
 <source>Activate online</source>
-<target>Aktivirajte na spletu</target>
+<target>Aktivirajte po spletu</target>
 
 <source>2. Retrieve an offline activation key from the following URL:</source>
 <target>2. Pridobite aktivacijski ključ brez povezave na naslednjem URL:</target>
@@ -1336,14 +1362,17 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <source>Activate offline</source>
 <target>Aktivirajte brez povezave</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Označite konfiguracije, ki se ne izvajajo več kot naslednje število dni:</target>
+
 <source>Save as a Batch Job</source>
-<target></target>
+<target>Shrani kot paketno opravilo</target>
 
 <source>Delete Items</source>
-<target>Izbriši elemente</target>
+<target>Izbriši postavke</target>
 
 <source>Copy items</source>
-<target>Kopiraj elemente</target>
+<target>Kopiraj postavke</target>
 
 <source>Options</source>
 <target>Možnosti</target>
@@ -1352,7 +1381,10 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Izberi časovno obdobje</target>
 
 <source>FreeFileSync Donation Edition</source>
-<target>FreeFileSync Donacijska Verzija</target>
+<target>FreeFileSync Donation Edition</target>
+
+<source>Highlight Configurations</source>
+<target>Označite konfiguracije</target>
 
 <source>&Options</source>
 <target>&Možnosti</target>
@@ -1373,7 +1405,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Konfiguracija</target>
 
 <source>Overview</source>
-<target>Pregled</target>
+<target>Predogled</target>
 
 <source>Show "%x"</source>
 <target>Prikaži "%x"</target>
@@ -1382,7 +1414,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>&Pokaži podrobnosti</target>
 
 <source>FreeFileSync %x is available!</source>
-<target></target>
+<target>FreeFileSync %x je na voljo</target>
 
 <source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
 <target>Namestitvena datoteka je poškodovana. Prosim ponovno naložite FreeFileSync.</target>
@@ -1398,10 +1430,10 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <pluralform>Do you really want to execute the command %y for %x items?</pluralform>
 </source>
 <target>
-<pluralform>Ali res želite izvesti ukaz %y za %x element?</pluralform>
-<pluralform>Ali res želite izvesti ukaz %y za %x elementa?</pluralform>
-<pluralform>Ali res želite izvesti ukaz %y za %x elemente?</pluralform>
-<pluralform>Ali res želite izvesti ukaz %y za %x elementov?</pluralform>
+<pluralform>Ali res želite izvesti ukaz %y za %x postavko?</pluralform>
+<pluralform>Ali res želite izvesti ukaz %y za %x postavki?</pluralform>
+<pluralform>Ali res želite izvesti ukaz %y za %x postavke?</pluralform>
+<pluralform>Ali res želite izvesti ukaz %y za %x postavk?</pluralform>
 </target>
 
 <source>&Execute</source>
@@ -1453,10 +1485,10 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Izključi preko filtra:</target>
 
 <source>Include temporarily</source>
-<target>Trenutno vključi</target>
+<target>Vključi začasno</target>
 
 <source>Exclude temporarily</source>
-<target>Začasno izključi</target>
+<target>Izključi začasno</target>
 
 <source>&Copy to...</source>
 <target>&Kopiraj v...</target>
@@ -1483,10 +1515,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Velika</target>
 
 <source>Select time span...</source>
-<target>Izberite časovni okvir...</target>
-
-<source>Last session</source>
-<target>Zadnja seja</target>
+<target>Izberite časovni razpon...</target>
 
 <source>Folder Comparison and Synchronization</source>
 <target>Primerjava in sinhronizacija mape</target>
@@ -1506,8 +1535,11 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <source>Do&n't save</source>
 <target>Ne shra&ni</target>
 
-<source>Remove entry from list</source>
-<target>Odstrani vnos iz seznama</target>
+<source>Hide configuration</source>
+<target>Skrij konfiguracijo</target>
+
+<source>Highlight...</source>
+<target>Označi...</target>
 
 <source>Clear filter</source>
 <target>Počisti filter</target>
@@ -1525,13 +1557,13 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Prikaži novejše datoteke, ki so na desni strani</target>
 
 <source>Show files that are equal</source>
-<target>Prikaši datoteke, ki so identične</target>
+<target>Prikaži datoteke, ki so identične</target>
 
 <source>Show files that are different</source>
 <target>Prikaži datoteke, ki so različne</target>
 
 <source>Show conflicts</source>
-<target>Prikaži spore</target>
+<target>Prikaži konflikte</target>
 
 <source>Show files that will be created on the left side</source>
 <target>Prikaži datoteke, ki bodo ustvarjene na levi strani</target>
@@ -1570,10 +1602,10 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Ne najdem %x</target>
 
 <source>Move up</source>
-<target>Premakni gor</target>
+<target>Premakni navzgor</target>
 
 <source>Move down</source>
-<target>Premakni dol</target>
+<target>Premakni navzdol</target>
 
 <source>Comma-separated values</source>
 <target>Vrednosti ločene z vejico</target>
@@ -1585,13 +1617,13 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Iščem posodobitve programa...</target>
 
 <source>Paused</source>
-<target>Začasna ustavitev</target>
+<target>Začasno ustavljeno</target>
 
 <source>Initializing...</source>
 <target>Inicializiram...</target>
 
 <source>Scanning...</source>
-<target>Pregledujem...</target>
+<target>Skeniram...</target>
 
 <source>Comparing content...</source>
 <target>Primerjam vsebino...</target>
@@ -1618,40 +1650,40 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Najlepša hvala, %x, za vašo donacijo in podporo!</target>
 
 <source>Recommended range:</source>
-<target></target>
+<target>Priporočeni obseg:</target>
 
 <source>Password:</source>
 <target>Geslo:</target>
 
 <source>Key password:</source>
-<target>Ključno geslo:</target>
+<target>Aktivacijski ključ:</target>
 
 <source>Please enter a file path.</source>
-<target></target>
+<target>Vnesite pot do datoteke.</target>
 
 <source>
 <pluralform>Copy the following item to another folder?</pluralform>
 <pluralform>Copy the following %x items to another folder?</pluralform>
 </source>
 <target>
-<pluralform>Kopiraj sledeč %x element v drugo mapo?</pluralform>
-<pluralform>Kopiraj sledeča %x elementa v drugo mapo?</pluralform>
-<pluralform>Kopiraj sledeče %x elemente v drugo mapo?</pluralform>
-<pluralform>Kopiraj sledečih %x elementov v drugo mapo?</pluralform>
+<pluralform>Kopiraj sledečo %x postavko v drugo mapo?</pluralform>
+<pluralform>Kopiraj sledeči %x postavki v drugo mapo?</pluralform>
+<pluralform>Kopiraj sledeče %x postavke v drugo mapo?</pluralform>
+<pluralform>Kopiraj sledečih %x postavk v drugo mapo?</pluralform>
 </target>
 
 <source>Please enter a target folder.</source>
-<target>Prosim, navedite ciljno mapo.</target>
+<target>Vnesite ciljno mapo.</target>
 
 <source>
 <pluralform>Do you really want to move the following item to the recycle bin?</pluralform>
 <pluralform>Do you really want to move the following %x items to the recycle bin?</pluralform>
 </source>
 <target>
-<pluralform>Ali res želite premakniti sledeč %x element v koš?</pluralform>
-<pluralform>Ali res želite premakniti sledeča %x elementa v koš?</pluralform>
-<pluralform>Ali res želite premakniti sledeče %x elemente v koš?</pluralform>
-<pluralform>Ali res želite premakniti sledečih %x elementov v koš?</pluralform>
+<pluralform>Ali res želite premakniti sledečo %x postavko v koš?</pluralform>
+<pluralform>Ali res želite premakniti sledeči %x postavki v koš?</pluralform>
+<pluralform>Ali res želite premakniti sledeče %x postavke v koš?</pluralform>
+<pluralform>Ali res želite premakniti sledečih %x postavk v koš?</pluralform>
 </target>
 
 <source>Move</source>
@@ -1662,20 +1694,20 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <pluralform>Do you really want to delete the following %x items?</pluralform>
 </source>
 <target>
-<pluralform>Ali resnično želite izbrisati sledeči %x element?</pluralform>
-<pluralform>Ali resnično želite izbrisati naslednja %x elementa?</pluralform>
-<pluralform>Ali resnično želite izbrisati naslednje %x elemente?</pluralform>
-<pluralform>Ali resnično želite izbrisati naslednjih %x elementov?</pluralform>
+<pluralform>Ali res želite izbrisati sledečo %x postavko?</pluralform>
+<pluralform>Ali res želite izbrisati sledeči %x postavki?</pluralform>
+<pluralform>Ali res želite izbrisati sledeče %x postavke?</pluralform>
+<pluralform>Ali res želite izbrisati sledečih %x postavk?</pluralform>
 </target>
 
 <source>Copy DACL, SACL, Owner, Group</source>
 <target>Kopiraj DACL, SACL, lastnik, skupina</target>
 
 <source>Integrate external applications into context menu. The following macros are available:</source>
-<target>Integriraj zunanje aplikacije v kontekstni menu. Na voljo so naslednji makri:</target>
+<target>Integriraj zunanje aplikacije v kontekstni meni. Na voljo so naslednji makroji:</target>
 
 <source>Full file or folder path</source>
-<target>Celotna datoteka ali pot do mape</target>
+<target>Celotna pot do datoteke ali mape</target>
 
 <source>Parent folder path</source>
 <target>Pot do nadrejene mape</target>
@@ -1687,7 +1719,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Parametri za nasprotno stran</target>
 
 <source>Show hidden dialogs and warning messages again?</source>
-<target>Ponovno prikaži skrite dialoge in obvestila?</target>
+<target>Ponovno prikažem skrita pogovorna okna in opozorilna sporočila?</target>
 
 <source>&Show</source>
 <target>&Prikaži</target>
@@ -1696,19 +1728,19 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Prenašam posodobitve...</target>
 
 <source>Identify equal files by comparing modification time and size.</source>
-<target>Določi enake datoteke s primerjavo datuma spremembe in velikosti.</target>
+<target>Ugotovi enake datoteke s primerjanjem časa spremembe in velikosti.</target>
 
 <source>Identify equal files by comparing the file content.</source>
-<target>Določi enake datoteke s primerjavo vsebine.</target>
+<target>Ugotovi enake datoteke s primerjanjem vsebine.</target>
 
 <source>Identify equal files by comparing their file size.</source>
-<target>Identificiraj enake datoteke s primerjavo velikoti teh datotek.</target>
+<target>Ugotovi enake datoteke s primerjanjem njihove velikosti.</target>
 
 <source>Identify and propagate changes on both sides. Deletions, moves and conflicts are detected automatically using a database.</source>
-<target>Identificiraj in razširjaj spremembe na obeh straneh. Izbrisi, premiki in spori so samodejno zaznani z uporabo podatkovne baze.</target>
+<target>Ugotovi in izvrši spremembe na obeh straneh. Izbrisi, premiki in spori so samodejno zaznani z uporabo podatkovne baze.</target>
 
 <source>Create a mirror backup of the left folder by adapting the right folder to match.</source>
-<target>Ustvari zrcalno kopijo levega imenika s prilagoditvijo desnega imenika, tako da se ujemata.</target>
+<target>Ustvari zrcalno varnostno kopijo leve mape tako, da prilagodite desno mapo, ki se bo ujemala.</target>
 
 <source>Copy new and updated files to the right folder.</source>
 <target>Kopiraj nove in posodobljene datoteke v desni imenik.</target>
@@ -1724,9 +1756,6 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 
 <source>Synchronization</source>
 <target>Sinhnorizacija</target>
-
-<source>Today</source>
-<target>Danes</target>
 
 <source>This week</source>
 <target>Ta teden</target>
@@ -1750,19 +1779,19 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>MB</target>
 
 <source>Retain deleted and overwritten files in the recycle bin</source>
-<target></target>
+<target>Zadrži izbrisane in prepisane datoteke v košu</target>
 
 <source>Delete and overwrite files permanently</source>
-<target></target>
+<target>Trajni izbris in prepis datotek</target>
 
 <source>Move files to a user-defined folder</source>
-<target>Premakni datoteke v izbran imenik</target>
+<target>Premakni datoteke v uporabniško določeno mapo</target>
 
 <source>Replace</source>
 <target>Zamenjaj</target>
 
 <source>Move files and replace if existing</source>
-<target>Premakne datoteke in jih zamenja, že obstajajo</target>
+<target>Premakni datoteke in jih zamenjaj, če že obstajajo</target>
 
 <source>Time stamp</source>
 <target>Časovna oznaka</target>
@@ -1774,10 +1803,10 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Ob zaključku:</target>
 
 <source>On errors:</source>
-<target></target>
+<target>Ob napakah:</target>
 
 <source>On success:</source>
-<target></target>
+<target>Ob uspehu:</target>
 
 <source>Main config</source>
 <target>Glavna konfiguracija</target>
@@ -1786,7 +1815,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>prazno</target>
 
 <source>Leave as unresolved conflict</source>
-<target>Pusti kot nerešeni spor</target>
+<target>Pusti kot nerešeni konflikt</target>
 
 <source>File</source>
 <target>Datoteka</target>
@@ -1796,9 +1825,6 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 
 <source>Files</source>
 <target>Datoteke</target>
-
-<source>Name</source>
-<target>Ime</target>
 
 <source>Percentage</source>
 <target>Odstotek</target>
@@ -1810,22 +1836,22 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Samodejne posodobitve:</target>
 
 <source>Requires FreeFileSync Donation Edition</source>
-<target>Zahteva FreeFileSync Donacijsko Verzijo</target>
+<target>Zahteva FreeFileSync Donation Edition</target>
 
 <source>Check for Program Updates</source>
-<target>Prevri obstoj nadgradnje programa</target>
+<target>Preveri obstoj posodobitve programa</target>
 
 <source>Auto-update now or download manually from the FreeFileSync home page?</source>
-<target>Avtomatska posodobitev ali ročni prenos iz FreeFileSync domače strani?</target>
+<target>Samodejna posodobitev zdaj, ali prenos z domače strani FreeFileSync?</target>
 
 <source>&Auto-update</source>
-<target>&Avtomatska posodobitev</target>
+<target>&Samodejna posodobitev</target>
 
 <source>&Home page</source>
 <target>&Domača stran</target>
 
 <source>Download now?</source>
-<target>Prenesem sedaj?</target>
+<target>Prenesem zdaj?</target>
 
 <source>&Download</source>
 <target>&Prenesi</target>
@@ -1834,49 +1860,49 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>FreeFileSync je posodobljen.</target>
 
 <source>Cannot find current FreeFileSync version number online. A newer version is likely available. Check manually now?</source>
-<target>Ne morem najti trenutne številke verzije FreeFileSync na spletu. Novejša verzija je najbrž na voljo. Želite preveriti ročno?</target>
+<target>Na spletu ni mogoče najti trenutne številke različice FreeFileSync. Verjetno je na voljo nova različica. Želite preveriti zdaj?</target>
 
 <source>&Check</source>
 <target>&Preveri</target>
 
 <source>Consistency check failed for %x.</source>
-<target>Preverjanje usklajenosti ni uspelo za %x.</target>
+<target>Preverjanje doslednosti ni uspelo za %x.</target>
 
 <source>Installation was registered on a different operating system.</source>
-<target>Namestitev je bila registrirana na drugem operacisjkem sistemu.</target>
+<target>Namestitev je bila registrirana v drugem operacijskem sistemu.</target>
 
 <source>Failed to activate FreeFileSync Donation Edition.</source>
-<target>Ne morem aktivirati FreeFileSync Donacijske verzije.</target>
+<target>Programa FreeFileSync Donation Edition ni bilo mogoče aktivirati.</target>
 
 <source>Incorrect activation key.</source>
-<target>Nepravilen aktivacisjki ključ.</target>
+<target>Nepravilni ključ za aktiviranje.</target>
 
 <source>Unable to register to receive system messages.</source>
-<target>Ne morem se registrirati za prejem sistemskih sporočil.</target>
+<target>Sistemskih sporočil ni mogoče registrirati.</target>
 
 <source>Cannot find system function %x.</source>
-<target>Ne morem najti sistemske funkcije %x.</target>
+<target>Sistemske funkcije ni mogoče najti %x.</target>
 
 <source>Unable to register device notifications for %x.</source>
-<target>Omogoči registracijo obvestil naprave za %x.</target>
+<target>Ne morem registrirati obvestil naprave za %x.</target>
 
 <source>Cannot monitor directory %x.</source>
-<target>Ne morem nadzorovati imenika %x.</target>
+<target>Ne morem nadzirati imenika %x.</target>
 
 <source>The file is locked by another process:</source>
-<target>Datoteka je zaklenjena s strani drugega procesa:</target>
+<target>Datoteko je zaklenil drug proces:</target>
 
 <source>Cannot read security context of %x.</source>
-<target>Ne morem prebrati varnostnega konteksta od %x.</target>
+<target>Ne morem prebrati varnostni kontekst od %x.</target>
 
 <source>Cannot write security context of %x.</source>
-<target>Ne morem zapisati varnostnega konteksta od %x.</target>
+<target>Ne morem zapisati varnostni kontekst od %x.</target>
 
 <source>Cannot read permissions of %x.</source>
 <target>Ne morem prebrati dovoljenja od %x.</target>
 
 <source>Cannot copy permissions from %x to %y.</source>
-<target>Ne morem kopirati uporabniških pravic iz %x v %y.</target>
+<target>Ne morem kopirati dovoljenj iz %x v %y.</target>
 
 <source>%x is not a regular directory name.</source>
 <target>%x ni pravilno ime imenika.</target>
@@ -1915,46 +1941,35 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <pluralform>%x ur</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>%x dan</pluralform>
-<pluralform>%x dneva</pluralform>
-<pluralform>%x dnevi</pluralform>
-<pluralform>%x dni</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Ne morem nastaviti privilegija %x.</target>
 
 <source>Unable to suspend system sleep mode.</source>
-<target>Ne morem preprečiti mirovanja sistema.</target>
+<target>Ne morem preprečiti način mirovanja sistema.</target>
 
 <source>Cannot change process I/O priorities.</source>
-<target>Ne morem spremeniti V/I prioritet procesa.</target>
+<target>Ne morem spremeniti prioritet procesa I/O.</target>
 
 <source>Unable to shut down the system.</source>
-<target></target>
+<target>Sistema ni mogoče zapustiti.</target>
 
 <source>Checking recycle bin failed for folder %x.</source>
 <target>Preverjanje koša za mapo %x ni uspelo.</target>
 
 <source>The following XML elements could not be read:</source>
-<target>Neaslednji XML elementi niso berljivi:</target>
+<target>Neaslednje XML postavke niso berljive:</target>
 
 <source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>Nastavitvena datoteka %x je nepopolna. Manjkajoči element bo nastavljen na privzete vrednosti.</target>
+<target>Nastavitvena datoteka %x je nepopolna. Manjkajoči elementi bodo nastavljeni na privzete vrednosti.</target>
 
 <source>Prepare installation</source>
 <target>Pripravljam namestitev</target>
 
 <source>Choose which components you want to install.</source>
-<target>Izberite komponente za namestitev.</target>
+<target>Izberite komponente, ki jih želite namestiti.</target>
 
 <source>Select installation type:</source>
-<target>Izberi tip namestitve:</target>
+<target>Izberite vrsto namestitve:</target>
 
 <source>Local</source>
 <target>Lokalna</target>
@@ -1966,7 +1981,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Shrani nastavitve v "%APPDATA%\FreeFileSync"</target>
 
 <source>Register FreeFileSync file extensions</source>
-<target>Registracija FreeFileSync končnic datotek</target>
+<target>Registriraj FreeFileSync datoteče pripone</target>
 
 <source>Create Explorer context menu entries</source>
 <target>Ustvari vnose v Explorer-jev kontekstni meni</target>
@@ -1990,13 +2005,16 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Namizje</target>
 
 <source>Start menu</source>
-<target>Začetni meni</target>
+<target>Meni Start</target>
+
+<source>Send To</source>
+<target>Pošlji</target>
 
 <source>Registering FreeFileSync file extensions</source>
-<target>Registracija FreeFileSync končnic datotek</target>
+<target>Registracija FreeFileSync datotečnih pripon</target>
 
 <source>Unregistering FreeFileSync file extensions</source>
-<target>Odstranjevanje registracije FreeFileSync končnic datotek</target>
+<target>Odstranjevanje registracije FreeFileSync datotečnih pripon</target>
 
 <source>FreeFileSync Configuration</source>
 <target>Nastavitve FreeFileSync</target>
@@ -2005,7 +2023,7 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>FreeFileSync paketna datoteka</target>
 
 <source>FreeFileSync Synchronization Database</source>
-<target>FreeFileSync sinhronizacijska baza</target>
+<target>FreeFileSync sinhronizacijska baza podatkov</target>
 
 <source>RealTimeSync Configuration</source>
 <target>RealTimeSync nastavitve</target>
@@ -2014,11 +2032,11 @@ To zagotavlja konsistenčnost podatkov v primeru napake.
 <target>Uredi z FreeFileSync</target>
 
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
-<target></target>
+<target>Prenosne različice FreeFileSync ni mogoče namestiti v podmapo %x.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
-<target>Prosimo izberite tip lokalne namestitve ali pa izberite drugo mapo za namestitev.</target>
+<target>Prosimo izberite vrsto lokalne namestitve ali pa izberite drugo mapo za namestitev.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>Tihi namestitveni način je na voljo samo v FreeFileSync Donacijski Verziji.</target>
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>Možnost namestitve %x je na voljo samo v FreeFileSync Donation Edition.</target>
 

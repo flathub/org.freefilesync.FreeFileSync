@@ -64,6 +64,9 @@
 <source>Syntax error</source>
 <target>Syntaxfehler</target>
 
+<source>A left and a right directory path are expected after %x.</source>
+<target>Ein linker und rechter Verzeichnispfad werden nach %x erwartet.</target>
+
 <source>Cannot find file %x.</source>
 <target>Die Datei %x wurde nicht gefunden.</target>
 
@@ -456,8 +459,8 @@ Tatsächlich: %y bytes
 <source>Error parsing file %x, row %y, column %z.</source>
 <target>Fehler beim Auswerten der Datei %x, Zeile %y, Spalte %z.</target>
 
-<source>Cannot set directory lock for %x.</source>
-<target>Die Verzeichnissperre für %x kann nicht gesetzt werden.</target>
+<source>Cannot set directory locks for the following folders:</source>
+<target>Die Verzeichnissperren können für die folgenden Ordner nicht gesetzt werden:</target>
 
 <source>
 <pluralform>1 thread</pluralform>
@@ -796,6 +799,27 @@ Die Befehlszeile wird ausgelöst, wenn:
 
 <source>Serious Error</source>
 <target>Schwerer Fehler</target>
+
+<source>Last session</source>
+<target>Letzte Sitzung</target>
+
+<source>Today</source>
+<target>Heute</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 Tag</pluralform>
+<pluralform>%x Tage</pluralform>
+</target>
+
+<source>Name</source>
+<target>Name</target>
+
+<source>Last sync</source>
+<target>Letzte Ausführung</target>
 
 <source>Folder</source>
 <target>Ordner</target>
@@ -1324,6 +1348,9 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Activate offline</source>
 <target>Offline aktivieren</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Konfigurationen hervorheben, die seit mehr als die folgende Anzahl an Tagen nicht mehr ausgeführt wurden:</target>
+
 <source>Save as a Batch Job</source>
 <target>Als Batchauftrag speichern</target>
 
@@ -1341,6 +1368,9 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 
 <source>FreeFileSync Donation Edition</source>
 <target>FreeFileSync Spendenversion</target>
+
+<source>Highlight Configurations</source>
+<target>Konfigurationen hervorheben</target>
 
 <source>&Options</source>
 <target>&Optionen</target>
@@ -1465,9 +1495,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Select time span...</source>
 <target>Zeitspanne auswählen...</target>
 
-<source>Last session</source>
-<target>Letzte Sitzung</target>
-
 <source>Folder Comparison and Synchronization</source>
 <target>Ordnervergleich und Synchronisation</target>
 
@@ -1486,8 +1513,11 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Do&n't save</source>
 <target>&Nicht speichern</target>
 
-<source>Remove entry from list</source>
-<target>Eintrag aus Liste entfernen</target>
+<source>Hide configuration</source>
+<target>Konfiguration ausblenden</target>
+
+<source>Highlight...</source>
+<target>Hervorheben...</target>
 
 <source>Clear filter</source>
 <target>Filter löschen</target>
@@ -1699,9 +1729,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Synchronization</source>
 <target>Synchronisation</target>
 
-<source>Today</source>
-<target>Heute</target>
-
 <source>This week</source>
 <target>Diese Woche</target>
 
@@ -1770,9 +1797,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 
 <source>Files</source>
 <target>Dateien</target>
-
-<source>Name</source>
-<target>Name</target>
 
 <source>Percentage</source>
 <target>Prozent</target>
@@ -1885,15 +1909,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <pluralform>%x Stunden</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 Tag</pluralform>
-<pluralform>%x Tage</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Das Privileg %x kann nicht gesetzt werden.</target>
 
@@ -1960,6 +1975,9 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Start menu</source>
 <target>Startmenü</target>
 
+<source>Send To</source>
+<target>Senden an</target>
+
 <source>Registering FreeFileSync file extensions</source>
 <target>Registriere FreeFileSync Dateiendungen</target>
 
@@ -1987,6 +2005,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Bitte wählen Sie den lokalen Installationstyp oder einen anderen Ordner für die Installation.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>Der stille Installationsmodus is nur in der FreeFileSync Spendenversion verfügbar.</target>
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>Die %x Installationsoption ist nur in der FreeFileSync Spendenversion verfügbar.</target>
 

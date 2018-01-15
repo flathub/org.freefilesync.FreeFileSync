@@ -140,6 +140,7 @@ struct ConvertElement<T, VALUE_TYPE_STL_CONTAINER>
                 value.insert(value.end(), childVal);
             else
                 success = false;
+			//should we support insertion of partially-loaded struct??
         }
         return success;
     }

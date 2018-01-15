@@ -4,7 +4,7 @@
 // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
 // *****************************************************************************
 
-#include "custom_grid.h"
+#include "file_grid.h"
 #include <set>
 #include <wx/dc.h>
 #include <wx/settings.h>
@@ -21,7 +21,7 @@
 #include "../file_hierarchy.h"
 
 using namespace zen;
-using namespace gridview;
+using namespace filegrid;
 
 
 const wxEventType zen::EVENT_GRID_CHECK_ROWS     = wxNewEventType();
@@ -151,16 +151,18 @@ private:
 class GridDataBase : public GridData
 {
 public:
-    GridDataBase(Grid& grid, const std::shared_ptr<const zen::GridView>& gridDataView) : grid_(grid), gridDataView_(gridDataView) {}
+    GridDataBase(Grid& grid, const std::shared_ptr<FileView>& gridDataView) : grid_(grid), gridDataView_(gridDataView) {}
 
     void holdOwnership(const std::shared_ptr<GridEventManager>& evtMgr) { evtMgr_ = evtMgr; }
     GridEventManager* getEventManager() { return evtMgr_.get(); }
+
+    FileView& getDataView() { return *gridDataView_; }
 
 protected:
     Grid& refGrid() { return grid_; }
     const Grid& refGrid() const { return grid_; }
 
-    const GridView* getGridDataView() const { return gridDataView_.get(); }
+    const FileView* getGridDataView() const { return gridDataView_.get(); }
 
     const FileSystemObject* getRawData(size_t row) const
     {
@@ -181,7 +183,7 @@ private:
 
     std::shared_ptr<GridEventManager> evtMgr_;
     Grid& grid_;
-    std::shared_ptr<const GridView> gridDataView_;
+    const std::shared_ptr<FileView> gridDataView_;
 };
 
 //########################################################################################################
@@ -190,7 +192,7 @@ template <SelectedSide side>
 class GridDataRim : public GridDataBase
 {
 public:
-    GridDataRim(const std::shared_ptr<const zen::GridView>& gridDataView, Grid& grid) : GridDataBase(grid, gridDataView) {}
+    GridDataRim(const std::shared_ptr<FileView>& gridDataView, Grid& grid) : GridDataBase(grid, gridDataView) {}
 
     void setIconManager(const std::shared_ptr<IconManager>& iconMgr) { iconMgr_ = iconMgr; }
 
@@ -682,9 +684,9 @@ private:
             auto sortInfo = getGridDataView()->getSortInfo();
             if (sortInfo)
             {
-                if (colType == static_cast<ColumnType>(sortInfo->type_) && (side == LEFT_SIDE) == sortInfo->onLeft_)
+                if (colType == static_cast<ColumnType>(sortInfo->type) && (side == LEFT_SIDE) == sortInfo->onLeft)
                 {
-                    const wxBitmap& marker = getResourceImage(sortInfo->ascending_ ? L"sortAscending" : L"sortDescending");
+                    const wxBitmap& marker = getResourceImage(sortInfo->ascending ? L"sortAscending" : L"sortDescending");
                     drawBitmapRtlNoMirror(dc, marker, rectInside, wxALIGN_CENTER_HORIZONTAL);
                 }
             }
@@ -766,14 +768,14 @@ private:
     ItemPathFormat itemPathFormat = ItemPathFormat::FULL_PATH;
 
     std::vector<char> failedLoads; //effectively a vector<bool> of size "number of rows"
-    Opt<wxBitmap> renderBuf; //avoid costs of recreating this temporal variable
+    Opt<wxBitmap> renderBuf; //avoid costs of recreating this temporary variable
 };
 
 
 class GridDataLeft : public GridDataRim<LEFT_SIDE>
 {
 public:
-    GridDataLeft(const std::shared_ptr<const zen::GridView>& gridDataView, Grid& grid) : GridDataRim<LEFT_SIDE>(gridDataView, grid) {}
+    GridDataLeft(const std::shared_ptr<FileView>& gridDataView, Grid& grid) : GridDataRim<LEFT_SIDE>(gridDataView, grid) {}
 
     void setNavigationMarker(std::unordered_set<const FileSystemObject*>&& markedFilesAndLinks,
                              std::unordered_set<const ContainerObject*>&& markedContainer)
@@ -787,7 +789,7 @@ private:
     {
         GridDataRim<LEFT_SIDE>::renderRowBackgound(dc, rect, row, enabled, selected);
 
-        //mark rows selected on navigation grid:
+        //mark rows selected on overview panel:
         if (enabled && !selected)
         {
             const bool markRow = [&]
@@ -837,7 +839,7 @@ private:
 class GridDataRight : public GridDataRim<RIGHT_SIDE>
 {
 public:
-    GridDataRight(const std::shared_ptr<const zen::GridView>& gridDataView, Grid& grid) : GridDataRim<RIGHT_SIDE>(gridDataView, grid) {}
+    GridDataRight(const std::shared_ptr<FileView>& gridDataView, Grid& grid) : GridDataRim<RIGHT_SIDE>(gridDataView, grid) {}
 };
 
 //########################################################################################################
@@ -845,15 +847,15 @@ public:
 class GridDataCenter : public GridDataBase
 {
 public:
-    GridDataCenter(const std::shared_ptr<const zen::GridView>& gridDataView, Grid& grid) :
+    GridDataCenter(const std::shared_ptr<FileView>& gridDataView, Grid& grid) :
         GridDataBase(grid, gridDataView),
-        toolTip(grid) {} //tool tip must not live longer than grid!
+        toolTip_(grid) {} //tool tip must not live longer than grid!
 
     void onSelectBegin()
     {
-        selectionInProgress = true;
+        selectionInProgress_ = true;
         refGrid().clearSelection(DENY_GRID_EVENT); //don't emit event, prevent recursion!
-        toolTip.hide(); //handle custom tooltip
+        toolTip_.hide(); //handle custom tooltip
     }
 
     void onSelectEnd(size_t rowFirst, size_t rowLast, HoverArea rowHover, ptrdiff_t clickInitRow)
@@ -861,7 +863,7 @@ public:
         refGrid().clearSelection(DENY_GRID_EVENT); //don't emit event, prevent recursion!
 
         //issue custom event
-        if (selectionInProgress) //don't process selections initiated by right-click
+        if (selectionInProgress_) //don't process selections initiated by right-click
             if (rowFirst < rowLast && rowLast <= refGrid().getRowCount()) //empty? probably not in this context
                 if (wxEvtHandler* evtHandler = refGrid().GetEventHandler())
                     switch (static_cast<HoverAreaCenter>(rowHover))
@@ -893,7 +895,7 @@ public:
                         }
                         break;
                     }
-        selectionInProgress = false;
+        selectionInProgress_ = false;
 
         //update highlight_ and tooltip: on OS X no mouse movement event is generated after a mouse button click (unlike on Windows)
         wxPoint clientPos = refGrid().getMainWin().ScreenToClient(wxGetMousePosition());
@@ -903,7 +905,7 @@ public:
     void onMouseMovement(const wxPoint& clientPos)
     {
         //manage block highlighting and custom tooltip
-        if (!selectionInProgress)
+        if (!selectionInProgress_)
         {
             const wxPoint& topLeftAbs = refGrid().CalcUnscrolledPosition(clientPos);
             const size_t row = refGrid().getRowAtPos(topLeftAbs.y); //return -1 for invalid position, rowCount if one past the end
@@ -913,13 +915,13 @@ public:
                 refGrid().getMainWin().GetClientRect().Contains(clientPos)) //cursor might have moved outside visible client area
                 showToolTip(row, static_cast<ColumnTypeCenter>(cpi.colType), refGrid().getMainWin().ClientToScreen(clientPos));
             else
-                toolTip.hide();
+                toolTip_.hide();
         }
     }
 
     void onMouseLeave() //wxEVT_LEAVE_WINDOW does not respect mouse capture!
     {
-        toolTip.hide(); //handle custom tooltip
+        toolTip_.hide(); //handle custom tooltip
     }
 
     void highlightSyncAction(bool value) { highlightSyncAction_ = value; }
@@ -987,9 +989,9 @@ private:
                     const bool drawMouseHover = static_cast<HoverAreaCenter>(rowHover) == HoverAreaCenter::CHECK_BOX;
 
                     if (fsObj->isActive())
-                        drawBitmapRtlMirror(dc, getResourceImage(drawMouseHover ? L"checkbox_true_hover" : L"checkbox_true"), rect, wxALIGN_CENTER, renderBuf);
+                        drawBitmapRtlMirror(dc, getResourceImage(drawMouseHover ? L"checkbox_true_hover" : L"checkbox_true"), rect, wxALIGN_CENTER, renderBuf_);
                     else //default
-                        drawBitmapRtlMirror(dc, getResourceImage(drawMouseHover ?  L"checkbox_false_hover" : L"checkbox_false"), rect, wxALIGN_CENTER, renderBuf);
+                        drawBitmapRtlMirror(dc, getResourceImage(drawMouseHover ?  L"checkbox_false_hover" : L"checkbox_false"), rect, wxALIGN_CENTER, renderBuf_);
                 }
                 break;
 
@@ -1002,19 +1004,19 @@ private:
                     wxRect rectTmp = rect;
                     {
                         //draw notch on left side
-                        if (notch.GetHeight() != rectTmp.GetHeight())
-                            notch.Rescale(notch.GetWidth(), rectTmp.GetHeight());
+                        if (notch_.GetHeight() != rectTmp.GetHeight())
+                            notch_.Rescale(notch_.GetWidth(), rectTmp.GetHeight());
 
                         //wxWidgets screws up again and has wxALIGN_RIGHT off by one pixel! -> use wxALIGN_LEFT instead
-                        const wxRect rectNotch(rectTmp.x + rectTmp.width - notch.GetWidth(), rectTmp.y, notch.GetWidth(), rectTmp.height);
-                        drawBitmapRtlMirror(dc, notch, rectNotch, wxALIGN_LEFT, renderBuf);
-                        rectTmp.width -= notch.GetWidth();
+                        const wxRect rectNotch(rectTmp.x + rectTmp.width - notch_.GetWidth(), rectTmp.y, notch_.GetWidth(), rectTmp.height);
+                        drawBitmapRtlMirror(dc, notch_, rectNotch, wxALIGN_LEFT, renderBuf_);
+                        rectTmp.width -= notch_.GetWidth();
                     }
 
                     if (!highlightSyncAction_)
-                        drawBitmapRtlMirror(dc, getCmpResultImage(fsObj->getCategory()), rectTmp, wxALIGN_CENTER, renderBuf);
+                        drawBitmapRtlMirror(dc, getCmpResultImage(fsObj->getCategory()), rectTmp, wxALIGN_CENTER, renderBuf_);
                     else if (fsObj->getCategory() != FILE_EQUAL) //don't show = in both middle columns
-                        drawBitmapRtlMirror(dc, greyScale(getCmpResultImage(fsObj->getCategory())), rectTmp, wxALIGN_CENTER, renderBuf);
+                        drawBitmapRtlMirror(dc, greyScale(getCmpResultImage(fsObj->getCategory())), rectTmp, wxALIGN_CENTER, renderBuf_);
                 }
                 break;
 
@@ -1029,19 +1031,19 @@ private:
                     switch (rowHoverCenter)
                     {
                         case HoverAreaCenter::DIR_LEFT:
-                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::LEFT)), rect, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, renderBuf);
+                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::LEFT)), rect, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, renderBuf_);
                             break;
                         case HoverAreaCenter::DIR_NONE:
-                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::NONE)), rect, wxALIGN_CENTER, renderBuf);
+                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::NONE)), rect, wxALIGN_CENTER, renderBuf_);
                             break;
                         case HoverAreaCenter::DIR_RIGHT:
-                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::RIGHT)), rect, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, renderBuf);
+                            drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->testSyncOperation(SyncDirection::RIGHT)), rect, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, renderBuf_);
                             break;
                         case HoverAreaCenter::CHECK_BOX:
                             if (highlightSyncAction_)
-                                drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->getSyncOperation()), rect, wxALIGN_CENTER, renderBuf);
+                                drawBitmapRtlMirror(dc, getSyncOpImage(fsObj->getSyncOperation()), rect, wxALIGN_CENTER, renderBuf_);
                             else if (fsObj->getSyncOperation() != SO_EQUAL) //don't show = in both middle columns
-                                drawBitmapRtlMirror(dc, greyScale(getSyncOpImage(fsObj->getSyncOperation())), rect, wxALIGN_CENTER, renderBuf);
+                                drawBitmapRtlMirror(dc, greyScale(getSyncOpImage(fsObj->getSyncOperation())), rect, wxALIGN_CENTER, renderBuf_);
                             break;
                     }
                 }
@@ -1226,7 +1228,7 @@ private:
                         return L"";
                     }();
                     const auto& img = mirrorIfRtl(getResourceImage(imageName));
-                    toolTip.show(getCategoryDescription(*fsObj), posScreen, &img);
+                    toolTip_.show(getCategoryDescription(*fsObj), posScreen, &img);
                 }
                 break;
 
@@ -1272,21 +1274,21 @@ private:
                         return L"";
                     }();
                     const auto& img = mirrorIfRtl(getResourceImage(imageName));
-                    toolTip.show(getSyncOpDescription(*fsObj), posScreen, &img);
+                    toolTip_.show(getSyncOpDescription(*fsObj), posScreen, &img);
                 }
                 break;
             }
         }
         else
-            toolTip.hide(); //if invalid row...
+            toolTip_.hide(); //if invalid row...
     }
 
     bool highlightSyncAction_ = false;
-    bool selectionInProgress = false;
+    bool selectionInProgress_ = false;
 
-    Opt<wxBitmap> renderBuf; //avoid costs of recreating this temporal variable
-    Tooltip toolTip;
-    wxImage notch { getResourceImage(L"notch").ConvertToImage() };
+    Opt<wxBitmap> renderBuf_; //avoid costs of recreating this temporary variable
+    Tooltip toolTip_;
+    wxImage notch_ = getResourceImage(L"notch").ConvertToImage();
 };
 
 //########################################################################################################
@@ -1306,19 +1308,19 @@ public:
         gridL_.Connect(EVENT_GRID_COL_RESIZE, GridColumnResizeEventHandler(GridEventManager::onResizeColumnL), nullptr, this);
         gridR_.Connect(EVENT_GRID_COL_RESIZE, GridColumnResizeEventHandler(GridEventManager::onResizeColumnR), nullptr, this);
 
-        gridL_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler  (GridEventManager::onKeyDownL), nullptr, this);
-        gridC_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler  (GridEventManager::onKeyDownC), nullptr, this);
-        gridR_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler  (GridEventManager::onKeyDownR), nullptr, this);
+        gridL_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(GridEventManager::onKeyDownL), nullptr, this);
+        gridC_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(GridEventManager::onKeyDownC), nullptr, this);
+        gridR_.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(GridEventManager::onKeyDownR), nullptr, this);
 
         gridC_.getMainWin().Connect(wxEVT_MOTION,       wxMouseEventHandler(GridEventManager::onCenterMouseMovement), nullptr, this);
         gridC_.getMainWin().Connect(wxEVT_LEAVE_WINDOW, wxMouseEventHandler(GridEventManager::onCenterMouseLeave   ), nullptr, this);
 
-        gridC_.Connect(EVENT_GRID_MOUSE_LEFT_DOWN, GridClickEventHandler      (GridEventManager::onCenterSelectBegin), nullptr, this);
-        gridC_.Connect(EVENT_GRID_SELECT_RANGE,    GridRangeSelectEventHandler(GridEventManager::onCenterSelectEnd  ), nullptr, this);
+        gridC_.Connect(EVENT_GRID_MOUSE_LEFT_DOWN, GridClickEventHandler (GridEventManager::onCenterSelectBegin), nullptr, this);
+        gridC_.Connect(EVENT_GRID_SELECT_RANGE,    GridSelectEventHandler(GridEventManager::onCenterSelectEnd  ), nullptr, this);
 
         //clear selection of other grid when selecting on
-        gridL_.Connect(EVENT_GRID_SELECT_RANGE, GridRangeSelectEventHandler(GridEventManager::onGridSelectionL), nullptr, this);
-        gridR_.Connect(EVENT_GRID_SELECT_RANGE, GridRangeSelectEventHandler(GridEventManager::onGridSelectionR), nullptr, this);
+        gridL_.Connect(EVENT_GRID_SELECT_RANGE, GridSelectEventHandler(GridEventManager::onGridSelectionL), nullptr, this);
+        gridR_.Connect(EVENT_GRID_SELECT_RANGE, GridSelectEventHandler(GridEventManager::onGridSelectionR), nullptr, this);
 
         //parallel grid scrolling: do NOT use DoPrepareDC() to align grids! GDI resource leak! Use regular paint event instead:
         gridL_.getMainWin().Connect(wxEVT_PAINT, wxEventHandler(GridEventManager::onPaintGridL), nullptr, this);
@@ -1355,9 +1357,9 @@ public:
         Connect(EVENT_ALIGN_SCROLLBARS, wxEventHandler(GridEventManager::onAlignScrollBars), NULL, this);
     }
 
-    ~GridEventManager() { assert(!scrollbarUpdatePending); }
+    ~GridEventManager() { assert(!scrollbarUpdatePending_); }
 
-    void setScrollMaster(const Grid& grid) { scrollMaster = &grid; }
+    void setScrollMaster(const Grid& grid) { scrollMaster_ = &grid; }
 
 private:
     void onCenterSelectBegin(GridClickEvent& event)
@@ -1366,12 +1368,12 @@ private:
         event.Skip();
     }
 
-    void onCenterSelectEnd(GridRangeSelectEvent& event)
+    void onCenterSelectEnd(GridSelectEvent& event)
     {
         if (event.positive_)
         {
-            if (event.mouseInitiated_)
-                provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, event.mouseInitiated_->hoverArea_, event.mouseInitiated_->row_);
+            if (event.mouseSelect_)
+                provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, event.mouseSelect_->click.hoverArea_, event.mouseSelect_->click.row_);
             else
                 provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, HoverArea::NONE, -1);
         }
@@ -1390,8 +1392,8 @@ private:
         event.Skip();
     }
 
-    void onGridSelectionL(GridRangeSelectEvent& event) { onGridSelection(gridL_, gridR_); event.Skip(); }
-    void onGridSelectionR(GridRangeSelectEvent& event) { onGridSelection(gridR_, gridL_); event.Skip(); }
+    void onGridSelectionL(GridSelectEvent& event) { onGridSelection(gridL_, gridR_); event.Skip(); }
+    void onGridSelectionR(GridSelectEvent& event) { onGridSelection(gridR_, gridL_); event.Skip(); }
 
     void onGridSelection(const Grid& grid, Grid& other)
     {
@@ -1429,14 +1431,14 @@ private:
                     gridL_.setGridCursor(row);
                     gridL_.SetFocus();
                     //since key event is likely originating from right grid, we need to set scrollMaster manually!
-                    scrollMaster = &gridL_; //onKeyDown is called *after* onGridAccessL()!
+                    scrollMaster_ = &gridL_; //onKeyDown is called *after* onGridAccessL()!
                     return; //swallow event
 
                 case WXK_RIGHT:
                 case WXK_NUMPAD_RIGHT:
                     gridR_.setGridCursor(row);
                     gridR_.SetFocus();
-                    scrollMaster = &gridR_;
+                    scrollMaster_ = &gridR_;
                     return; //swallow event
             }
 
@@ -1449,27 +1451,27 @@ private:
     void resizeOtherSide(const Grid& src, Grid& trg, ColumnType type, int offset)
     {
         //find stretch factor of resized column: type is unique due to makeConsistent()!
-        std::vector<Grid::ColumnAttribute> cfgSrc = src.getColumnConfig();
-        auto it = std::find_if(cfgSrc.begin(), cfgSrc.end(), [&](Grid::ColumnAttribute& ca) { return ca.type_ == type; });
+        std::vector<Grid::ColAttributes> cfgSrc = src.getColumnConfig();
+        auto it = std::find_if(cfgSrc.begin(), cfgSrc.end(), [&](Grid::ColAttributes& ca) { return ca.type == type; });
         if (it == cfgSrc.end())
             return;
-        const int stretchSrc = it->stretch_;
+        const int stretchSrc = it->stretch;
 
         //we do not propagate resizings on stretched columns to the other side: awkward user experience
         if (stretchSrc > 0)
             return;
 
         //apply resized offset to other side, but only if stretch factors match!
-        std::vector<Grid::ColumnAttribute> cfgTrg = trg.getColumnConfig();
-        for (Grid::ColumnAttribute& ca : cfgTrg)
-            if (ca.type_ == type && ca.stretch_ == stretchSrc)
-                ca.offset_ = offset;
+        std::vector<Grid::ColAttributes> cfgTrg = trg.getColumnConfig();
+        for (Grid::ColAttributes& ca : cfgTrg)
+            if (ca.type == type && ca.stretch == stretchSrc)
+                ca.offset = offset;
         trg.setColumnConfig(cfgTrg);
     }
 
-    void onGridAccessL(wxEvent& event) { scrollMaster = &gridL_; event.Skip(); }
-    void onGridAccessC(wxEvent& event) { scrollMaster = &gridC_; event.Skip(); }
-    void onGridAccessR(wxEvent& event) { scrollMaster = &gridR_; event.Skip(); }
+    void onGridAccessL(wxEvent& event) { scrollMaster_ = &gridL_; event.Skip(); }
+    void onGridAccessC(wxEvent& event) { scrollMaster_ = &gridC_; event.Skip(); }
+    void onGridAccessR(wxEvent& event) { scrollMaster_ = &gridR_; event.Skip(); }
 
     void onPaintGridL(wxEvent& event) { onPaintGrid(gridL_); event.Skip(); }
     void onPaintGridC(wxEvent& event) { onPaintGrid(gridC_); event.Skip(); }
@@ -1485,9 +1487,9 @@ private:
         Grid* follow2    = nullptr;
         auto setGrids = [&](const Grid& l, Grid& f1, Grid& f2) { lead = &l; follow1 = &f1; follow2 = &f2; };
 
-        if (&gridC_ == scrollMaster)
+        if (&gridC_ == scrollMaster_)
             setGrids(gridC_, gridL_, gridR_);
-        else if (&gridR_ == scrollMaster)
+        else if (&gridR_ == scrollMaster_)
             setGrids(gridR_, gridL_, gridC_);
         else //default: left panel
             setGrids(gridL_, gridC_, gridR_);
@@ -1514,9 +1516,9 @@ private:
         //avoids at least this problem: remaining graphics artifact when changing from Grid::SB_SHOW_ALWAYS to Grid::SB_SHOW_NEVER at location of old scrollbar (Windows only)
 
         //perf note: send one async event at most, else they may accumulate and create perf issues, see grid.cpp
-        if (!scrollbarUpdatePending)
+        if (!scrollbarUpdatePending_)
         {
-            scrollbarUpdatePending = true;
+            scrollbarUpdatePending_ = true;
             wxCommandEvent alignEvent(EVENT_ALIGN_SCROLLBARS);
             AddPendingEvent(alignEvent); //waits until next idle event - may take up to a second if the app is busy on wxGTK!
         }
@@ -1524,8 +1526,8 @@ private:
 
     void onAlignScrollBars(wxEvent& event)
     {
-        ZEN_ON_SCOPE_EXIT(scrollbarUpdatePending = false);
-        assert(scrollbarUpdatePending);
+        ZEN_ON_SCOPE_EXIT(scrollbarUpdatePending_ = false);
+        assert(scrollbarUpdatePending_);
 
         auto needsHorizontalScrollbars = [](const Grid& grid) -> bool
         {
@@ -1551,18 +1553,20 @@ private:
     Grid& gridC_;
     Grid& gridR_;
 
-    const Grid* scrollMaster = nullptr; //for address check only; this needn't be the grid having focus!
+    const Grid* scrollMaster_ = nullptr; //for address check only; this needn't be the grid having focus!
     //e.g. mouse wheel events should set window under cursor as scrollMaster, but *not* change focus
 
     GridDataCenter& provCenter_;
-    bool scrollbarUpdatePending = false;
+    bool scrollbarUpdatePending_ = false;
 };
 }
 
 //########################################################################################################
 
-void gridview::init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, const std::shared_ptr<const zen::GridView>& gridDataView)
+void filegrid::init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight)
 {
+    const auto gridDataView = std::make_shared<FileView>();
+
     auto provLeft_   = std::make_shared<GridDataLeft  >(gridDataView, gridLeft);
     auto provCenter_ = std::make_shared<GridDataCenter>(gridDataView, gridCenter);
     auto provRight_  = std::make_shared<GridDataRight >(gridDataView, gridRight);
@@ -1599,41 +1603,12 @@ void gridview::init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, const std
 }
 
 
-namespace
+FileView& filegrid::getDataView(Grid& grid)
 {
-std::vector<ColumnAttributeRim> makeConsistent(const std::vector<ColumnAttributeRim>& attribs)
-{
-    std::set<ColumnTypeRim> usedTypes;
+    if (auto* prov = dynamic_cast<GridDataBase*>(grid.getDataProvider()))
+        return prov->getDataView();
 
-    std::vector<ColumnAttributeRim> output;
-    //remove duplicates: required by GridEventManager::resizeOtherSide() to find corresponding column on other side
-    std::copy_if(attribs.begin(), attribs.end(), std::back_inserter(output),
-    [&](const ColumnAttributeRim& a) { return usedTypes.insert(a.type_).second; });
-
-    //make sure each type is existing! -> should *only* be a problem if user manually messes with GlobalSettings.xml
-    const auto& defAttr = getDefaultColumnAttributesLeft();
-    std::copy_if(defAttr.begin(), defAttr.end(), std::back_inserter(output),
-    [&](const ColumnAttributeRim& a) { return usedTypes.insert(a.type_).second; });
-
-    return output;
-}
-}
-
-std::vector<Grid::ColumnAttribute> gridview::convertConfig(const std::vector<ColumnAttributeRim>& attribs)
-{
-    std::vector<Grid::ColumnAttribute> output;
-    for (const ColumnAttributeRim& ca : makeConsistent(attribs))
-        output.emplace_back(static_cast<ColumnType>(ca.type_), ca.offset_, ca.stretch_, ca.visible_);
-    return output;
-}
-
-
-std::vector<ColumnAttributeRim> gridview::convertConfig(const std::vector<Grid::ColumnAttribute>& attribs)
-{
-    std::vector<ColumnAttributeRim> output;
-    for (const Grid::ColumnAttribute& ca : attribs)
-        output.emplace_back(static_cast<ColumnTypeRim>(ca.type_), ca.offset_, ca.stretch_, ca.visible_);
-    return makeConsistent(output);
+    throw std::runtime_error("filegrid was not initialized! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__));
 }
 
 
@@ -1677,7 +1652,7 @@ private:
             stop();
     }
 
-    GridDataLeft& provLeft_;
+    GridDataLeft&  provLeft_;
     GridDataRight& provRight_;
     IconBuffer& iconBuffer_;
     wxTimer timer_;
@@ -1690,7 +1665,7 @@ void IconManager::startIconUpdater() { if (iconUpdater) iconUpdater->start(); }
 }
 
 
-void gridview::setupIcons(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, bool show, IconBuffer::IconSize sz)
+void filegrid::setupIcons(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, bool show, IconBuffer::IconSize sz)
 {
     auto* provLeft  = dynamic_cast<GridDataLeft*>(gridLeft .getDataProvider());
     auto* provRight = dynamic_cast<GridDataRight*>(gridRight.getDataProvider());
@@ -1723,7 +1698,7 @@ void gridview::setupIcons(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, boo
 }
 
 
-void gridview::setItemPathForm(Grid& grid, ItemPathFormat fmt)
+void filegrid::setItemPathForm(Grid& grid, ItemPathFormat fmt)
 {
     if (auto* provLeft  = dynamic_cast<GridDataLeft*>(grid.getDataProvider()))
         provLeft->setItemPathForm(fmt);
@@ -1735,7 +1710,7 @@ void gridview::setItemPathForm(Grid& grid, ItemPathFormat fmt)
 }
 
 
-void gridview::refresh(Grid& gridLeft, Grid& gridCenter, Grid& gridRight)
+void filegrid::refresh(Grid& gridLeft, Grid& gridCenter, Grid& gridRight)
 {
     gridLeft  .Refresh();
     gridCenter.Refresh();
@@ -1743,7 +1718,7 @@ void gridview::refresh(Grid& gridLeft, Grid& gridCenter, Grid& gridRight)
 }
 
 
-void gridview::setScrollMaster(Grid& grid)
+void filegrid::setScrollMaster(Grid& grid)
 {
     if (auto prov = dynamic_cast<GridDataBase*>(grid.getDataProvider()))
         if (auto evtMgr = prov->getEventManager())
@@ -1755,7 +1730,7 @@ void gridview::setScrollMaster(Grid& grid)
 }
 
 
-void gridview::setNavigationMarker(Grid& gridLeft,
+void filegrid::setNavigationMarker(Grid& gridLeft,
                                    std::unordered_set<const FileSystemObject*>&& markedFilesAndLinks,
                                    std::unordered_set<const ContainerObject*>&& markedContainer)
 {
@@ -1767,7 +1742,7 @@ void gridview::setNavigationMarker(Grid& gridLeft,
 }
 
 
-void gridview::highlightSyncAction(Grid& gridCenter, bool value)
+void filegrid::highlightSyncAction(Grid& gridCenter, bool value)
 {
     if (auto provCenter = dynamic_cast<GridDataCenter*>(gridCenter.getDataProvider()))
         provCenter->highlightSyncAction(value);

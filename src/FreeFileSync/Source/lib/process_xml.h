@@ -11,7 +11,9 @@
 #include <wx/gdicmn.h>
 #include "localization.h"
 #include "../structures.h"
-#include "../ui/column_attr.h"
+#include "../ui/file_grid_attr.h"
+#include "../ui/tree_grid_attr.h" //RTS: avoid tree grid's "file_hierarchy.h" dependency!
+#include "../ui/cfg_grid.h"
 
 
 namespace xmlAccess
@@ -132,9 +134,11 @@ struct ViewFilterDefault
 struct ConfigFileItem
 {
     ConfigFileItem() {}
-    explicit ConfigFileItem(const Zstring& filePath) : filePath_(filePath) {}
-    Zstring filePath_;
-    //add support? -> time_t lastSyncTime
+    ConfigFileItem(const Zstring& fp, time_t lst) : filePath(fp), lastSyncTime(lst) {}
+
+    Zstring filePath;
+    time_t lastSyncTime = 0;
+    //Zstring logFilePath;
 };
 
 
@@ -154,13 +158,13 @@ struct XmlGlobalSettings
     size_t automaticRetryDelay = 5; //unit: [sec]
 
     int fileTimeTolerance = 2; //max. allowed file time deviation; < 0 means unlimited tolerance; default 2s: FAT vs NTFS
-    int folderAccessTimeout = 20;  //unit: [s]; consider CD-ROM insert or hard disk spin up time from sleep
+    int folderAccessTimeout = 20; //unit: [s]; consider CD-ROM insert or hard disk spin up time from sleep
     bool runWithBackgroundPriority = false;
     bool createLockFile = true;
     bool verifyFileCopy = false;
     size_t lastSyncsLogFileSizeMax = 100000; //maximum size for LastSyncs.log: use a human-readable number
     Zstring soundFileCompareFinished;
-    Zstring soundFileSyncFinished= Zstr("gong.wav");
+    Zstring soundFileSyncFinished = Zstr("gong.wav");
 
     OptionalDialogs optDialogs;
 
@@ -186,12 +190,23 @@ struct XmlGlobalSettings
             bool textSearchRespectCase = false; //good default for Linux, too!
             int maxFolderPairsVisible = 6;
 
-            bool naviGridShowPercentBar = zen::naviGridShowPercentageDefault; //in navigation panel
-            zen::ColumnTypeNavi naviGridLastSortColumn    = zen::naviGridLastSortColumnDefault;    //remember sort on navigation panel
-            bool                naviGridLastSortAscending = zen::naviGridLastSortAscendingDefault; //
+            size_t             cfgGridTopRowPos = 0;
+            int                cfgGridSyncOverdueDays = 7;
+            zen::ColumnTypeCfg cfgGridLastSortColumn    = zen::cfgGridLastSortColumnDefault;
+            bool               cfgGridLastSortAscending = zen::getDefaultSortDirection(zen::cfgGridLastSortColumnDefault);
+            std::vector<zen::ColAttributesCfg> cfgGridColumnAttribs = zen::getCfgGridDefaultColAttribs();
+            size_t cfgHistItemsMax = 100;
+            std::vector<ConfigFileItem> cfgFileHistory;
+            std::vector<Zstring>        lastUsedConfigFiles;
 
-            std::vector<zen::ColumnAttributeNavi> columnAttribNavi = zen::getDefaultColumnAttributesNavi(); //compressed view/navigation
+            bool treeGridShowPercentBar = zen::treeGridShowPercentageDefault;
+            zen::ColumnTypeTree treeGridLastSortColumn    = zen::treeGridLastSortColumnDefault;    //remember sort on overview panel
+            bool                treeGridLastSortAscending = zen::getDefaultSortDirection(zen::treeGridLastSortColumnDefault); //
+            std::vector<zen::ColAttributesTree> treeGridColumnAttribs = zen::getTreeGridDefaultColAttribs();
 
+            std::vector<Zstring> folderHistoryLeft;
+            std::vector<Zstring> folderHistoryRight;
+            size_t folderHistItemsMax = 15;
             bool showIcons = true;
             FileIconSize iconSize = ICON_SIZE_SMALL;
             int sashOffset = 0;
@@ -199,8 +214,8 @@ struct XmlGlobalSettings
             zen::ItemPathFormat itemPathFormatLeftGrid  = zen::defaultItemPathFormatLeftGrid;
             zen::ItemPathFormat itemPathFormatRightGrid = zen::defaultItemPathFormatRightGrid;
 
-            std::vector<zen::ColumnAttributeRim>  columnAttribLeft  = zen::getDefaultColumnAttributesLeft();
-            std::vector<zen::ColumnAttributeRim>  columnAttribRight = zen::getDefaultColumnAttributesRight();
+            std::vector<zen::ColAttributesRim>  columnAttribLeft  = zen::getFileGridDefaultColAttribsLeft();
+            std::vector<zen::ColAttributesRim>  columnAttribRight = zen::getFileGridDefaultColAttribsRight();
 
             ViewFilterDefault viewFilterDefault;
             wxString guiPerspectiveLast; //used by wxAuiManager
@@ -209,18 +224,8 @@ struct XmlGlobalSettings
         Zstring defaultExclusionFilter = Zstr("/.Trash-*/") Zstr("\n")
                                          Zstr("/.recycle/");
 
-        std::vector<ConfigFileItem> lastUsedConfigFiles;
-
-        std::vector<ConfigFileItem> cfgFileHistory;
-        size_t cfgFileHistMax = 100;
-        int cfgFileHistFirstItemPos = 0;
-
-        std::vector<Zstring> folderHistoryLeft;
-        std::vector<Zstring> folderHistoryRight;
-        size_t folderHistMax = 15;
-
         std::vector<Zstring> commandHistory;
-        size_t commandHistoryMax = 8;
+        size_t commandHistItemsMax = 8;
 
         ExternalApps externelApplications
         {

@@ -50,6 +50,9 @@ ReturnSmallDlg::ButtonPressed showOptionsDlg(wxWindow* parent, xmlAccess::XmlGlo
 
 ReturnSmallDlg::ButtonPressed showSelectTimespanDlg(wxWindow* parent, time_t& timeFrom, time_t& timeTo);
 
+ReturnSmallDlg::ButtonPressed showCfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays);
+
+
 
 enum class ReturnActivationDlg
 {

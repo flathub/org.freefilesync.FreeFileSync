@@ -23,7 +23,7 @@ using namespace std::rel_ops;
 namespace
 {
 //-------------------------------------------------------------------------------------------------------------------------------
-const int XML_FORMAT_VER_GLOBAL    = 5; //
+const int XML_FORMAT_VER_GLOBAL    = 6; //2018-01-08
 const int XML_FORMAT_VER_FFS_GUI   = 8; //2017-10-24
 const int XML_FORMAT_VER_FFS_BATCH = 8; //
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -486,34 +486,61 @@ bool readText(const std::string& input, ItemPathFormat& value)
     return true;
 }
 
-
 template <> inline
-void writeText(const ColumnTypeNavi& value, std::string& output)
+void writeText(const ColumnTypeCfg& value, std::string& output)
 {
     switch (value)
     {
-        case ColumnTypeNavi::FOLDER_NAME:
+        case ColumnTypeCfg::NAME:
+            output = "Name";
+            break;
+        case ColumnTypeCfg::LAST_SYNC:
+            output = "Last";
+            break;
+    }
+}
+
+template <> inline
+bool readText(const std::string& input, ColumnTypeCfg& value)
+{
+    const std::string tmp = trimCpy(input);
+    if (tmp == "Name")
+        value = ColumnTypeCfg::NAME;
+    else if (tmp == "Last")
+        value = ColumnTypeCfg::LAST_SYNC;
+    else
+        return false;
+    return true;
+}
+
+
+template <> inline
+void writeText(const ColumnTypeTree& value, std::string& output)
+{
+    switch (value)
+    {
+        case ColumnTypeTree::FOLDER_NAME:
             output = "Tree";
             break;
-        case ColumnTypeNavi::ITEM_COUNT:
+        case ColumnTypeTree::ITEM_COUNT:
             output = "Count";
             break;
-        case ColumnTypeNavi::BYTES:
+        case ColumnTypeTree::BYTES:
             output = "Bytes";
             break;
     }
 }
 
 template <> inline
-bool readText(const std::string& input, ColumnTypeNavi& value)
+bool readText(const std::string& input, ColumnTypeTree& value)
 {
     const std::string tmp = trimCpy(input);
     if (tmp == "Tree")
-        value = ColumnTypeNavi::FOLDER_NAME;
+        value = ColumnTypeTree::FOLDER_NAME;
     else if (tmp == "Count")
-        value = ColumnTypeNavi::ITEM_COUNT;
+        value = ColumnTypeTree::ITEM_COUNT;
     else if (tmp == "Bytes")
-        value = ColumnTypeNavi::BYTES;
+        value = ColumnTypeTree::BYTES;
     else
         return false;
     return true;
@@ -666,46 +693,68 @@ bool readText(const std::string& input, DirectionConfig::Variant& value)
 
 
 template <> inline
-bool readStruc(const XmlElement& input, ColumnAttributeRim& value)
+bool readStruc(const XmlElement& input, ColAttributesRim& value)
 {
     XmlIn in(input);
-    bool rv1 = in.attribute("Type",    value.type_);
-    bool rv2 = in.attribute("Visible", value.visible_);
-    bool rv3 = in.attribute("Width",   value.offset_); //offset == width if stretch is 0
-    bool rv4 = in.attribute("Stretch", value.stretch_);
+    bool rv1 = in.attribute("Type",    value.type);
+    bool rv2 = in.attribute("Visible", value.visible);
+    bool rv3 = in.attribute("Width",   value.offset); //offset == width if stretch is 0
+    bool rv4 = in.attribute("Stretch", value.stretch);
     return rv1 && rv2 && rv3 && rv4;
 }
 
 template <> inline
-void writeStruc(const ColumnAttributeRim& value, XmlElement& output)
+void writeStruc(const ColAttributesRim& value, XmlElement& output)
 {
     XmlOut out(output);
-    out.attribute("Type",    value.type_);
-    out.attribute("Visible", value.visible_);
-    out.attribute("Width",   value.offset_);
-    out.attribute("Stretch", value.stretch_);
+    out.attribute("Type",    value.type);
+    out.attribute("Visible", value.visible);
+    out.attribute("Width",   value.offset);
+    out.attribute("Stretch", value.stretch);
 }
 
 
 template <> inline
-bool readStruc(const XmlElement& input, ColumnAttributeNavi& value)
+bool readStruc(const XmlElement& input, ColAttributesCfg& value)
 {
     XmlIn in(input);
-    bool rv1 = in.attribute("Type",    value.type_);
-    bool rv2 = in.attribute("Visible", value.visible_);
-    bool rv3 = in.attribute("Width",   value.offset_); //offset == width if stretch is 0
-    bool rv4 = in.attribute("Stretch", value.stretch_);
+    bool rv1 = in.attribute("Type",    value.type);
+    bool rv2 = in.attribute("Visible", value.visible);
+    bool rv3 = in.attribute("Width",   value.offset); //offset == width if stretch is 0
+    bool rv4 = in.attribute("Stretch", value.stretch);
     return rv1 && rv2 && rv3 && rv4;
 }
 
 template <> inline
-void writeStruc(const ColumnAttributeNavi& value, XmlElement& output)
+void writeStruc(const ColAttributesCfg& value, XmlElement& output)
 {
     XmlOut out(output);
-    out.attribute("Type",    value.type_);
-    out.attribute("Visible", value.visible_);
-    out.attribute("Width",   value.offset_);
-    out.attribute("Stretch", value.stretch_);
+    out.attribute("Type",    value.type);
+    out.attribute("Visible", value.visible);
+    out.attribute("Width",   value.offset);
+    out.attribute("Stretch", value.stretch);
+}
+
+
+template <> inline
+bool readStruc(const XmlElement& input, ColAttributesTree& value)
+{
+    XmlIn in(input);
+    bool rv1 = in.attribute("Type",    value.type);
+    bool rv2 = in.attribute("Visible", value.visible);
+    bool rv3 = in.attribute("Width",   value.offset); //offset == width if stretch is 0
+    bool rv4 = in.attribute("Stretch", value.stretch);
+    return rv1 && rv2 && rv3 && rv4;
+}
+
+template <> inline
+void writeStruc(const ColAttributesTree& value, XmlElement& output)
+{
+    XmlOut out(output);
+    out.attribute("Type",    value.type);
+    out.attribute("Visible", value.visible);
+    out.attribute("Width",   value.offset);
+    out.attribute("Stretch", value.stretch);
 }
 
 
@@ -795,17 +844,26 @@ namespace zen
 {
 //FFS portable: use special syntax for config file paths: e.g. "ffs_drive:\SyncJob.ffs_gui"
 template <> inline
-bool readText(const std::string& input, ConfigFileItem& value)
+bool readStruc(const XmlElement& input, ConfigFileItem& value)
 {
-    value.filePath_ = resolveFreeFileSyncDriveMacro(utfTo<Zstring>(input));
-    return true;
+    XmlIn in(input);
+
+    Zstring rawPath;
+    const bool rv1 = in(rawPath);
+    if (rv1)
+        value.filePath = resolveFreeFileSyncDriveMacro(rawPath);
+
+    const bool rv2 = in.attribute("LastSync", value.lastSyncTime);
+
+    return rv1 && rv2;
 }
 
-
 template <> inline
-void writeText(const ConfigFileItem& value, std::string& output)
+void writeStruc(const ConfigFileItem& value, XmlElement& output)
 {
-    output = utfTo<std::string>(substituteFreeFileSyncDriveLetter(value.filePath_));
+    XmlOut out(output);
+    out(substituteFreeFileSyncDriveLetter(value.filePath));
+    out.attribute("LastSync", value.lastSyncTime);
 }
 }
 
@@ -1152,27 +1210,86 @@ void readConfig(const XmlIn& in, XmlGlobalSettings& config, int formatVer)
 
     //###########################################################
 
+    XmlIn inConfig = inWnd["ConfigPanel"];
+    inConfig.attribute("ScrollPos",     config.gui.mainDlg.cfgGridTopRowPos);
+    inConfig.attribute("SyncOverdue",   config.gui.mainDlg.cfgGridSyncOverdueDays);
+    inConfig.attribute("SortByColumn",  config.gui.mainDlg.cfgGridLastSortColumn);
+    inConfig.attribute("SortAscending", config.gui.mainDlg.cfgGridLastSortAscending);
+
+    inConfig["Columns"](config.gui.mainDlg.cfgGridColumnAttribs);
+
+    //TODO: remove parameter migration after some time! 2018-01-08
+    if (formatVer < 6)
+    {
+        inGui["ConfigHistory"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
+
+		std::vector<Zstring> cfgHist;       
+        inGui["ConfigHistory"](cfgHist);
+
+		for (const Zstring& cfgPath : cfgHist)            
+				config.gui.mainDlg.cfgFileHistory.emplace_back(cfgPath, 0);
+    }
+    else
+    {
+        inConfig["Configurations"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
+        inConfig["Configurations"](config.gui.mainDlg.cfgFileHistory);
+    }
+
+    //TODO: remove parameter migration after some time! 2018-01-08
+    if (formatVer < 6)
+    {
+        inGui["LastUsedConfig"](config.gui.mainDlg.lastUsedConfigFiles);
+    }
+    else
+    {
+        std::vector<Zstring> cfgPaths;
+        if (inConfig["LastUsed"](cfgPaths))
+        {
+            for (Zstring& filePath : cfgPaths)
+                filePath = resolveFreeFileSyncDriveMacro(filePath);
+
+            config.gui.mainDlg.lastUsedConfigFiles = cfgPaths;
+        }
+    }
+
+    //###########################################################
+
     XmlIn inOverview = inWnd["OverviewPanel"];
-    inOverview.attribute("ShowPercentage", config.gui.mainDlg.naviGridShowPercentBar);
-    inOverview.attribute("SortByColumn",   config.gui.mainDlg.naviGridLastSortColumn);
-    inOverview.attribute("SortAscending",  config.gui.mainDlg.naviGridLastSortAscending);
+    inOverview.attribute("ShowPercentage", config.gui.mainDlg.treeGridShowPercentBar);
+    inOverview.attribute("SortByColumn",   config.gui.mainDlg.treeGridLastSortColumn);
+    inOverview.attribute("SortAscending",  config.gui.mainDlg.treeGridLastSortAscending);
 
     //read column attributes
-    XmlIn inColNavi = inOverview["Columns"];
-    inColNavi(config.gui.mainDlg.columnAttribNavi);
+    XmlIn inColTree = inOverview["Columns"];
+    inColTree(config.gui.mainDlg.treeGridColumnAttribs);
 
-    XmlIn inMainGrid = inWnd["CenterPanel"];
-    inMainGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
-    inMainGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
-    inMainGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
+    XmlIn inFileGrid = inWnd["FilePanel"];
+    //TODO: remove parameter migration after some time! 2018-01-08
+    if (formatVer < 6)
+        inFileGrid = inWnd["CenterPanel"];
 
-    XmlIn inColLeft = inMainGrid["ColumnsLeft"];
-    inColLeft.attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
-    inColLeft(config.gui.mainDlg.columnAttribLeft);
+    inFileGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
+    inFileGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
+    inFileGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
+    inFileGrid.attribute("HistoryMaxSize", config.gui.mainDlg.folderHistItemsMax);
 
-    XmlIn inColRight = inMainGrid["ColumnsRight"];
-    inColRight.attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
-    inColRight(config.gui.mainDlg.columnAttribRight);
+    inFileGrid["ColumnsLeft"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
+    inFileGrid["ColumnsLeft"](config.gui.mainDlg.columnAttribLeft);
+
+    inFileGrid["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
+
+    inFileGrid["ColumnsRight"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
+    inFileGrid["ColumnsRight"](config.gui.mainDlg.columnAttribRight);
+
+    inFileGrid["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
+
+    //TODO: remove parameter migration after some time! 2018-01-08
+    if (formatVer < 6)
+    {
+        inGui["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
+        inGui["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
+        inGui["FolderHistoryLeft"].attribute("MaxSize", config.gui.mainDlg.folderHistItemsMax);
+    }
 
     //###########################################################
 
@@ -1183,31 +1300,20 @@ void readConfig(const XmlIn& in, XmlGlobalSettings& config, int formatVer)
     inGui["DefaultExclusionFilter"](tmp);
     config.gui.defaultExclusionFilter = mergeFilterLines(tmp);
 
-    //load config file history
-    inGui["LastUsedConfig"](config.gui.lastUsedConfigFiles);
-
-    inGui["ConfigHistory"](config.gui.cfgFileHistory);
-    inGui["ConfigHistory"].attribute("MaxSize",   config.gui.cfgFileHistMax);
-    inGui["ConfigHistory"].attribute("ScrollPos", config.gui.cfgFileHistFirstItemPos);
-
     //TODO: remove parameter migration after some time! 2016-09-23
     if (formatVer < 4)
-        config.gui.cfgFileHistMax = std::max<size_t>(config.gui.cfgFileHistMax, 100);
-
-    inGui["FolderHistoryLeft" ](config.gui.folderHistoryLeft);
-    inGui["FolderHistoryRight"](config.gui.folderHistoryRight);
-    inGui["FolderHistoryLeft"].attribute("MaxSize", config.gui.folderHistMax);
+        config.gui.mainDlg.cfgHistItemsMax = std::max<size_t>(config.gui.mainDlg.cfgHistItemsMax, 100);
 
     //TODO: remove if clause after migration! 2017-10-24
     if (formatVer < 5)
     {
         inGui["OnCompletionHistory"](config.gui.commandHistory);
-        inGui["OnCompletionHistory"].attribute("MaxSize", config.gui.commandHistoryMax);
+        inGui["OnCompletionHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
     }
     else
     {
         inGui["CommandHistory"](config.gui.commandHistory);
-        inGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistoryMax);
+        inGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
     }
 
     //external applications
@@ -1345,16 +1451,16 @@ XmlCfg parseConfig(const XmlDoc& doc, const Zstring& filepath, int currentXmlFor
 }
 
 
-void xmlAccess::readAnyConfig(const std::vector<Zstring>& filepaths, XmlGuiConfig& config, std::wstring& warningMsg) //throw FileError
+void xmlAccess::readAnyConfig(const std::vector<Zstring>& filePaths, XmlGuiConfig& config, std::wstring& warningMsg) //throw FileError
 {
-    assert(!filepaths.empty());
+    assert(!filePaths.empty());
 
     std::vector<zen::MainConfiguration> mainCfgs;
 
-    for (auto it = filepaths.begin(); it != filepaths.end(); ++it)
+    for (auto it = filePaths.begin(); it != filePaths.end(); ++it)
     {
         const Zstring& filepath = *it;
-        const bool firstItem = it == filepaths.begin(); //init all non-"mainCfg" settings with first config file
+        const bool firstItem = it == filePaths.begin(); //init all non-"mainCfg" settings with first config file
 
         XmlDoc doc = loadXmlDocument(filepath); //throw FileError
 
@@ -1604,27 +1710,49 @@ void writeConfig(const XmlGlobalSettings& config, XmlOut& out)
 
     //###########################################################
 
+    XmlOut outConfig = outWnd["ConfigPanel"];
+    outConfig.attribute("ScrollPos",     config.gui.mainDlg.cfgGridTopRowPos);
+    outConfig.attribute("SyncOverdue",   config.gui.mainDlg.cfgGridSyncOverdueDays);
+    outConfig.attribute("SortByColumn",  config.gui.mainDlg.cfgGridLastSortColumn);
+    outConfig.attribute("SortAscending", config.gui.mainDlg.cfgGridLastSortAscending);
+
+    outConfig["Columns"](config.gui.mainDlg.cfgGridColumnAttribs);
+    outConfig["Configurations"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
+    outConfig["Configurations"](config.gui.mainDlg.cfgFileHistory);
+    {
+        std::vector<Zstring> cfgPaths = config.gui.mainDlg.lastUsedConfigFiles;
+        for (Zstring& filePath : cfgPaths)
+            filePath = substituteFreeFileSyncDriveLetter(filePath);
+
+        outConfig["LastUsed"](cfgPaths);
+    }
+
+    //###########################################################
+
     XmlOut outOverview = outWnd["OverviewPanel"];
-    outOverview.attribute("ShowPercentage", config.gui.mainDlg.naviGridShowPercentBar);
-    outOverview.attribute("SortByColumn",   config.gui.mainDlg.naviGridLastSortColumn);
-    outOverview.attribute("SortAscending",  config.gui.mainDlg.naviGridLastSortAscending);
+    outOverview.attribute("ShowPercentage", config.gui.mainDlg.treeGridShowPercentBar);
+    outOverview.attribute("SortByColumn",   config.gui.mainDlg.treeGridLastSortColumn);
+    outOverview.attribute("SortAscending",  config.gui.mainDlg.treeGridLastSortAscending);
 
     //write column attributes
-    XmlOut outColNavi = outOverview["Columns"];
-    outColNavi(config.gui.mainDlg.columnAttribNavi);
+    XmlOut outColTree = outOverview["Columns"];
+    outColTree(config.gui.mainDlg.treeGridColumnAttribs);
 
-    XmlOut outMainGrid = outWnd["CenterPanel"];
-    outMainGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
-    outMainGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
-    outMainGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
+    XmlOut outFileGrid = outWnd["FilePanel"];
+    outFileGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
+    outFileGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
+    outFileGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
+    outFileGrid.attribute("HistoryMaxSize", config.gui.mainDlg.folderHistItemsMax);
 
-    XmlOut outColLeft = outMainGrid["ColumnsLeft"];
-    outColLeft.attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
-    outColLeft(config.gui.mainDlg.columnAttribLeft);
+    outFileGrid["ColumnsLeft"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
+    outFileGrid["ColumnsLeft"](config.gui.mainDlg.columnAttribLeft);
 
-    XmlOut outColRight = outMainGrid["ColumnsRight"];
-    outColRight.attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
-    outColRight(config.gui.mainDlg.columnAttribRight);
+    outFileGrid["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
+
+    outFileGrid["ColumnsRight"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
+    outFileGrid["ColumnsRight"](config.gui.mainDlg.columnAttribRight);
+
+    outFileGrid["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
 
     //###########################################################
 
@@ -1633,19 +1761,8 @@ void writeConfig(const XmlGlobalSettings& config, XmlOut& out)
 
     outGui["DefaultExclusionFilter"](splitFilterByLines(config.gui.defaultExclusionFilter));
 
-    //load config file history
-    outGui["LastUsedConfig"](config.gui.lastUsedConfigFiles);
-
-    outGui["ConfigHistory" ](config.gui.cfgFileHistory);
-    outGui["ConfigHistory"].attribute("MaxSize",   config.gui.cfgFileHistMax);
-    outGui["ConfigHistory"].attribute("ScrollPos", config.gui.cfgFileHistFirstItemPos);
-
-    outGui["FolderHistoryLeft" ](config.gui.folderHistoryLeft);
-    outGui["FolderHistoryRight"](config.gui.folderHistoryRight);
-    outGui["FolderHistoryLeft" ].attribute("MaxSize", config.gui.folderHistMax);
-
     outGui["CommandHistory"](config.gui.commandHistory);
-    outGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistoryMax);
+    outGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
 
     //external applications
     outGui["ExternalApps"](config.gui.externelApplications);

@@ -47,8 +47,8 @@ ptrdiff_t findRow(const Grid& grid, //return -1 if no matching row found
 {
     if (auto prov = grid.getDataProvider())
     {
-        std::vector<Grid::ColumnAttribute> colAttr = grid.getColumnConfig();
-        erase_if(colAttr, [](const Grid::ColumnAttribute& ca) { return !ca.visible_; });
+        std::vector<Grid::ColAttributes> colAttr = grid.getColumnConfig();
+        erase_if(colAttr, [](const Grid::ColAttributes& ca) { return !ca.visible; });
         if (!colAttr.empty())
         {
             const MatchFound<respectCase> matchFound(searchString);
@@ -56,14 +56,14 @@ ptrdiff_t findRow(const Grid& grid, //return -1 if no matching row found
             if (searchAscending)
             {
                 for (size_t row = rowFirst; row < rowLast; ++row)
-                    for (const Grid::ColumnAttribute& ca : colAttr)
-                        if (matchFound(prov->getValue(row, ca.type_)))
+                    for (const Grid::ColAttributes& ca : colAttr)
+                        if (matchFound(prov->getValue(row, ca.type)))
                             return row;
             }
             else
                 for (size_t row = rowLast; row-- > rowFirst;)
-                    for (const Grid::ColumnAttribute& ca : colAttr)
-                        if (matchFound(prov->getValue(row, ca.type_)))
+                    for (const Grid::ColAttributes& ca : colAttr)
+                        if (matchFound(prov->getValue(row, ca.type)))
                             return row;
         }
     }

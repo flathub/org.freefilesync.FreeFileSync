@@ -8,20 +8,19 @@
 #define CUSTOM_GRID_H_8405817408327894
 
 #include <wx+/grid.h>
-#include "grid_view.h"
-#include "column_attr.h"
+#include "file_view.h"
+#include "file_grid_attr.h"
 #include "../lib/icon_buffer.h"
 
 
 namespace zen
 {
 //setup grid to show grid view within three components:
-namespace gridview
+namespace filegrid
 {
-void init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, const std::shared_ptr<const GridView>& gridDataView);
+void init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight);
+FileView& getDataView(Grid& grid);
 
-std::vector<Grid::ColumnAttribute> convertConfig(const std::vector<   ColumnAttributeRim>& attribs); //+ make consistent
-std::vector<ColumnAttributeRim>    convertConfig(const std::vector<Grid::ColumnAttribute>& attribs); //
 
 void highlightSyncAction(Grid& gridCenter, bool value);
 
@@ -33,7 +32,7 @@ void refresh(Grid& gridLeft, Grid& gridCenter, Grid& gridRight);
 
 void setScrollMaster(Grid& grid);
 
-//mark rows selected in navigation/compressed tree and navigate to leading object
+//mark rows selected in overview panel and navigate to leading object
 void setNavigationMarker(Grid& gridLeft,
                          std::unordered_set<const FileSystemObject*>&& markedFilesAndLinks,//mark files/symlinks directly within a container
                          std::unordered_set<const ContainerObject*>&& markedContainer);    //mark full container including child-objects

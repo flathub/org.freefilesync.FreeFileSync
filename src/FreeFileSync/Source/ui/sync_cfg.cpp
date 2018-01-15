@@ -15,6 +15,7 @@
 #include <wx+/std_button_layout.h>
 #include <wx+/popup_dlg.h>
 #include <wx+/image_resources.h>
+#include <wx+/focus.h>
 #include "gui_generated.h"
 #include "command_box.h"
 #include "folder_selector.h"
@@ -55,7 +56,7 @@ public:
                  int localPairIndexToShow,
                  std::vector<LocalPairConfig>& folderPairConfig,
                  GlobalSyncConfig& globalCfg,
-                 size_t commandHistoryMax);
+                 size_t commandHistItemsMax);
 
 private:
     void OnOkay  (wxCommandEvent& event) override;
@@ -180,7 +181,7 @@ private:
     int selectedPairIndexToShow_ = EMPTY_PAIR_INDEX_SELECTED;
     static const int EMPTY_PAIR_INDEX_SELECTED = -2;
 
-    const size_t commandHistoryMax_;
+    const size_t commandHistItemsMax_;
 };
 
 //#################################################################################################################
@@ -224,28 +225,30 @@ ConfigDialog::ConfigDialog(wxWindow* parent,
                            int localPairIndexToShow,
                            std::vector<LocalPairConfig>& folderPairConfig,
                            GlobalSyncConfig& globalCfg,
-                           size_t commandHistoryMax) :
+                           size_t commandHistItemsMax) :
     ConfigDlgGenerated(parent),
     versioningFolder_(*m_panelVersioning, *m_buttonSelectVersioningFolder, *m_bpButtonSelectAltFolder, *m_versioningFolderPath, nullptr /*staticText*/, nullptr /*dropWindow2*/),
     globalCfgOut_(globalCfg),
     folderPairConfigOut_(folderPairConfig),
     globalCfg_(globalCfg),
     folderPairConfig_(folderPairConfig),
-    commandHistoryMax_(commandHistoryMax)
+    commandHistItemsMax_(commandHistItemsMax)
 {
     setStandardButtonLayout(*bSizerStdButtons, StdButtons().setAffirmative(m_buttonOkay).setCancel(m_buttonCancel));
 
     SetTitle(_("Synchronization Settings"));
 
+    m_notebook->SetPadding(wxSize(2, 0)); //height cannot be changed
+
     //fill image list to cope with wxNotebook image setting design desaster...
-    const int imageListSize = getResourceImage(L"cfg_compare_small").GetHeight();
-    assert(imageListSize == 16); //Windows default size for panel caption
-    auto imgList = std::make_unique<wxImageList>(imageListSize, imageListSize);
+    const int imgListSize = getResourceImage(L"cfg_compare_small").GetHeight();
+    assert(imgListSize == 16); //Windows default size for panel caption
+    auto imgList = std::make_unique<wxImageList>(imgListSize, imgListSize);
 
     auto addToImageList = [&](const wxBitmap& bmp)
     {
-        assert(bmp.GetWidth () <= imageListSize);
-        assert(bmp.GetHeight() <= imageListSize);
+        assert(bmp.GetWidth () <= imgListSize);
+        assert(bmp.GetHeight() <= imgListSize);
         imgList->Add(bmp);
         imgList->Add(greyScale(bmp));
     };
@@ -372,24 +375,25 @@ ConfigDialog::ConfigDialog(wxWindow* parent,
 
 void ConfigDialog::onLocalKeyEvent(wxKeyEvent& event) //process key events without explicit menu entry :)
 {
-    const int keyCode = event.GetKeyCode();
+    auto changeSelection = [&](SyncConfigPanel panel)
+    {
+        m_notebook->ChangeSelection(static_cast<size_t>(panel));
+        (m_listBoxFolderPair->IsShown() ? static_cast<wxWindow*>(m_listBoxFolderPair) : m_notebook)->SetFocus(); //GTK ignores F-keys if focus is on hidden item!
+    };
 
-    switch (keyCode)
+    switch (event.GetKeyCode())
     {
         case WXK_F6:
-            m_notebook->ChangeSelection(static_cast<size_t>(SyncConfigPanel::COMPARISON));
-            break; //handled!
+            changeSelection(SyncConfigPanel::COMPARISON);
+            return; //handled!
         case WXK_F7:
-            m_notebook->ChangeSelection(static_cast<size_t>(SyncConfigPanel::FILTER));
-            break;
+            changeSelection(SyncConfigPanel::FILTER);
+            return;
         case WXK_F8:
-            m_notebook->ChangeSelection(static_cast<size_t>(SyncConfigPanel::SYNC));
-            break;
-        default:
-            event.Skip();
+            changeSelection(SyncConfigPanel::SYNC);
             return;
     }
-    (m_listBoxFolderPair->IsShown() ? static_cast<wxWindow*>(m_listBoxFolderPair) : m_notebook)->SetFocus(); //GTK ignores F-keys if focus is on hidden item!
+    event.Skip();
 }
 
 
@@ -927,7 +931,7 @@ void ConfigDialog::updateSyncGui()
     };
 
     //display only relevant sync options
-    m_bitmapDatabase    ->Show(directionCfg_.var == DirectionConfig::TWO_WAY);
+    bSizerDatabase      ->Show(directionCfg_.var == DirectionConfig::TWO_WAY);
     bSizerSyncDirections->Show(directionCfg_.var != DirectionConfig::TWO_WAY);
 
     if (directionCfg_.var == DirectionConfig::TWO_WAY)
@@ -1046,7 +1050,7 @@ MiscSyncConfig ConfigDialog::getMiscSyncOptions() const
     miscCfg.ignoreErrors      = m_checkBoxIgnoreErrors->GetValue();
     miscCfg.postSyncCommand   = m_comboBoxPostSyncCommand->getValue();
     miscCfg.postSyncCondition = getEnumVal(enumPostSyncCondition_, *m_choicePostSyncCondition),
-            miscCfg.commandHistory    = m_comboBoxPostSyncCommand->getHistory();
+    miscCfg.commandHistory    = m_comboBoxPostSyncCommand->getHistory();
     return miscCfg;
 }
 
@@ -1056,7 +1060,7 @@ void ConfigDialog::setMiscSyncOptions(const MiscSyncConfig& miscCfg)
     m_checkBoxIgnoreErrors->SetValue(miscCfg.ignoreErrors);
     m_comboBoxPostSyncCommand->setValue(miscCfg.postSyncCommand);
     setEnumVal(enumPostSyncCondition_, *m_choicePostSyncCondition, miscCfg.postSyncCondition),
-               m_comboBoxPostSyncCommand->setHistory(miscCfg.commandHistory, commandHistoryMax_);
+               m_comboBoxPostSyncCommand->setHistory(miscCfg.commandHistory, commandHistItemsMax_);
 
     updateMiscGui();
 }
@@ -1194,7 +1198,7 @@ ReturnSyncConfig::ButtonPressed zen::showSyncConfigDlg(wxWindow* parent,
                                                        PostSyncCondition& postSyncCondition,
                                                        std::vector<Zstring>& commandHistory,
 
-                                                       size_t commandHistoryMax)
+                                                       size_t commandHistItemsMax)
 {
     GlobalSyncConfig globalCfg;
     globalCfg.cmpConfig = globalCmpConfig;
@@ -1211,7 +1215,7 @@ ReturnSyncConfig::ButtonPressed zen::showSyncConfigDlg(wxWindow* parent,
                          localPairIndexToShow,
                          folderPairConfig,
                          globalCfg,
-                         commandHistoryMax);
+                         commandHistItemsMax);
     const auto rv = static_cast<ReturnSyncConfig::ButtonPressed>(syncDlg.ShowModal());
 
     if (rv != ReturnSyncConfig::BUTTON_CANCEL)

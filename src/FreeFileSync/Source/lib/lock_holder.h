@@ -11,7 +11,7 @@
 namespace zen
 {
 //intermediate locks created by DirLock use this extension, too:
-const Zchar LOCK_FILE_ENDING[]  = Zstr(".ffs_lock"); //don't use Zstring as global constant: avoid static initialization order problem in global namespace!
+const Zchar LOCK_FILE_ENDING[] = Zstr(".ffs_lock"); //don't use Zstring as global constant: avoid static initialization order problem in global namespace!
 
 //hold locks for a number of directories without blocking during lock creation
 //call after having checked directory existence!
@@ -20,35 +20,44 @@ class LockHolder
 public:
     LockHolder(const std::set<Zstring, LessFilePath>& dirpathsExisting, //resolved paths
                bool& warnDirectoryLockFailed,
-               ProcessCallback& procCallback)
+               ProcessCallback& pcb)
     {
-        for (const Zstring& dirpath : dirpathsExisting)
+        class WaitOnLockHandler : public DirLockCallback
         {
-            class WaitOnLockHandler : public DirLockCallback
-            {
-            public:
-                WaitOnLockHandler(ProcessCallback& pc) : pc_(pc) {}
-                void requestUiRefresh()                     override { pc_.requestUiRefresh(); }  //allowed to throw exceptions
-                void reportStatus(const std::wstring& text) override { pc_.reportStatus(text); }
-            private:
-                ProcessCallback& pc_;
-            } callback(procCallback);
+        public:
+            WaitOnLockHandler(ProcessCallback& pc) : pc_(pc) {}
+            void requestUiRefresh()                     override { pc_.requestUiRefresh(); }  //allowed to throw exceptions
+            void reportStatus(const std::wstring& text) override { pc_.reportStatus(text); }
+        private:
+            ProcessCallback& pc_;
+        } lcb(pcb);
 
+        std::map<Zstring, FileError, LessFilePath> failedLocks;
+
+        for (const Zstring& dirpath : dirpathsExisting)
             try
             {
                 //lock file creation is synchronous and may block noticeably for very slow devices (usb sticks, mapped cloud storages)
-                lockHolder.emplace_back(appendSeparator(dirpath) + Zstr("sync") + LOCK_FILE_ENDING, &callback); //throw FileError
+                lockHolder_.emplace_back(appendSeparator(dirpath) + Zstr("sync") + LOCK_FILE_ENDING, &lcb); //throw FileError
             }
-            catch (const FileError& e)
+            catch (const FileError& e) { failedLocks.emplace(dirpath, e); }
+
+        if (!failedLocks.empty())
+        {
+            std::wstring msg = _("Cannot set directory locks for the following folders:");
+
+            for (const auto& fl : failedLocks)
             {
-                const std::wstring msg = replaceCpy(_("Cannot set directory lock for %x."), L"%x", fmtPath(dirpath)) + L"\n\n" + e.toString();
-                procCallback.reportWarning(msg, warnDirectoryLockFailed); //may throw!
+                msg += L"\n\n" + fmtPath(fl.first);
+                msg += L"\n" + replaceCpy(fl.second.toString(), L"\n\n", L"\n");
             }
+
+            pcb.reportWarning(msg, warnDirectoryLockFailed); //may throw!
         }
     }
 
 private:
-    std::vector<DirLock> lockHolder;
+    std::vector<DirLock> lockHolder_;
 };
 }
 

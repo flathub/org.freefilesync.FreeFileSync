@@ -77,22 +77,24 @@ public:
     size_t read(void* buffer, size_t bytesToRead) //throw SysError, X; return "bytesToRead" bytes unless end of stream!
     {
         const size_t blockSize = getBlockSize();
-        assert(memBuf_.size() <= blockSize);
+        assert(memBuf_.size() >= blockSize);
+        assert(bufPos_ <= bufPosEnd_ && bufPosEnd_ <= memBuf_.size());
+
         char*       it    = static_cast<char*>(buffer);
         char* const itEnd = it + bytesToRead;
         for (;;)
         {
-            const size_t junkSize = std::min(static_cast<size_t>(itEnd - it), memBuf_.size());
-            std::copy    (memBuf_.begin(), memBuf_.begin() + junkSize, it);
-            memBuf_.erase(memBuf_.begin(), memBuf_.begin() + junkSize);
-            it += junkSize;
+            const size_t junkSize = std::min(static_cast<size_t>(itEnd - it), bufPosEnd_ - bufPos_);
+            std::memcpy(it, &memBuf_[0] + bufPos_, junkSize);
+            bufPos_ += junkSize;
+            it      += junkSize;
 
             if (it == itEnd)
                 break;
             //--------------------------------------------------------------------
-            memBuf_.resize(blockSize);
             const size_t bytesRead = tryRead(&memBuf_[0], blockSize); //throw SysError; may return short, only 0 means EOF! => CONTRACT: bytesToRead > 0
-            memBuf_.resize(bytesRead);
+            bufPos_ = 0;
+            bufPosEnd_ = bytesRead;
 
             if (notifyUnbufferedIO_) notifyUnbufferedIO_(bytesRead); //throw X
 
@@ -137,8 +139,11 @@ private:
     wxHTTP webAccess_;
     std::unique_ptr<wxInputStream> httpStream_; //must be deleted BEFORE webAccess is closed
 
-    std::vector<char> memBuf_;
     const IOCallback notifyUnbufferedIO_; //throw X
+
+    std::vector<char> memBuf_ = std::vector<char>(getBlockSize());
+    size_t bufPos_    = 0; //buffered I/O; see file_io.cpp
+    size_t bufPosEnd_ = 0; //
 };
 
 

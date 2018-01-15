@@ -7,6 +7,7 @@
 #include "file_drop.h"
 #include <wx/dnd.h>
 #include <zen/utf.h>
+#include <zen/file_access.h>
 
 
 using namespace zen;

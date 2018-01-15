@@ -39,13 +39,14 @@ namespace zen { class TripleSplitter; }
 #include <wx/statline.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
-#include <wx/listbox.h>
 #include <wx/frame.h>
+#include <wx/listbox.h>
 #include <wx/tglbtn.h>
 #include <wx/radiobut.h>
 #include <wx/hyperlink.h>
 #include <wx/spinctrl.h>
 #include <wx/choice.h>
+#include <wx/wrapsizer.h>
 #include <wx/notebook.h>
 #include <wx/dialog.h>
 #include <wx/treectrl.h>
@@ -151,6 +152,7 @@ protected:
     wxCheckBox* m_checkBoxMatchCase;
     wxPanel* m_panelConfig;
     wxBoxSizer* bSizerConfig;
+    wxBoxSizer* bSizerCfgHistoryButtons;
     wxBitmapButton* m_bpButtonNew;
     wxStaticText* m_staticText951;
     wxBitmapButton* m_bpButtonOpen;
@@ -160,7 +162,7 @@ protected:
     wxBitmapButton* m_bpButtonSaveAs;
     wxBitmapButton* m_bpButtonSaveAsBatch;
     wxStaticText* m_staticText97;
-    wxListBox* m_listBoxHistory;
+    zen::Grid* m_gridCfgHistory;
     wxPanel* m_panelViewFilter;
     wxBoxSizer* bSizerViewFilter;
     wxStaticText* m_staticTextViewType;
@@ -234,10 +236,6 @@ protected:
     virtual void OnTopLocalSyncCfg( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnHideSearchPanel( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnSearchGridEnter( wxCommandEvent& event ) { event.Skip(); }
-    virtual void OnCfgHistoryKeyEvent( wxKeyEvent& event ) { event.Skip(); }
-    virtual void OnLoadFromHistory( wxCommandEvent& event ) { event.Skip(); }
-    virtual void OnLoadFromHistoryDoubleClick( wxCommandEvent& event ) { event.Skip(); }
-    virtual void OnCfgHistoryRightClick( wxMouseEvent& event ) { event.Skip(); }
     virtual void OnToggleViewType( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnToggleViewButton( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnViewButtonRightClick( wxMouseEvent& event ) { event.Skip(); }
@@ -363,7 +361,9 @@ protected:
     wxStaticText* m_staticText120;
     wxStaticText* m_staticText140;
     wxStaticText* m_staticText1401;
+    wxWrapSizer* bSizerDatabase;
     wxStaticBitmap* m_bitmapDatabase;
+    wxStaticText* m_staticText145;
     wxStaticText* m_staticTextSyncVarDescription;
     wxStaticLine* m_staticline431;
     wxCheckBox* m_checkBoxDetectMove;
@@ -1154,6 +1154,35 @@ public:
 
     ActivationDlgGenerated( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("FreeFileSync Donation Edition"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER );
     ~ActivationDlgGenerated();
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+/// Class CfgHighlightDlgGenerated
+///////////////////////////////////////////////////////////////////////////////
+class CfgHighlightDlgGenerated : public wxDialog
+{
+private:
+
+protected:
+    wxPanel* m_panel35;
+    wxStaticText* m_staticText145;
+    wxSpinCtrl* m_spinCtrlSyncOverdueDays;
+    wxStaticLine* m_staticline21;
+    wxBoxSizer* bSizerStdButtons;
+    wxButton* m_buttonOkay;
+    wxButton* m_buttonCancel;
+
+    // Virtual event handlers, overide them in your derived class
+    virtual void OnClose( wxCloseEvent& event ) { event.Skip(); }
+    virtual void OnOkay( wxCommandEvent& event ) { event.Skip(); }
+    virtual void OnCancel( wxCommandEvent& event ) { event.Skip(); }
+
+
+public:
+
+    CfgHighlightDlgGenerated( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Highlight Configurations"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxDEFAULT_DIALOG_STYLE );
+    ~CfgHighlightDlgGenerated();
 
 };
 

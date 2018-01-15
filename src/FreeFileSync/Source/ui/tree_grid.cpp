@@ -5,7 +5,7 @@
 // *****************************************************************************
 
 #include <set>
-#include "tree_view.h"
+#include "tree_grid.h"
 #include <wx/settings.h>
 #include <wx/menu.h>
 #include <zen/i18n.h>
@@ -204,24 +204,24 @@ struct TreeView::LessShortName
     bool operator()(const TreeLine& lhs, const TreeLine& rhs) const
     {
         //files last (irrespective of sort direction)
-        if (lhs.type_ == TreeView::TYPE_FILES)
+        if (lhs.type == TreeView::TYPE_FILES)
             return false;
-        else if (rhs.type_ == TreeView::TYPE_FILES)
+        else if (rhs.type == TreeView::TYPE_FILES)
             return true;
 
-        if (lhs.type_ != rhs.type_)       //
-            return lhs.type_ < rhs.type_; //shouldn't happen! root nodes not mixed with files or directories
+        if (lhs.type != rhs.type)       //
+            return lhs.type < rhs.type; //shouldn't happen! root nodes not mixed with files or directories
 
-        switch (lhs.type_)
+        switch (lhs.type)
         {
             case TreeView::TYPE_ROOT:
-                return makeSortDirection(LessNaturalSort() /*even on Linux*/, Int2Type<ascending>())(static_cast<const RootNodeImpl*>(lhs.node_)->displayName,
-                        static_cast<const RootNodeImpl*>(rhs.node_)->displayName);
+                return makeSortDirection(LessNaturalSort() /*even on Linux*/, Int2Type<ascending>())(static_cast<const RootNodeImpl*>(lhs.node)->displayName,
+                        static_cast<const RootNodeImpl*>(rhs.node)->displayName);
 
             case TreeView::TYPE_DIRECTORY:
             {
-                const auto* folderL = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(lhs.node_)->objId));
-                const auto* folderR = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(rhs.node_)->objId));
+                const auto* folderL = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(lhs.node)->objId));
+                const auto* folderR = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(rhs.node)->objId));
 
                 if (!folderL)  //might be pathologic, but it's covered
                     return false;
@@ -241,17 +241,17 @@ struct TreeView::LessShortName
 
 
 template <bool ascending>
-void TreeView::sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeNavi columnType)
+void TreeView::sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeTree columnType)
 {
     auto getBytes = [](const TreeLine& line) -> uint64_t
     {
-        switch (line.type_)
+        switch (line.type)
         {
             case TreeView::TYPE_ROOT:
             case TreeView::TYPE_DIRECTORY:
-                return line.node_->bytesGross;
+                return line.node->bytesGross;
             case TreeView::TYPE_FILES:
-                return line.node_->bytesNet;
+                return line.node->bytesNet;
         }
         assert(false);
         return 0U;
@@ -259,14 +259,14 @@ void TreeView::sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeNavi colu
 
     auto getCount = [](const TreeLine& line) -> int
     {
-        switch (line.type_)
+        switch (line.type)
         {
             case TreeView::TYPE_ROOT:
             case TreeView::TYPE_DIRECTORY:
-                return line.node_->itemCountGross;
+                return line.node->itemCountGross;
 
             case TreeView::TYPE_FILES:
-                return line.node_->itemCountNet;
+                return line.node->itemCountNet;
         }
         assert(false);
         return 0;
@@ -277,13 +277,13 @@ void TreeView::sortSingleLevel(std::vector<TreeLine>& items, ColumnTypeNavi colu
 
     switch (columnType)
     {
-        case ColumnTypeNavi::FOLDER_NAME:
+        case ColumnTypeTree::FOLDER_NAME:
             std::sort(items.begin(), items.end(), LessShortName<ascending>());
             break;
-        case ColumnTypeNavi::ITEM_COUNT:
+        case ColumnTypeTree::ITEM_COUNT:
             std::sort(items.begin(), items.end(), makeSortDirection(lessCount, Int2Type<ascending>()));
             break;
-        case ColumnTypeNavi::BYTES:
+        case ColumnTypeTree::BYTES:
             std::sort(items.begin(), items.end(), makeSortDirection(lessBytes, Int2Type<ascending>()));
             break;
     }
@@ -298,21 +298,21 @@ void TreeView::getChildren(const Container& cont, unsigned int level, std::vecto
 
     for (const DirNodeImpl& subDir : cont.subDirs)
     {
-        output.emplace_back(level, 0, &subDir, TreeView::TYPE_DIRECTORY);
-        workList.emplace_back(subDir.bytesGross, &output.back().percent_);
+        output.push_back({ level, 0, &subDir, TreeView::TYPE_DIRECTORY });
+        workList.emplace_back(subDir.bytesGross, &output.back().percent);
     }
 
     if (cont.firstFileId)
     {
-        output.emplace_back(level, 0, &cont, TreeView::TYPE_FILES);
-        workList.emplace_back(cont.bytesNet, &output.back().percent_);
+        output.push_back({ level, 0, &cont, TreeView::TYPE_FILES });
+        workList.emplace_back(cont.bytesNet, &output.back().percent);
     }
     calcPercentage(workList);
 
-    if (sortAscending)
-        sortSingleLevel<true>(output, sortColumn);
+    if (sortAscending_)
+        sortSingleLevel<true>(output, sortColumn_);
     else
-        sortSingleLevel<false>(output, sortColumn);
+        sortSingleLevel<false>(output, sortColumn_);
 }
 
 
@@ -321,13 +321,13 @@ void TreeView::applySubView(std::vector<RootNodeImpl>&& newView)
     //preserve current node expansion status
     auto getHierAlias = [](const TreeView::TreeLine& tl) -> const ContainerObject*
     {
-        switch (tl.type_)
+        switch (tl.type)
         {
             case TreeView::TYPE_ROOT:
-                return static_cast<const RootNodeImpl*>(tl.node_)->baseFolder.get();
+                return static_cast<const RootNodeImpl*>(tl.node)->baseFolder.get();
 
             case TreeView::TYPE_DIRECTORY:
-                if (auto folder = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(tl.node_)->objId)))
+                if (auto folder = dynamic_cast<const FolderPair*>(FileSystemObject::retrieve(static_cast<const DirNodeImpl*>(tl.node)->objId)))
                     return folder;
                 break;
 
@@ -338,60 +338,60 @@ void TreeView::applySubView(std::vector<RootNodeImpl>&& newView)
     };
 
     std::unordered_set<const ContainerObject*> expandedNodes;
-    if (!flatTree.empty())
+    if (!flatTree_.empty())
     {
-        auto it = flatTree.begin();
-        for (auto iterNext = flatTree.begin() + 1; iterNext != flatTree.end(); ++iterNext, ++it)
-            if (it->level_ < iterNext->level_)
+        auto it = flatTree_.begin();
+        for (auto iterNext = flatTree_.begin() + 1; iterNext != flatTree_.end(); ++iterNext, ++it)
+            if (it->level < iterNext->level)
                 if (auto hierObj = getHierAlias(*it))
                     expandedNodes.insert(hierObj);
     }
 
     //update view on full data
-    folderCmpView.swap(newView); //newView may be an alias for folderCmpView! see sorting!
+    folderCmpView_.swap(newView); //newView may be an alias for folderCmpView! see sorting!
 
     //set default flat tree
-    flatTree.clear();
+    flatTree_.clear();
 
-    if (folderCmp.size() == 1) //single folder pair case (empty pairs were already removed!) do NOT use folderCmpView for this check!
+    if (folderCmp_.size() == 1) //single folder pair case (empty pairs were already removed!) do NOT use folderCmpView for this check!
     {
-        if (!folderCmpView.empty()) //possibly empty!
-            getChildren(folderCmpView[0], 0, flatTree); //do not show root
+        if (!folderCmpView_.empty()) //possibly empty!
+            getChildren(folderCmpView_[0], 0, flatTree_); //do not show root
     }
     else
     {
         //following is almost identical with TreeView::getChildren(): however we *cannot* reuse code here;
         //this were only possible if we replaced "std::vector<RootNodeImpl>" with "Container"!
 
-        flatTree.reserve(folderCmpView.size()); //keep pointers in "workList" valid
+        flatTree_.reserve(folderCmpView_.size()); //keep pointers in "workList" valid
         std::vector<std::pair<uint64_t, int*>> workList;
 
-        for (const RootNodeImpl& root : folderCmpView)
+        for (const RootNodeImpl& root : folderCmpView_)
         {
-            flatTree.emplace_back(0, 0, &root, TreeView::TYPE_ROOT);
-            workList.emplace_back(root.bytesGross, &flatTree.back().percent_);
+            flatTree_.push_back({ 0, 0, &root, TreeView::TYPE_ROOT });
+            workList.emplace_back(root.bytesGross, &flatTree_.back().percent);
         }
 
         calcPercentage(workList);
 
-        if (sortAscending)
-            sortSingleLevel<true>(flatTree, sortColumn);
+        if (sortAscending_)
+            sortSingleLevel<true>(flatTree_, sortColumn_);
         else
-            sortSingleLevel<false>(flatTree, sortColumn);
+            sortSingleLevel<false>(flatTree_, sortColumn_);
     }
 
     //restore node expansion status
-    for (size_t row = 0; row < flatTree.size(); ++row) //flatTree size changes during loop!
+    for (size_t row = 0; row < flatTree_.size(); ++row) //flatTree size changes during loop!
     {
-        const TreeLine& line = flatTree[row];
+        const TreeLine& line = flatTree_[row];
 
         if (auto hierObj = getHierAlias(line))
             if (expandedNodes.find(hierObj) != expandedNodes.end())
             {
                 std::vector<TreeLine> newLines;
-                getChildren(*line.node_, line.level_ + 1, newLines);
+                getChildren(*line.node, line.level + 1, newLines);
 
-                flatTree.insert(flatTree.begin() + row + 1, newLines.begin(), newLines.end());
+                flatTree_.insert(flatTree_.begin() + row + 1, newLines.begin(), newLines.end());
             }
     }
 }
@@ -402,9 +402,9 @@ void TreeView::updateView(Predicate pred)
 {
     //update view on full data
     std::vector<RootNodeImpl> newView;
-    newView.reserve(folderCmp.size()); //avoid expensive reallocations!
+    newView.reserve(folderCmp_.size()); //avoid expensive reallocations!
 
-    for (const std::shared_ptr<BaseFolderPair>& baseObj : folderCmp)
+    for (const std::shared_ptr<BaseFolderPair>& baseObj : folderCmp_)
     {
         newView.emplace_back();
         RootNodeImpl& root = newView.back();
@@ -424,50 +424,34 @@ void TreeView::updateView(Predicate pred)
         }
     }
 
-    lastViewFilterPred = pred;
+    lastViewFilterPred_ = pred;
     applySubView(std::move(newView));
 }
 
 
-void TreeView::setSortDirection(ColumnTypeNavi colType, bool ascending) //apply permanently!
+void TreeView::setSortDirection(ColumnTypeTree colType, bool ascending) //apply permanently!
 {
-    sortColumn    = colType;
-    sortAscending = ascending;
+    sortColumn_    = colType;
+    sortAscending_ = ascending;
 
     //reapply current view
-    applySubView(std::move(folderCmpView));
-}
-
-
-bool TreeView::getDefaultSortDirection(ColumnTypeNavi colType)
-{
-    switch (colType)
-    {
-        case ColumnTypeNavi::FOLDER_NAME:
-            return true;
-        case ColumnTypeNavi::ITEM_COUNT:
-            return false;
-        case ColumnTypeNavi::BYTES:
-            return false;
-    }
-    assert(false);
-    return true;
+    applySubView(std::move(folderCmpView_));
 }
 
 
 TreeView::NodeStatus TreeView::getStatus(size_t row) const
 {
-    if (row < flatTree.size())
+    if (row < flatTree_.size())
     {
-        if (row + 1 < flatTree.size() && flatTree[row + 1].level_ > flatTree[row].level_)
+        if (row + 1 < flatTree_.size() && flatTree_[row + 1].level > flatTree_[row].level)
             return TreeView::STATUS_EXPANDED;
 
         //it's either reduced or empty
-        switch (flatTree[row].type_)
+        switch (flatTree_[row].type)
         {
             case TreeView::TYPE_DIRECTORY:
             case TreeView::TYPE_ROOT:
-                return flatTree[row].node_->firstFileId || !flatTree[row].node_->subDirs.empty() ? TreeView::STATUS_REDUCED : TreeView::STATUS_EMPTY;
+                return flatTree_[row].node->firstFileId || !flatTree_[row].node->subDirs.empty() ? TreeView::STATUS_REDUCED : TreeView::STATUS_EMPTY;
 
             case TreeView::TYPE_FILES:
                 return TreeView::STATUS_EMPTY;
@@ -485,56 +469,56 @@ void TreeView::expandNode(size_t row)
         return;
     }
 
-    if (row < flatTree.size())
+    if (row < flatTree_.size())
     {
         std::vector<TreeLine> newLines;
 
-        switch (flatTree[row].type_)
+        switch (flatTree_[row].type)
         {
             case TreeView::TYPE_ROOT:
             case TreeView::TYPE_DIRECTORY:
-                getChildren(*flatTree[row].node_, flatTree[row].level_ + 1, newLines);
+                getChildren(*flatTree_[row].node, flatTree_[row].level + 1, newLines);
                 break;
             case TreeView::TYPE_FILES:
                 break;
         }
-        flatTree.insert(flatTree.begin() + row + 1, newLines.begin(), newLines.end());
+        flatTree_.insert(flatTree_.begin() + row + 1, newLines.begin(), newLines.end());
     }
 }
 
 
 void TreeView::reduceNode(size_t row)
 {
-    if (row < flatTree.size())
+    if (row < flatTree_.size())
     {
-        const unsigned int parentLevel = flatTree[row].level_;
+        const unsigned int parentLevel = flatTree_[row].level;
 
         bool done = false;
-        flatTree.erase(std::remove_if(flatTree.begin() + row + 1, flatTree.end(),
-                                      [&](const TreeLine& line) -> bool
+        flatTree_.erase(std::remove_if(flatTree_.begin() + row + 1, flatTree_.end(),
+                                       [&](const TreeLine& line) -> bool
         {
             if (done)
                 return false;
-            if (line.level_ > parentLevel)
+            if (line.level > parentLevel)
                 return true;
             else
             {
                 done = true;
                 return false;
             }
-        }), flatTree.end());
+        }), flatTree_.end());
     }
 }
 
 
 ptrdiff_t TreeView::getParent(size_t row) const
 {
-    if (row < flatTree.size())
+    if (row < flatTree_.size())
     {
-        const auto level = flatTree[row].level_;
+        const auto level = flatTree_[row].level;
 
         while (row-- > 0)
-            if (flatTree[row].level_ < level)
+            if (flatTree_[row].level < level)
                 return row;
     }
     return -1;
@@ -646,12 +630,12 @@ void TreeView::updateSyncPreview(bool showExcluded,
 
 void TreeView::setData(FolderComparison& newData)
 {
-    std::vector<TreeLine    >().swap(flatTree);      //free mem
-    std::vector<RootNodeImpl>().swap(folderCmpView); //
-    folderCmp = newData;
+    std::vector<TreeLine    >().swap(flatTree_);      //free mem
+    std::vector<RootNodeImpl>().swap(folderCmpView_); //
+    folderCmp_ = newData;
 
     //remove truly empty folder pairs as early as this: we want to distinguish single/multiple folder pair cases by looking at "folderCmp"
-    erase_if(folderCmp, [](const std::shared_ptr<BaseFolderPair>& baseObj)
+    erase_if(folderCmp_, [](const std::shared_ptr<BaseFolderPair>& baseObj)
     {
         return AFS::isNullPath(baseObj->getAbstractPath< LEFT_SIDE>()) &&
                AFS::isNullPath(baseObj->getAbstractPath<RIGHT_SIDE>());
@@ -661,23 +645,23 @@ void TreeView::setData(FolderComparison& newData)
 
 std::unique_ptr<TreeView::Node> TreeView::getLine(size_t row) const
 {
-    if (row < flatTree.size())
+    if (row < flatTree_.size())
     {
-        const auto level  = flatTree[row].level_;
-        const int percent = flatTree[row].percent_;
+        const auto level  = flatTree_[row].level;
+        const int percent = flatTree_[row].percent;
 
-        switch (flatTree[row].type_)
+        switch (flatTree_[row].type)
         {
             case TreeView::TYPE_ROOT:
             {
-                const auto& root = *static_cast<const TreeView::RootNodeImpl*>(flatTree[row].node_);
+                const auto& root = *static_cast<const TreeView::RootNodeImpl*>(flatTree_[row].node);
                 return std::make_unique<TreeView::RootNode>(percent, root.bytesGross, root.itemCountGross, getStatus(row), *root.baseFolder, root.displayName);
             }
             break;
 
             case TreeView::TYPE_DIRECTORY:
             {
-                const auto* dir = static_cast<const TreeView::DirNodeImpl*>(flatTree[row].node_);
+                const auto* dir = static_cast<const TreeView::DirNodeImpl*>(flatTree_[row].node);
                 if (auto folder = dynamic_cast<FolderPair*>(FileSystemObject::retrieve(dir->objId)))
                     return std::make_unique<TreeView::DirNode>(percent, dir->bytesGross, dir->itemCountGross, level, getStatus(row), *folder);
             }
@@ -685,7 +669,7 @@ std::unique_ptr<TreeView::Node> TreeView::getLine(size_t row) const
 
             case TreeView::TYPE_FILES:
             {
-                const auto* parentDir = flatTree[row].node_;
+                const auto* parentDir = flatTree_[row].node;
                 if (auto firstFile = FileSystemObject::retrieve(parentDir->firstFileId))
                 {
                     std::vector<FileSystemObject*> filesAndLinks;
@@ -693,11 +677,11 @@ std::unique_ptr<TreeView::Node> TreeView::getLine(size_t row) const
 
                     //lazy evaluation: recheck "lastViewFilterPred" again rather than buffer and bloat "lastViewFilterPred"
                     for (FileSystemObject& fsObj : parent.refSubFiles())
-                        if (lastViewFilterPred(fsObj))
+                        if (lastViewFilterPred_(fsObj))
                             filesAndLinks.push_back(&fsObj);
 
                     for (FileSystemObject& fsObj : parent.refSubLinks())
-                        if (lastViewFilterPred(fsObj))
+                        if (lastViewFilterPred_(fsObj))
                             filesAndLinks.push_back(&fsObj);
 
                     return std::make_unique<TreeView::FilesNode>(percent, parentDir->bytesNet, parentDir->itemCountNet, level, filesAndLinks);
@@ -757,50 +741,51 @@ wxColor getColorForLevel(size_t level)
 }
 
 
-class GridDataNavi : private wxEvtHandler, public GridData
+class GridDataTree : private wxEvtHandler, public GridData
 {
 public:
-    GridDataNavi(Grid& grid, const std::shared_ptr<TreeView>& treeDataView) : treeDataView_(treeDataView),
-        rootBmp(getResourceImage(L"rootFolder").ConvertToImage().Scale(iconSizeSmall, iconSizeSmall, wxIMAGE_QUALITY_HIGH)),
-        widthNodeIcon(iconSizeSmall),
-        widthLevelStep(widthNodeIcon),
-        widthNodeStatus(getResourceImage(L"node_expanded").GetWidth()),
+    GridDataTree(Grid& grid) :
+        rootBmp_(getResourceImage(L"rootFolder").ConvertToImage().Scale(iconSizeSmall, iconSizeSmall, wxIMAGE_QUALITY_HIGH)),
+        widthNodeIcon_(iconSizeSmall),
+        widthLevelStep_(widthNodeIcon_),
+        widthNodeStatus_(getResourceImage(L"node_expanded").GetWidth()),
         grid_(grid)
     {
-        grid.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(GridDataNavi::onKeyDown), nullptr, this);
-        grid.Connect(EVENT_GRID_MOUSE_LEFT_DOWN,       GridClickEventHandler     (GridDataNavi::onMouseLeft         ), nullptr, this);
-        grid.Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE,     GridClickEventHandler     (GridDataNavi::onMouseLeftDouble   ), nullptr, this);
-        grid.Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(GridDataNavi::onGridLabelContext  ), nullptr, this);
-        grid.Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(GridDataNavi::onGridLabelLeftClick), nullptr, this);
+        grid.getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(GridDataTree::onKeyDown), nullptr, this);
+        grid.Connect(EVENT_GRID_MOUSE_LEFT_DOWN,       GridClickEventHandler     (GridDataTree::onMouseLeft         ), nullptr, this);
+        grid.Connect(EVENT_GRID_MOUSE_LEFT_DOUBLE,     GridClickEventHandler     (GridDataTree::onMouseLeftDouble   ), nullptr, this);
+        grid.Connect(EVENT_GRID_COL_LABEL_MOUSE_RIGHT, GridLabelClickEventHandler(GridDataTree::onGridLabelContext  ), nullptr, this);
+        grid.Connect(EVENT_GRID_COL_LABEL_MOUSE_LEFT,  GridLabelClickEventHandler(GridDataTree::onGridLabelLeftClick), nullptr, this);
     }
 
-    void setShowPercentage(bool value) { showPercentBar = value; grid_.Refresh(); }
-    bool getShowPercentage() const { return showPercentBar; }
+    void setShowPercentage(bool value) { showPercentBar_ = value; grid_.Refresh(); }
+    bool getShowPercentage() const { return showPercentBar_; }
+
+    TreeView& getDataView() { return treeDataView_; }
 
 private:
-    size_t getRowCount() const override { return treeDataView_ ? treeDataView_->linesTotal() : 0; }
+    size_t getRowCount() const override { return treeDataView_.linesTotal(); }
 
     std::wstring getToolTip(size_t row, ColumnType colType) const override
     {
-        switch (static_cast<ColumnTypeNavi>(colType))
+        switch (static_cast<ColumnTypeTree>(colType))
         {
-            case ColumnTypeNavi::FOLDER_NAME:
-                if (treeDataView_)
-                    if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
-                        if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
-                        {
-                            const std::wstring& dirLeft  = AFS::getDisplayPath(root->baseFolder_.getAbstractPath< LEFT_SIDE>());
-                            const std::wstring& dirRight = AFS::getDisplayPath(root->baseFolder_.getAbstractPath<RIGHT_SIDE>());
-                            if (dirLeft.empty())
-                                return dirRight;
-                            else if (dirRight.empty())
-                                return dirLeft;
-                            return dirLeft + L" \u2013"/*en dash*/ + L"\n" + dirRight;
-                        }
+            case ColumnTypeTree::FOLDER_NAME:
+                if (std::unique_ptr<TreeView::Node> node = treeDataView_.getLine(row))
+                    if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
+                    {
+                        const std::wstring& dirLeft  = AFS::getDisplayPath(root->baseFolder_.getAbstractPath< LEFT_SIDE>());
+                        const std::wstring& dirRight = AFS::getDisplayPath(root->baseFolder_.getAbstractPath<RIGHT_SIDE>());
+                        if (dirLeft.empty())
+                            return dirRight;
+                        else if (dirRight.empty())
+                            return dirLeft;
+                        return dirLeft + L" \u2013"/*en dash*/ + L"\n" + dirRight;
+                    }
                 break;
 
-            case ColumnTypeNavi::ITEM_COUNT:
-            case ColumnTypeNavi::BYTES:
+            case ColumnTypeTree::ITEM_COUNT:
+            case ColumnTypeTree::BYTES:
                 break;
         }
         return std::wstring();
@@ -808,27 +793,25 @@ private:
 
     std::wstring getValue(size_t row, ColumnType colType) const override
     {
-        if (treeDataView_)
-        {
-            if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
-                switch (static_cast<ColumnTypeNavi>(colType))
-                {
-                    case ColumnTypeNavi::FOLDER_NAME:
-                        if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
-                            return utfTo<std::wstring>(root->displayName_);
-                        else if (const TreeView::DirNode* dir = dynamic_cast<const TreeView::DirNode*>(node.get()))
-                            return utfTo<std::wstring>(dir->folder_.getPairItemName());
-                        else if (dynamic_cast<const TreeView::FilesNode*>(node.get()))
-                            return _("Files");
-                        break;
+        if (std::unique_ptr<TreeView::Node> node = treeDataView_.getLine(row))
+            switch (static_cast<ColumnTypeTree>(colType))
+            {
+                case ColumnTypeTree::FOLDER_NAME:
+                    if (const TreeView::RootNode* root = dynamic_cast<const TreeView::RootNode*>(node.get()))
+                        return utfTo<std::wstring>(root->displayName_);
+                    else if (const TreeView::DirNode* dir = dynamic_cast<const TreeView::DirNode*>(node.get()))
+                        return utfTo<std::wstring>(dir->folder_.getPairItemName());
+                    else if (dynamic_cast<const TreeView::FilesNode*>(node.get()))
+                        return _("Files");
+                    break;
 
-                    case ColumnTypeNavi::ITEM_COUNT:
-                        return formatNumber(node->itemCount_);
+                case ColumnTypeTree::ITEM_COUNT:
+                    return formatNumber(node->itemCount_);
 
-                    case ColumnTypeNavi::BYTES:
-                        return formatFilesizeShort(node->bytes_);
-                }
-        }
+                case ColumnTypeTree::BYTES:
+                    return formatFilesizeShort(node->bytes_);
+            }
+
         return std::wstring();
     }
 
@@ -841,20 +824,17 @@ private:
         rectInside.width -= COLUMN_GAP_LEFT;
         drawColumnLabelText(dc, rectInside, getColumnLabel(colType));
 
-        if (treeDataView_) //draw sort marker
+        auto sortInfo = treeDataView_.getSortDirection();
+        if (colType == static_cast<ColumnType>(sortInfo.first))
         {
-            auto sortInfo = treeDataView_->getSortDirection();
-            if (colType == static_cast<ColumnType>(sortInfo.first))
-            {
-                const wxBitmap& marker = getResourceImage(sortInfo.second ? L"sortAscending" : L"sortDescending");
-                drawBitmapRtlNoMirror(dc, marker, rectInside, wxALIGN_CENTER_HORIZONTAL);
-            }
+            const wxBitmap& marker = getResourceImage(sortInfo.second ? L"sortAscending" : L"sortDescending");
+            drawBitmapRtlNoMirror(dc, marker, rectInside, wxALIGN_CENTER_HORIZONTAL);
         }
     }
 
     static const int GAP_SIZE = 2;
 
-    enum class HoverAreaNavi
+    enum class HoverAreaTree
     {
         NODE,
     };
@@ -884,20 +864,20 @@ private:
         //   --------------------------------------------------------------------------------
         // -> synchronize renderCell() <-> getBestSize() <-> getRowMouseHover()
 
-        if (static_cast<ColumnTypeNavi>(colType) == ColumnTypeNavi::FOLDER_NAME && treeDataView_)
+        if (static_cast<ColumnTypeTree>(colType) == ColumnTypeTree::FOLDER_NAME)
         {
-            if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
+            if (std::unique_ptr<TreeView::Node> node = treeDataView_.getLine(row))
             {
                 ////clear first secion:
                 //clearArea(dc, wxRect(rect.GetTopLeft(), wxSize(
-                //                         node->level_ * widthLevelStep + GAP_SIZE + //width
+                //                         node->level_ * widthLevelStep_ + GAP_SIZE + //width
                 //                         (showPercentBar ? WIDTH_PERCENTAGE_BAR + 2 * GAP_SIZE : 0) + //
-                //                         widthNodeStatus + GAP_SIZE + widthNodeIcon + GAP_SIZE, //
+                //                         widthNodeStatus_ + GAP_SIZE + widthNodeIcon + GAP_SIZE, //
                 //                         rect.height)), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
 
                 //consume space
-                rectTmp.x     += static_cast<int>(node->level_) * widthLevelStep;
-                rectTmp.width -= static_cast<int>(node->level_) * widthLevelStep;
+                rectTmp.x     += static_cast<int>(node->level_) * widthLevelStep_;
+                rectTmp.width -= static_cast<int>(node->level_) * widthLevelStep_;
 
                 rectTmp.x     += GAP_SIZE;
                 rectTmp.width -= GAP_SIZE;
@@ -905,7 +885,7 @@ private:
                 if (rectTmp.width > 0)
                 {
                     //percentage bar
-                    if (showPercentBar)
+                    if (showPercentBar_)
                     {
 
                         const wxRect areaPerc(rectTmp.x, rectTmp.y + 2, WIDTH_PERCENTAGE_BAR, rectTmp.height - 4);
@@ -944,10 +924,10 @@ private:
 
                             //clearArea(dc, rectStat, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
                             clearArea(dc, rectStat, *wxWHITE); //accessibility: always set both foreground AND background colors!
-                            drawBitmapRtlMirror(dc, bmp, rectStat, wxALIGN_CENTER, renderBuf);
+                            drawBitmapRtlMirror(dc, bmp, rectStat, wxALIGN_CENTER, renderBuf_);
                         };
 
-                        const bool drawMouseHover = static_cast<HoverAreaNavi>(rowHover) == HoverAreaNavi::NODE;
+                        const bool drawMouseHover = static_cast<HoverAreaTree>(rowHover) == HoverAreaTree::NODE;
                         switch (node->status_)
                         {
                             case TreeView::STATUS_EXPANDED:
@@ -960,30 +940,30 @@ private:
                                 break;
                         }
 
-                        rectTmp.x     += widthNodeStatus + GAP_SIZE;
-                        rectTmp.width -= widthNodeStatus + GAP_SIZE;
+                        rectTmp.x     += widthNodeStatus_ + GAP_SIZE;
+                        rectTmp.width -= widthNodeStatus_ + GAP_SIZE;
                         if (rectTmp.width > 0)
                         {
                             wxBitmap nodeIcon;
                             bool isActive = true;
                             //icon
                             if (dynamic_cast<const TreeView::RootNode*>(node.get()))
-                                nodeIcon = rootBmp;
+                                nodeIcon = rootBmp_;
                             else if (auto dir = dynamic_cast<const TreeView::DirNode*>(node.get()))
                             {
-                                nodeIcon = dirIcon;
+                                nodeIcon = dirIcon_;
                                 isActive = dir->folder_.isActive();
                             }
                             else if (dynamic_cast<const TreeView::FilesNode*>(node.get()))
-                                nodeIcon = fileIcon;
+                                nodeIcon = fileIcon_;
 
                             if (!isActive)
                                 nodeIcon = wxBitmap(nodeIcon.ConvertToImage().ConvertToGreyscale(1.0 / 3, 1.0 / 3, 1.0 / 3)); //treat all channels equally!
 
                             drawBitmapRtlNoMirror(dc, nodeIcon, rectTmp, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
-                            rectTmp.x     += widthNodeIcon + GAP_SIZE;
-                            rectTmp.width -= widthNodeIcon + GAP_SIZE;
+                            rectTmp.x     += widthNodeIcon_ + GAP_SIZE;
+                            rectTmp.width -= widthNodeIcon_ + GAP_SIZE;
 
                             if (rectTmp.width > 0)
                             {
@@ -1003,8 +983,8 @@ private:
             int alignment = wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL;
 
             //have file size and item count right-justified (but don't change for RTL languages)
-            if ((static_cast<ColumnTypeNavi>(colType) == ColumnTypeNavi::BYTES ||
-                 static_cast<ColumnTypeNavi>(colType) == ColumnTypeNavi::ITEM_COUNT) && grid_.GetLayoutDirection() != wxLayout_RightToLeft)
+            if ((static_cast<ColumnTypeTree>(colType) == ColumnTypeTree::BYTES ||
+                 static_cast<ColumnTypeTree>(colType) == ColumnTypeTree::ITEM_COUNT) && grid_.GetLayoutDirection() != wxLayout_RightToLeft)
             {
                 rectTmp.width -= 2 * GAP_SIZE;
                 alignment = wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL;
@@ -1023,11 +1003,11 @@ private:
     {
         // -> synchronize renderCell() <-> getBestSize() <-> getRowMouseHover()
 
-        if (static_cast<ColumnTypeNavi>(colType) == ColumnTypeNavi::FOLDER_NAME && treeDataView_)
+        if (static_cast<ColumnTypeTree>(colType) == ColumnTypeTree::FOLDER_NAME)
         {
-            if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
-                return node->level_ * widthLevelStep + GAP_SIZE + (showPercentBar ? WIDTH_PERCENTAGE_BAR + 2 * GAP_SIZE : 0) + widthNodeStatus + GAP_SIZE
-                       + widthNodeIcon + GAP_SIZE + dc.GetTextExtent(getValue(row, colType)).GetWidth() +
+            if (std::unique_ptr<TreeView::Node> node = treeDataView_.getLine(row))
+                return node->level_ * widthLevelStep_ + GAP_SIZE + (showPercentBar_ ? WIDTH_PERCENTAGE_BAR + 2 * GAP_SIZE : 0) + widthNodeStatus_ + GAP_SIZE
+                       + widthNodeIcon_ + GAP_SIZE + dc.GetTextExtent(getValue(row, colType)).GetWidth() +
                        GAP_SIZE; //additional gap from right
             else
                 return 0;
@@ -1039,24 +1019,23 @@ private:
 
     HoverArea getRowMouseHover(size_t row, ColumnType colType, int cellRelativePosX, int cellWidth) override
     {
-        switch (static_cast<ColumnTypeNavi>(colType))
+        switch (static_cast<ColumnTypeTree>(colType))
         {
-            case ColumnTypeNavi::FOLDER_NAME:
-                if (treeDataView_)
-                    if (std::unique_ptr<TreeView::Node> node = treeDataView_->getLine(row))
-                    {
-                        const int tolerance = 2;
-                        const int nodeStatusXFirst = -tolerance + static_cast<int>(node->level_) * widthLevelStep + GAP_SIZE + (showPercentBar ? WIDTH_PERCENTAGE_BAR + 2 * GAP_SIZE : 0);
-                        const int nodeStatusXLast  = (nodeStatusXFirst + tolerance) + widthNodeStatus + tolerance;
-                        // -> synchronize renderCell() <-> getBestSize() <-> getRowMouseHover()
+            case ColumnTypeTree::FOLDER_NAME:
+                if (std::unique_ptr<TreeView::Node> node = treeDataView_.getLine(row))
+                {
+                    const int tolerance = 2;
+                    const int nodeStatusXFirst = -tolerance + static_cast<int>(node->level_) * widthLevelStep_ + GAP_SIZE + (showPercentBar_ ? WIDTH_PERCENTAGE_BAR + 2 * GAP_SIZE : 0);
+                    const int nodeStatusXLast  = (nodeStatusXFirst + tolerance) + widthNodeStatus_ + tolerance;
+                    // -> synchronize renderCell() <-> getBestSize() <-> getRowMouseHover()
 
-                        if (nodeStatusXFirst <= cellRelativePosX && cellRelativePosX < nodeStatusXLast)
-                            return static_cast<HoverArea>(HoverAreaNavi::NODE);
-                    }
+                    if (nodeStatusXFirst <= cellRelativePosX && cellRelativePosX < nodeStatusXLast)
+                        return static_cast<HoverArea>(HoverAreaTree::NODE);
+                }
                 break;
 
-            case ColumnTypeNavi::ITEM_COUNT:
-            case ColumnTypeNavi::BYTES:
+            case ColumnTypeTree::ITEM_COUNT:
+            case ColumnTypeTree::BYTES:
                 break;
         }
         return HoverArea::NONE;
@@ -1064,13 +1043,13 @@ private:
 
     std::wstring getColumnLabel(ColumnType colType) const override
     {
-        switch (static_cast<ColumnTypeNavi>(colType))
+        switch (static_cast<ColumnTypeTree>(colType))
         {
-            case ColumnTypeNavi::FOLDER_NAME:
+            case ColumnTypeTree::FOLDER_NAME:
                 return _("Name");
-            case ColumnTypeNavi::ITEM_COUNT:
+            case ColumnTypeTree::ITEM_COUNT:
                 return _("Items");
-            case ColumnTypeNavi::BYTES:
+            case ColumnTypeTree::BYTES:
                 return _("Size");
         }
         return std::wstring();
@@ -1078,19 +1057,18 @@ private:
 
     void onMouseLeft(GridClickEvent& event)
     {
-        switch (static_cast<HoverAreaNavi>(event.hoverArea_))
+        switch (static_cast<HoverAreaTree>(event.hoverArea_))
         {
-            case HoverAreaNavi::NODE:
-                if (treeDataView_)
-                    switch (treeDataView_->getStatus(event.row_))
-                    {
-                        case TreeView::STATUS_EXPANDED:
-                            return reduceNode(event.row_);
-                        case TreeView::STATUS_REDUCED:
-                            return expandNode(event.row_);
-                        case TreeView::STATUS_EMPTY:
-                            break;
-                    }
+            case HoverAreaTree::NODE:
+                switch (treeDataView_.getStatus(event.row_))
+                {
+                    case TreeView::STATUS_EXPANDED:
+                        return reduceNode(event.row_);
+                    case TreeView::STATUS_REDUCED:
+                        return expandNode(event.row_);
+                    case TreeView::STATUS_EMPTY:
+                        break;
+                }
                 break;
         }
         event.Skip();
@@ -1098,16 +1076,15 @@ private:
 
     void onMouseLeftDouble(GridClickEvent& event)
     {
-        if (treeDataView_)
-            switch (treeDataView_->getStatus(event.row_))
-            {
-                case TreeView::STATUS_EXPANDED:
-                    return reduceNode(event.row_);
-                case TreeView::STATUS_REDUCED:
-                    return expandNode(event.row_);
-                case TreeView::STATUS_EMPTY:
-                    break;
-            }
+        switch (treeDataView_.getStatus(event.row_))
+        {
+            case TreeView::STATUS_EXPANDED:
+                return reduceNode(event.row_);
+            case TreeView::STATUS_REDUCED:
+                return expandNode(event.row_);
+            case TreeView::STATUS_EMPTY:
+                break;
+        }
         event.Skip();
     }
 
@@ -1136,35 +1113,33 @@ private:
                 case WXK_LEFT:
                 case WXK_NUMPAD_LEFT:
                 case WXK_NUMPAD_SUBTRACT: //https://msdn.microsoft.com/en-us/library/ms971323#atg_keyboardshortcuts_windows_shortcut_keys
-                    if (treeDataView_)
-                        switch (treeDataView_->getStatus(row))
-                        {
-                            case TreeView::STATUS_EXPANDED:
-                                return reduceNode(row);
-                            case TreeView::STATUS_REDUCED:
-                            case TreeView::STATUS_EMPTY:
+                    switch (treeDataView_.getStatus(row))
+                    {
+                        case TreeView::STATUS_EXPANDED:
+                            return reduceNode(row);
+                        case TreeView::STATUS_REDUCED:
+                        case TreeView::STATUS_EMPTY:
 
-                                const int parentRow = treeDataView_->getParent(row);
-                                if (parentRow >= 0)
-                                    grid_.setGridCursor(parentRow);
-                                break;
-                        }
+                            const int parentRow = treeDataView_.getParent(row);
+                            if (parentRow >= 0)
+                                grid_.setGridCursor(parentRow);
+                            break;
+                    }
                     return; //swallow event
 
                 case WXK_RIGHT:
                 case WXK_NUMPAD_RIGHT:
                 case WXK_NUMPAD_ADD:
-                    if (treeDataView_)
-                        switch (treeDataView_->getStatus(row))
-                        {
-                            case TreeView::STATUS_EXPANDED:
-                                grid_.setGridCursor(std::min(rowCount - 1, row + 1));
-                                break;
-                            case TreeView::STATUS_REDUCED:
-                                return expandNode(row);
-                            case TreeView::STATUS_EMPTY:
-                                break;
-                        }
+                    switch (treeDataView_.getStatus(row))
+                    {
+                        case TreeView::STATUS_EXPANDED:
+                            grid_.setGridCursor(std::min(rowCount - 1, row + 1));
+                            break;
+                        case TreeView::STATUS_REDUCED:
+                            return expandNode(row);
+                        case TreeView::STATUS_EMPTY:
+                            break;
+                    }
                     return; //swallow event
             }
 
@@ -1174,7 +1149,6 @@ private:
     void onGridLabelContext(GridLabelClickEvent& event)
     {
         ContextMenu menu;
-
         //--------------------------------------------------------------------------------------------------------
         menu.addCheckBox(_("Percentage"), [this] { setShowPercentage(!getShowPercentage()); }, getShowPercentage());
         //--------------------------------------------------------------------------------------------------------
@@ -1182,69 +1156,66 @@ private:
         {
             auto colAttr = grid_.getColumnConfig();
 
-            Grid::ColumnAttribute* caFolderName = nullptr;
-            Grid::ColumnAttribute* caToggle     = nullptr;
+            Grid::ColAttributes* caFolderName = nullptr;
+            Grid::ColAttributes* caToggle     = nullptr;
 
-            for (Grid::ColumnAttribute& ca : colAttr)
-                if (ca.type_ == static_cast<ColumnType>(ColumnTypeNavi::FOLDER_NAME))
+            for (Grid::ColAttributes& ca : colAttr)
+                if (ca.type == static_cast<ColumnType>(ColumnTypeTree::FOLDER_NAME))
                     caFolderName = &ca;
-                else if (ca.type_ == ct)
+                else if (ca.type == ct)
                     caToggle = &ca;
 
-            assert(caFolderName && caFolderName->stretch_ > 0 && caFolderName->visible_);
-            assert(caToggle     && caToggle->stretch_ == 0);
+            assert(caFolderName && caFolderName->stretch > 0 && caFolderName->visible);
+            assert(caToggle     && caToggle->stretch == 0);
 
             if (caFolderName && caToggle)
             {
-                caToggle->visible_ = !caToggle->visible_;
+                caToggle->visible = !caToggle->visible;
 
                 //take width of newly visible column from stretched folder name column
-                caFolderName->offset_ -= caToggle->visible_ ? caToggle->offset_ : -caToggle->offset_;
+                caFolderName->offset -= caToggle->visible ? caToggle->offset : -caToggle->offset;
 
                 grid_.setColumnConfig(colAttr);
             }
         };
 
-        for (const Grid::ColumnAttribute& ca : grid_.getColumnConfig())
+        for (const Grid::ColAttributes& ca : grid_.getColumnConfig())
         {
-            menu.addCheckBox(getColumnLabel(ca.type_), [ct = ca.type_, toggleColumn] { toggleColumn(ct); },
-                             ca.visible_, ca.type_ != static_cast<ColumnType>(ColumnTypeNavi::FOLDER_NAME)); //do not allow user to hide file name column!
+            menu.addCheckBox(getColumnLabel(ca.type), [ct = ca.type, toggleColumn] { toggleColumn(ct); },
+                             ca.visible, ca.type != static_cast<ColumnType>(ColumnTypeTree::FOLDER_NAME)); //do not allow user to hide file name column!
         }
         //--------------------------------------------------------------------------------------------------------
         menu.addSeparator();
 
         auto setDefaultColumns = [&]
         {
-            setShowPercentage(naviGridShowPercentageDefault);
-            grid_.setColumnConfig(treeview::convertConfig(getDefaultColumnAttributesNavi()));
+            setShowPercentage(treeGridShowPercentageDefault);
+            grid_.setColumnConfig(convertColAttributes(getTreeGridDefaultColAttribs(), getTreeGridDefaultColAttribs()));
         };
         menu.addItem(_("&Default"), setDefaultColumns); //'&' -> reuse text from "default" buttons elsewhere
+        //--------------------------------------------------------------------------------------------------------
 
         menu.popup(grid_);
-
         //event.Skip();
     }
 
     void onGridLabelLeftClick(GridLabelClickEvent& event)
     {
-        if (treeDataView_)
-        {
-            const auto colTypeNavi = static_cast<ColumnTypeNavi>(event.colType_);
-            bool sortAscending = TreeView::getDefaultSortDirection(colTypeNavi);
+        const auto colTypeTree = static_cast<ColumnTypeTree>(event.colType_);
+        bool sortAscending = getDefaultSortDirection(colTypeTree);
 
-            const auto sortInfo = treeDataView_->getSortDirection();
-            if (sortInfo.first == colTypeNavi)
-                sortAscending = !sortInfo.second;
+        const auto sortInfo = treeDataView_.getSortDirection();
+        if (sortInfo.first == colTypeTree)
+            sortAscending = !sortInfo.second;
 
-            treeDataView_->setSortDirection(colTypeNavi, sortAscending);
-            grid_.clearSelection(ALLOW_GRID_EVENT);
-            grid_.Refresh();
-        }
+        treeDataView_.setSortDirection(colTypeTree, sortAscending);
+        grid_.clearSelection(ALLOW_GRID_EVENT);
+        grid_.Refresh();
     }
 
     void expandNode(size_t row)
     {
-        treeDataView_->expandNode(row);
+        treeDataView_.expandNode(row);
         grid_.Refresh(); //implicitly clears selection (changed row count after expand)
         grid_.setGridCursor(row);
         //grid_.autoSizeColumns(); -> doesn't look as good as expected
@@ -1252,29 +1223,30 @@ private:
 
     void reduceNode(size_t row)
     {
-        treeDataView_->reduceNode(row);
+        treeDataView_.reduceNode(row);
         grid_.Refresh();
         grid_.setGridCursor(row);
     }
 
-    std::shared_ptr<TreeView> treeDataView_;
-    const wxBitmap fileIcon = IconBuffer::genericFileIcon(IconBuffer::SIZE_SMALL);
-    const wxBitmap dirIcon  = IconBuffer::genericDirIcon (IconBuffer::SIZE_SMALL);
+    TreeView treeDataView_;
 
-    const wxBitmap rootBmp;
-    Opt<wxBitmap> renderBuf; //avoid costs of recreating this temporal variable
-    const int widthNodeIcon;
-    const int widthLevelStep;
-    const int widthNodeStatus;
+    const wxBitmap fileIcon_ = IconBuffer::genericFileIcon(IconBuffer::SIZE_SMALL);
+    const wxBitmap dirIcon_  = IconBuffer::genericDirIcon (IconBuffer::SIZE_SMALL);
+
+    const wxBitmap rootBmp_;
+    Opt<wxBitmap> renderBuf_; //avoid costs of recreating this temporary variable
+    const int widthNodeIcon_;
+    const int widthLevelStep_;
+    const int widthNodeStatus_;
     Grid& grid_;
-    bool showPercentBar = true;
+    bool showPercentBar_ = true;
 };
 }
 
 
-void treeview::init(Grid& grid, const std::shared_ptr<TreeView>& treeDataView)
+void zen::treegrid::init(Grid& grid)
 {
-    grid.setDataProvider(std::make_shared<GridDataNavi>(grid, treeDataView));
+    grid.setDataProvider(std::make_shared<GridDataTree>(grid));
     grid.showRowLabel(false);
 
     const int rowHeight = std::max(IconBuffer::getSize(IconBuffer::SIZE_SMALL), grid.getMainWin().GetCharHeight()) + 2; //allow 1 pixel space on top and bottom; dearly needed on OS X!
@@ -1282,57 +1254,28 @@ void treeview::init(Grid& grid, const std::shared_ptr<TreeView>& treeDataView)
 }
 
 
-void treeview::setShowPercentage(Grid& grid, bool value)
+TreeView& zen::treegrid::getDataView(Grid& grid)
 {
-    if (auto* prov = dynamic_cast<GridDataNavi*>(grid.getDataProvider()))
+    if (auto* prov = dynamic_cast<GridDataTree*>(grid.getDataProvider()))
+        return prov->getDataView();
+
+    throw std::runtime_error("treegrid was not initialized! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__));
+}
+
+
+void zen::treegrid::setShowPercentage(Grid& grid, bool value)
+{
+    if (auto* prov = dynamic_cast<GridDataTree*>(grid.getDataProvider()))
         prov->setShowPercentage(value);
     else
         assert(false);
 }
 
 
-bool treeview::getShowPercentage(const Grid& grid)
+bool zen::treegrid::getShowPercentage(const Grid& grid)
 {
-    if (auto* prov = dynamic_cast<const GridDataNavi*>(grid.getDataProvider()))
+    if (auto* prov = dynamic_cast<const GridDataTree*>(grid.getDataProvider()))
         return prov->getShowPercentage();
     assert(false);
     return true;
-}
-
-
-namespace
-{
-std::vector<ColumnAttributeNavi> makeConsistent(const std::vector<ColumnAttributeNavi>& attribs)
-{
-    std::set<ColumnTypeNavi> usedTypes;
-
-    std::vector<ColumnAttributeNavi> output;
-    //remove duplicates
-    std::copy_if(attribs.begin(), attribs.end(), std::back_inserter(output),
-    [&](const ColumnAttributeNavi& a) { return usedTypes.insert(a.type_).second; });
-
-    //make sure each type is existing!
-    const auto& defAttr = getDefaultColumnAttributesNavi();
-    std::copy_if(defAttr.begin(), defAttr.end(), std::back_inserter(output),
-    [&](const ColumnAttributeNavi& a) { return usedTypes.insert(a.type_).second; });
-
-    return output;
-}
-}
-
-std::vector<Grid::ColumnAttribute> treeview::convertConfig(const std::vector<ColumnAttributeNavi>& attribs)
-{
-    std::vector<Grid::ColumnAttribute> output;
-    for (const ColumnAttributeNavi& ca : makeConsistent(attribs))
-        output.emplace_back(static_cast<ColumnType>(ca.type_), ca.offset_, ca.stretch_, ca.visible_);
-    return output;
-}
-
-
-std::vector<ColumnAttributeNavi> treeview::convertConfig(const std::vector<Grid::ColumnAttribute>& attribs)
-{
-    std::vector<ColumnAttributeNavi> output;
-    for (const Grid::ColumnAttribute& ca : attribs)
-        output.emplace_back(static_cast<ColumnTypeNavi>(ca.type_), ca.offset_, ca.stretch_, ca.visible_);
-    return makeConsistent(output);
 }

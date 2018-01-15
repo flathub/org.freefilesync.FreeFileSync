@@ -39,3 +39,32 @@ or
 ```
 flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 ```
+
+## Maintaining this repository
+
+Since there is no version control for FreeFileSync, the exploded tarball for
+each version is pushed into the `src` branch. Patches are kept in
+`patchNN-description` branches and rebased on top of new releases.
+
+The workflow for building a new release `REL` is:
+```
+git branch vREL master
+# download new tarball into tarball/
+git checkout src
+rm src -rf
+unzip -d src tarball/<tarball>.zip
+git add -A
+git commit
+# for each patchNN branch, do:
+git checkout patchNN
+git rebase src
+git commit
+# end for
+git checkout vREL
+# for each patchNN branch, do:
+git diff src patchNN > patchNN.patch
+# end for
+git checkout vREL
+# adjust *appdata.xml and *FreeFileSync.json
+flatpak-builder builddir org.freefilesync.FreeFileSync.json --force-clean
+```

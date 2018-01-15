@@ -1,0 +1,74 @@
+diff --git a/src/FreeFileSync/Source/Makefile b/src/FreeFileSync/Source/Makefile
+index 3319726..fe70ed6 100755
+--- a/src/FreeFileSync/Source/Makefile
++++ b/src/FreeFileSync/Source/Makefile
+@@ -1,5 +1,5 @@
+ APPNAME     = FreeFileSync
+-prefix      = /usr
++prefix      = /app
+ BINDIR      = $(DESTDIR)$(prefix)/bin
+ SHAREDIR    = $(DESTDIR)$(prefix)/share
+ APPSHAREDIR = $(SHAREDIR)/$(APPNAME)
+@@ -123,5 +123,5 @@ install:
+ 	$(APPSHAREDIR)
+ 
+ 	mkdir -p $(DOCSHAREDIR)
+-	cp ../Build/Changelog.txt $(DOCSHAREDIR)/changelog
++	cp ../../Changelog.txt $(DOCSHAREDIR)/changelog
+ 	gzip $(DOCSHAREDIR)/changelog
+diff --git a/src/FreeFileSync/Source/RealTimeSync/Makefile b/src/FreeFileSync/Source/RealTimeSync/Makefile
+index baf4ef6..c19718c 100755
+--- a/src/FreeFileSync/Source/RealTimeSync/Makefile
++++ b/src/FreeFileSync/Source/RealTimeSync/Makefile
+@@ -1,5 +1,5 @@
+ APPNAME = RealTimeSync
+-prefix = /usr
++prefix = /app
+ BINDIR = $(DESTDIR)$(prefix)/bin
+ 
+ CXXFLAGS  = -std=c++14 -pipe -DWXINTL_NO_GETTEXT_MACRO -I../../.. -I../../../zenXml -include "zen/i18n.h" -Wall -O3 -DNDEBUG `wx-config --cxxflags --debug=no` -pthread
+diff --git a/src/FreeFileSync/Source/lib/versioning.cpp b/src/FreeFileSync/Source/lib/versioning.cpp
+index 8663058..69be681 100755
+--- a/src/FreeFileSync/Source/lib/versioning.cpp
++++ b/src/FreeFileSync/Source/lib/versioning.cpp
+@@ -1,3 +1,4 @@
++#include <zen/warn_static.h>
+ #include "versioning.h"
+ #include <cstddef> //required by GCC 4.8.1 to find ptrdiff_t
+ 
+diff --git a/src/FreeFileSync/Source/ui/progress_indicator.cpp b/src/FreeFileSync/Source/ui/progress_indicator.cpp
+index ff17332..cdc51c9 100755
+--- a/src/FreeFileSync/Source/ui/progress_indicator.cpp
++++ b/src/FreeFileSync/Source/ui/progress_indicator.cpp
+@@ -4,6 +4,7 @@
+ // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
+ // *****************************************************************************
+ 
++#include <zen/warn_static.h>
+ #include "progress_indicator.h"
+ #include <memory>
+ #include <wx/imaglist.h>
+diff --git a/src/zen/file_io.cpp b/src/zen/file_io.cpp
+index b0af195..e587ac8 100755
+--- a/src/zen/file_io.cpp
++++ b/src/zen/file_io.cpp
+@@ -4,6 +4,7 @@
+ // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
+ // *****************************************************************************
+ 
++#include <zen/warn_static.h>
+ #include "file_io.h"
+ #include "file_access.h"
+ 
+diff --git a/src/zen/shell_execute.h b/src/zen/shell_execute.h
+index 0013f7b..36af7b0 100755
+--- a/src/zen/shell_execute.h
++++ b/src/zen/shell_execute.h
+@@ -7,6 +7,7 @@
+ #ifndef SHELL_EXECUTE_H_23482134578134134
+ #define SHELL_EXECUTE_H_23482134578134134
+ 
++#include "warn_static.h"
+ #include "file_error.h"
+ 
+     #include <unistd.h> //fork()

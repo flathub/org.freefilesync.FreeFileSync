@@ -1,0 +1,38 @@
+diff --git a/src/FreeFileSync/Source/ui/main_dlg.cpp b/src/FreeFileSync/Source/ui/main_dlg.cpp
+index 1e9d25c..1683044 100755
+--- a/src/FreeFileSync/Source/ui/main_dlg.cpp
++++ b/src/FreeFileSync/Source/ui/main_dlg.cpp
+@@ -4837,13 +4837,13 @@ void MainDialog::OnMenuCheckVersionAutomatically(wxCommandEvent& event)
+ 
+     m_menuItemCheckVersionAuto->Check(updateCheckActive(globalCfg_.gui.lastUpdateCheck));
+ 
+-    if (shouldRunAutomaticUpdateCheck(globalCfg_.gui.lastUpdateCheck))
++    /* if (shouldRunAutomaticUpdateCheck(globalCfg_.gui.lastUpdateCheck))
+     {
+         flashStatusInformation(_("Searching for program updates..."));
+         //synchronous update check is sufficient here:
+         automaticUpdateCheckEval(this, globalCfg_.gui.lastUpdateCheck, globalCfg_.gui.lastOnlineVersion,
+                                  automaticUpdateCheckRunAsync(automaticUpdateCheckPrepare().get()).get());
+-    }
++    } */
+ }
+ 
+ 
+@@ -4852,7 +4852,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
+     //execute just once per startup!
+     Disconnect(wxEVT_IDLE, wxIdleEventHandler(MainDialog::OnRegularUpdateCheck), nullptr, this);
+ 
+-    if (shouldRunAutomaticUpdateCheck(globalCfg_.gui.lastUpdateCheck))
++    /* if (shouldRunAutomaticUpdateCheck(globalCfg_.gui.lastUpdateCheck))
+     {
+         flashStatusInformation(_("Searching for program updates..."));
+ 
+@@ -4864,7 +4864,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
+             automaticUpdateCheckEval(this, globalCfg_.gui.lastUpdateCheck, globalCfg_.gui.lastOnlineVersion,
+                                      resultAsync.get()); //run on main thread:
+         });
+-    }
++    } */
+ }
+ 
+ 

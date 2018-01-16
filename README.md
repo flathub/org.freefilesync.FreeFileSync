@@ -45,6 +45,9 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 Since there is no version control for FreeFileSync, the exploded tarball for
 each version is pushed into the `src` branch. Patches are kept in
 `patchNN-description` branches and rebased on top of new releases.
+(The reason for this is to make patch rebasing more comfortable and
+maintainable. A new release is still built from the tarball, not from the `src`
+branch.)
 
 The workflow for building a new release `REL` is:
 ```

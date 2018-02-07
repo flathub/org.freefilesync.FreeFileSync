@@ -27,8 +27,20 @@ index baf4ef6..c19718c 100755
  BINDIR = $(DESTDIR)$(prefix)/bin
  
  CXXFLAGS  = -std=c++14 -pipe -DWXINTL_NO_GETTEXT_MACRO -I../../.. -I../../../zenXml -include "zen/i18n.h" -Wall -O3 -DNDEBUG `wx-config --cxxflags --debug=no` -pthread
+diff --git a/src/FreeFileSync/Source/lib/dir_lock.cpp b/src/FreeFileSync/Source/lib/dir_lock.cpp
+index ef3bb8e..025233f 100755
+--- a/src/FreeFileSync/Source/lib/dir_lock.cpp
++++ b/src/FreeFileSync/Source/lib/dir_lock.cpp
+@@ -15,6 +15,7 @@
+ #include <zen/optional.h>
+ #include <wx/log.h>
+ #include <wx/app.h>
++#include <zen/warn_static.h>
+ 
+     #include <fcntl.h>    //open()
+     #include <sys/stat.h> //
 diff --git a/src/FreeFileSync/Source/lib/versioning.cpp b/src/FreeFileSync/Source/lib/versioning.cpp
-index 8663058..69be681 100755
+index acc9256..bcb1f0a 100755
 --- a/src/FreeFileSync/Source/lib/versioning.cpp
 +++ b/src/FreeFileSync/Source/lib/versioning.cpp
 @@ -1,3 +1,4 @@
@@ -37,7 +49,7 @@ index 8663058..69be681 100755
  #include <cstddef> //required by GCC 4.8.1 to find ptrdiff_t
  
 diff --git a/src/FreeFileSync/Source/ui/progress_indicator.cpp b/src/FreeFileSync/Source/ui/progress_indicator.cpp
-index ff17332..cdc51c9 100755
+index 04fb5e6..dc78945 100755
 --- a/src/FreeFileSync/Source/ui/progress_indicator.cpp
 +++ b/src/FreeFileSync/Source/ui/progress_indicator.cpp
 @@ -4,6 +4,7 @@
@@ -61,7 +73,7 @@ index b0af195..e587ac8 100755
  #include "file_access.h"
  
 diff --git a/src/zen/shell_execute.h b/src/zen/shell_execute.h
-index 0013f7b..36af7b0 100755
+index 7770595..3e17701 100755
 --- a/src/zen/shell_execute.h
 +++ b/src/zen/shell_execute.h
 @@ -7,6 +7,7 @@

@@ -58,16 +58,32 @@ rm src -rf
 unzip -d src tarball/<tarball>.zip
 git add -A
 git commit
+
 # for each patchNN branch, do:
 git checkout patchNN
 git rebase src
-git commit
 # end for
+
 git checkout vREL
+
 # for each patchNN branch, do:
-git diff src patchNN > patchNN.patch
+git diff src patchNN > ./patchNN.patch
 # end for
-git checkout vREL
+
 # adjust *appdata.xml and *FreeFileSync.json
 flatpak-builder builddir org.freefilesync.FreeFileSync.json --force-clean
+# test the app
+
+git add -A
+git commit
+git push -u origin vREL
+# submit a PR
+
+# after merging PR to master
+git branch -d vREL
+git push -d origin vREL
+git checkout master
+git tag vREL
+git push --tags
+# push all modified branches (patchNN, src)
 ```

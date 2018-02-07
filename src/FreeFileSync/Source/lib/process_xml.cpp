@@ -5,7 +5,6 @@
 // *****************************************************************************
 
 #include "process_xml.h"
-#include <utility>
 #include <zenxml/xml.h>
 #include <zen/file_access.h>
 #include <zen/file_io.h>
@@ -16,16 +15,14 @@
 
 
 using namespace zen;
-using namespace xmlAccess; //functionally needed for correct overload resolution!!!
-using namespace std::rel_ops;
+using namespace fff; //functionally needed for correct overload resolution!!!
 
 
 namespace
 {
 //-------------------------------------------------------------------------------------------------------------------------------
-const int XML_FORMAT_VER_GLOBAL    = 6; //2018-01-08
-const int XML_FORMAT_VER_FFS_GUI   = 8; //2017-10-24
-const int XML_FORMAT_VER_FFS_BATCH = 8; //
+const int XML_FORMAT_VER_GLOBAL  = 8; //2018-02-01
+const int XML_FORMAT_VER_FFS_CFG = 9; //2018-02-01
 //-------------------------------------------------------------------------------------------------------------------------------
 }
 
@@ -48,10 +45,10 @@ XmlType getXmlTypeNoThrow(const XmlDoc& doc) //throw()
 }
 
 
-XmlType xmlAccess::getXmlType(const Zstring& filepath) //throw FileError
+XmlType fff::getXmlType(const Zstring& filePath) //throw FileError
 {
     //do NOT use zen::loadStream as it will needlessly load even huge files!
-    XmlDoc doc = loadXmlDocument(filepath); //throw FileError; quick exit if file is not an FFS XML
+    XmlDoc doc = loadXmlDocument(filePath); //throw FileError; quick exit if file is not an FFS XML
     return ::getXmlTypeNoThrow(doc);
 }
 
@@ -82,13 +79,13 @@ XmlGlobalSettings::XmlGlobalSettings()
 
 //################################################################################################################
 
-Zstring xmlAccess::getGlobalConfigFile()
+Zstring fff::getGlobalConfigFile()
 {
-    return zen::getConfigDirPathPf() + Zstr("GlobalSettings.xml");
+    return getConfigDirPathPf() + Zstr("GlobalSettings.xml");
 }
 
 
-XmlGuiConfig xmlAccess::convertBatchToGui(const XmlBatchConfig& batchCfg) //noexcept
+XmlGuiConfig fff::convertBatchToGui(const XmlBatchConfig& batchCfg) //noexcept
 {
     XmlGuiConfig output;
     output.mainCfg = batchCfg.mainCfg;
@@ -96,7 +93,7 @@ XmlGuiConfig xmlAccess::convertBatchToGui(const XmlBatchConfig& batchCfg) //noex
 }
 
 
-XmlBatchConfig xmlAccess::convertGuiToBatch(const XmlGuiConfig& guiCfg, const BatchExclusiveConfig& batchExCfg) //noexcept
+XmlBatchConfig fff::convertGuiToBatch(const XmlGuiConfig& guiCfg, const BatchExclusiveConfig& batchExCfg) //noexcept
 {
     XmlBatchConfig output;
     output.mainCfg = guiCfg.mainCfg;
@@ -284,11 +281,8 @@ void writeText(const PostSyncAction& value, std::string& output)
 {
     switch (value)
     {
-        case PostSyncAction::SUMMARY:
-            output = "Summary";
-            break;
-        case PostSyncAction::EXIT:
-            output = "Exit";
+        case PostSyncAction::NONE:
+            output = "None";
             break;
         case PostSyncAction::SLEEP:
             output = "Sleep";
@@ -303,10 +297,8 @@ template <> inline
 bool readText(const std::string& input, PostSyncAction& value)
 {
     const std::string tmp = trimCpy(input);
-    if (tmp == "Summary")
-        value = PostSyncAction::SUMMARY;
-    else if (tmp == "Exit")
-        value = PostSyncAction::EXIT;
+    if (tmp == "None")
+        value = PostSyncAction::NONE;
     else if (tmp == "Sleep")
         value = PostSyncAction::SLEEP;
     else if (tmp == "Shutdown")
@@ -770,10 +762,9 @@ bool readStruc(const XmlElement& input, ViewFilterDefault& value)
             success = false;
     };
 
-    XmlIn sharedView = in["Shared"];
-    readAttr(sharedView, "Equal",    value.equal);
-    readAttr(sharedView, "Conflict", value.conflict);
-    readAttr(sharedView, "Excluded", value.excluded);
+    readAttr(in, "Equal",    value.equal);
+    readAttr(in, "Conflict", value.conflict);
+    readAttr(in, "Excluded", value.excluded);
 
     XmlIn catView = in["CategoryView"];
     readAttr(catView, "LeftOnly",   value.leftOnly);
@@ -799,10 +790,9 @@ void writeStruc(const ViewFilterDefault& value, XmlElement& output)
 {
     XmlOut out(output);
 
-    XmlOut sharedView = out["Shared"];
-    sharedView.attribute("Equal",    value.equal);
-    sharedView.attribute("Conflict", value.conflict);
-    sharedView.attribute("Excluded", value.excluded);
+    out.attribute("Equal",    value.equal);
+    out.attribute("Conflict", value.conflict);
+    out.attribute("Excluded", value.excluded);
 
     XmlOut catView = out["CategoryView"];
     catView.attribute("LeftOnly",   value.leftOnly);
@@ -819,6 +809,24 @@ void writeStruc(const ViewFilterDefault& value, XmlElement& output)
     actView.attribute("DeleteLeft",  value.deleteLeft);
     actView.attribute("DeleteRight", value.deleteRight);
     actView.attribute("DoNothing",   value.doNothing);
+}
+
+
+template <> inline
+bool readStruc(const XmlElement& input, ExternalApp& value)
+{
+    XmlIn in(input);
+    const bool rv1 = in(value.cmdLine);
+    const bool rv2 = in.attribute("Label", value.description);
+    return rv1 && rv2;
+}
+
+template <> inline
+void writeStruc(const ExternalApp& value, XmlElement& output)
+{
+    XmlOut out(output);
+    out(value.cmdLine);
+    out.attribute("Label", value.description);
 }
 }
 
@@ -870,45 +878,45 @@ void writeStruc(const ConfigFileItem& value, XmlElement& output)
 
 namespace
 {
-void readConfig(const XmlIn& in, CompConfig& cmpConfig)
+void readConfig(const XmlIn& in, CompConfig& cmpCfg)
 {
-    in["Variant" ](cmpConfig.compareVar);
-    in["Symlinks"](cmpConfig.handleSymlinks);
+    in["Variant" ](cmpCfg.compareVar);
+    in["Symlinks"](cmpCfg.handleSymlinks);
 
     //TODO: remove old parameter after migration! 2015-11-05
     if (in["TimeShift"])
     {
         std::wstring timeShiftPhrase;
         if (in["TimeShift"](timeShiftPhrase))
-            cmpConfig.ignoreTimeShiftMinutes = fromTimeShiftPhrase(timeShiftPhrase);
+            cmpCfg.ignoreTimeShiftMinutes = fromTimeShiftPhrase(timeShiftPhrase);
     }
     else
     {
         std::wstring timeShiftPhrase;
         if (in["IgnoreTimeShift"](timeShiftPhrase))
-            cmpConfig.ignoreTimeShiftMinutes = fromTimeShiftPhrase(timeShiftPhrase);
+            cmpCfg.ignoreTimeShiftMinutes = fromTimeShiftPhrase(timeShiftPhrase);
     }
 }
 
 
-void readConfig(const XmlIn& in, DirectionConfig& directCfg)
+void readConfig(const XmlIn& in, DirectionConfig& dirCfg)
 {
-    in["Variant"](directCfg.var);
+    in["Variant"](dirCfg.var);
 
-    if (directCfg.var == DirectionConfig::CUSTOM)
+    if (dirCfg.var == DirectionConfig::CUSTOM)
     {
         XmlIn inCustDir = in["CustomDirections"];
-        inCustDir["LeftOnly"  ](directCfg.custom.exLeftSideOnly);
-        inCustDir["RightOnly" ](directCfg.custom.exRightSideOnly);
-        inCustDir["LeftNewer" ](directCfg.custom.leftNewer);
-        inCustDir["RightNewer"](directCfg.custom.rightNewer);
-        inCustDir["Different" ](directCfg.custom.different);
-        inCustDir["Conflict"  ](directCfg.custom.conflict);
+        inCustDir["LeftOnly"  ](dirCfg.custom.exLeftSideOnly);
+        inCustDir["RightOnly" ](dirCfg.custom.exRightSideOnly);
+        inCustDir["LeftNewer" ](dirCfg.custom.leftNewer);
+        inCustDir["RightNewer"](dirCfg.custom.rightNewer);
+        inCustDir["Different" ](dirCfg.custom.different);
+        inCustDir["Conflict"  ](dirCfg.custom.conflict);
     }
     else
-        directCfg.custom = DirectionSet();
+        dirCfg.custom = DirectionSet();
 
-    in["DetectMovedFiles"](directCfg.detectMovedFiles);
+    in["DetectMovedFiles"](dirCfg.detectMovedFiles);
 }
 
 
@@ -1056,96 +1064,127 @@ void readConfig(const XmlIn& in, MainConfiguration& mainCfg, int formatVer)
 }
 
 
-void readConfig(const XmlIn& in, XmlGuiConfig& config, int formatVer)
+void readConfig(const XmlIn& in, XmlGuiConfig& cfg, int formatVer)
 {
     //read main config
-    readConfig(in, config.mainCfg, formatVer);
+    readConfig(in, cfg.mainCfg, formatVer);
 
     //read GUI specific config data
     XmlIn inGuiCfg = in["GuiConfig"];
 
     std::string val;
     if (inGuiCfg["MiddleGridView"](val)) //refactor into enum!?
-        config.highlightSyncAction = val == "Action";
+        cfg.highlightSyncAction = val == "Action";
 
     //TODO: remove if clause after migration! 2017-10-24
     if (formatVer < 8)
     {
         std::string str;
         if (inGuiCfg["HandleError"](str))
-            config.mainCfg.ignoreErrors = str == "Ignore";
+            cfg.mainCfg.ignoreErrors = str == "Ignore";
 
-        str = trimCpy(utfTo<std::string>(config.mainCfg.postSyncCommand));
-        if (str == "Close progress dialog")
-            config.mainCfg.postSyncCommand.clear();
+        str = trimCpy(utfTo<std::string>(cfg.mainCfg.postSyncCommand));
+        if (strEqual(str, "Close progress dialog", CmpAsciiNoCase()))
+            cfg.mainCfg.postSyncCommand.clear();
     }
 }
 
 
-void readConfig(const XmlIn& in, BatchExclusiveConfig& config, int formatVer)
+void readConfig(const XmlIn& in, BatchExclusiveConfig& cfg, int formatVer)
 {
     XmlIn inBatchCfg = in["BatchConfig"];
+
+    //TODO: remove if clause after migration! 2018-02-01
+    if (formatVer < 9)
+        inBatchCfg["RunMinimized"](cfg.runMinimized);
+    else
+        inBatchCfg["ProgressDialog"].attribute("Minimized", cfg.runMinimized);
+
+    //TODO: remove if clause after migration! 2018-02-01
+    if (formatVer < 9)
+        ; //n/a
+    else
+        inBatchCfg["ProgressDialog"].attribute("AutoClose", cfg.autoCloseSummary);
 
     //TODO: remove if clause after migration! 2017-10-24
     if (formatVer < 8)
     {
         std::string str;
         if (inBatchCfg["HandleError"](str))
-            config.batchErrorDialog = str == "Stop" ? BatchErrorDialog::CANCEL : BatchErrorDialog::SHOW;
+            cfg.batchErrorDialog = str == "Stop" ? BatchErrorDialog::CANCEL : BatchErrorDialog::SHOW;
     }
     else
-    {
-        inBatchCfg["ErrorDialog"](config.batchErrorDialog);
-        inBatchCfg["PostSyncAction"](config.postSyncAction);
-    }
+        inBatchCfg["ErrorDialog"](cfg.batchErrorDialog);
 
-    inBatchCfg["RunMinimized" ](config.runMinimized);
-    inBatchCfg["LogfileFolder"](config.logFolderPathPhrase);
-    inBatchCfg["LogfileFolder"].attribute("Limit", config.logfilesCountLimit);
+    //TODO: remove if clause after migration! 2017-10-24
+    if (formatVer < 8)
+        ; //n/a
+    //TODO: remove if clause after migration! 2018-02-01
+    else if (formatVer == 8)
+    {
+        std::string tmp;
+        if (inBatchCfg["PostSyncAction"](tmp))
+        {
+            tmp = trimCpy(tmp);
+            if (tmp == "Summary")
+                cfg.postSyncAction = PostSyncAction::NONE;
+            else if (tmp == "Exit")
+                cfg.autoCloseSummary = true;
+            else if (tmp == "Sleep")
+                cfg.postSyncAction = PostSyncAction::SLEEP;
+            else if (tmp == "Shutdown")
+                cfg.postSyncAction = PostSyncAction::SHUTDOWN;
+        }
+    }
+    else
+        inBatchCfg["PostSyncAction"](cfg.postSyncAction);
+
+    inBatchCfg["LogfileFolder"](cfg.logFolderPathPhrase);
+    inBatchCfg["LogfileFolder"].attribute("Limit", cfg.logfilesCountLimit);
 }
 
 
-void readConfig(const XmlIn& in, XmlBatchConfig& config, int formatVer)
+void readConfig(const XmlIn& in, XmlBatchConfig& cfg, int formatVer)
 {
-    readConfig(in, config.mainCfg,    formatVer);
-    readConfig(in, config.batchExCfg, formatVer);
+    readConfig(in, cfg.mainCfg,    formatVer);
+    readConfig(in, cfg.batchExCfg, formatVer);
 
     //TODO: remove if clause after migration! 2017-10-24
     if (formatVer < 8)
     {
         std::string str;
         if (in["BatchConfig"]["HandleError"](str))
-            config.mainCfg.ignoreErrors = str == "Ignore";
+            cfg.mainCfg.ignoreErrors = str == "Ignore";
 
-        str = trimCpy(utfTo<std::string>(config.mainCfg.postSyncCommand));
-        if (str == "Close progress dialog")
+        str = trimCpy(utfTo<std::string>(cfg.mainCfg.postSyncCommand));
+        if (strEqual(str, "Close progress dialog", CmpAsciiNoCase()))
         {
-            config.batchExCfg.postSyncAction = PostSyncAction::EXIT;
-            config.mainCfg.postSyncCommand.clear();
+            cfg.batchExCfg.autoCloseSummary = true;
+            cfg.mainCfg.postSyncCommand.clear();
         }
         else if (str == "rundll32.exe powrprof.dll,SetSuspendState Sleep" ||
                  str == "rundll32.exe powrprof.dll,SetSuspendState" ||
                  str == "systemctl suspend" ||
                  str == "osascript -e \'tell application \"System Events\" to sleep\'")
         {
-            config.batchExCfg.postSyncAction = PostSyncAction::SLEEP;
-            config.mainCfg.postSyncCommand.clear();
+            cfg.batchExCfg.postSyncAction = PostSyncAction::SLEEP;
+            cfg.mainCfg.postSyncCommand.clear();
         }
         else if (str == "shutdown /s /t 60"  ||
                  str == "shutdown -s -t 60"  ||
                  str == "systemctl poweroff" ||
                  str == "osascript -e \'tell application \"System Events\" to shut down\'")
         {
-            config.batchExCfg.postSyncAction = PostSyncAction::SHUTDOWN;
-            config.mainCfg.postSyncCommand.clear();
+            cfg.batchExCfg.postSyncAction = PostSyncAction::SHUTDOWN;
+            cfg.mainCfg.postSyncCommand.clear();
         }
-        else if (config.batchExCfg.runMinimized)
-            config.batchExCfg.postSyncAction = PostSyncAction::EXIT;
+        else if (cfg.batchExCfg.runMinimized)
+            cfg.batchExCfg.autoCloseSummary = true;
     }
 }
 
 
-void readConfig(const XmlIn& in, XmlGlobalSettings& config, int formatVer)
+void readConfig(const XmlIn& in, XmlGlobalSettings& cfg, int formatVer)
 {
     XmlIn inGeneral = in["General"];
 
@@ -1153,92 +1192,118 @@ void readConfig(const XmlIn& in, XmlGlobalSettings& config, int formatVer)
     if (in["Shared"])
         inGeneral = in["Shared"];
 
-    inGeneral["Language"].attribute("Name", config.programLanguage);
+    inGeneral["Language"].attribute("Name", cfg.programLanguage);
 
-    inGeneral["FailSafeFileCopy"         ].attribute("Enabled", config.failSafeFileCopy);
-    inGeneral["CopyLockedFiles"          ].attribute("Enabled", config.copyLockedFiles);
-    inGeneral["CopyFilePermissions"      ].attribute("Enabled", config.copyFilePermissions);
-    inGeneral["AutomaticRetry"           ].attribute("Count",   config.automaticRetryCount);
-    inGeneral["AutomaticRetry"           ].attribute("Delay",   config.automaticRetryDelay);
-    inGeneral["FileTimeTolerance"        ].attribute("Seconds", config.fileTimeTolerance);
-    inGeneral["FolderAccessTimeout"      ].attribute("Seconds", config.folderAccessTimeout);
-    inGeneral["RunWithBackgroundPriority"].attribute("Enabled", config.runWithBackgroundPriority);
-    inGeneral["LockDirectoriesDuringSync"].attribute("Enabled", config.createLockFile);
-    inGeneral["VerifyCopiedFiles"        ].attribute("Enabled", config.verifyFileCopy);
-    inGeneral["LastSyncsLogSizeMax"      ].attribute("Bytes",   config.lastSyncsLogFileSizeMax);
-    inGeneral["NotificationSound"        ].attribute("CompareFinished", config.soundFileCompareFinished);
-    inGeneral["NotificationSound"        ].attribute("SyncFinished",    config.soundFileSyncFinished);
+    inGeneral["FailSafeFileCopy"         ].attribute("Enabled", cfg.failSafeFileCopy);
+    inGeneral["CopyLockedFiles"          ].attribute("Enabled", cfg.copyLockedFiles);
+    inGeneral["CopyFilePermissions"      ].attribute("Enabled", cfg.copyFilePermissions);
+    inGeneral["AutomaticRetry"           ].attribute("Count",   cfg.automaticRetryCount);
+    inGeneral["AutomaticRetry"           ].attribute("Delay",   cfg.automaticRetryDelay);
+    inGeneral["FileTimeTolerance"        ].attribute("Seconds", cfg.fileTimeTolerance);
+    inGeneral["FolderAccessTimeout"      ].attribute("Seconds", cfg.folderAccessTimeout);
+    inGeneral["RunWithBackgroundPriority"].attribute("Enabled", cfg.runWithBackgroundPriority);
+    inGeneral["LockDirectoriesDuringSync"].attribute("Enabled", cfg.createLockFile);
+    inGeneral["VerifyCopiedFiles"        ].attribute("Enabled", cfg.verifyFileCopy);
+    inGeneral["LastSyncsLogSizeMax"      ].attribute("Bytes",   cfg.lastSyncsLogFileSizeMax);
+    inGeneral["NotificationSound"        ].attribute("CompareFinished", cfg.soundFileCompareFinished);
+    inGeneral["NotificationSound"        ].attribute("SyncFinished",    cfg.soundFileSyncFinished);
+    inGeneral["ProgressDialog"           ].attribute("AutoClose",    cfg.autoCloseProgressDialog);
 
-    XmlIn inOpt = inGeneral["OptionalDialogs"];
-    inOpt["WarnUnresolvedConflicts"    ].attribute("Enabled", config.optDialogs.warnUnresolvedConflicts);
-    inOpt["WarnNotEnoughDiskSpace"     ].attribute("Enabled", config.optDialogs.warnNotEnoughDiskSpace);
-    inOpt["WarnSignificantDifference"  ].attribute("Enabled", config.optDialogs.warnSignificantDifference);
-    inOpt["WarnRecycleBinNotAvailable" ].attribute("Enabled", config.optDialogs.warnRecyclerMissing);
-    inOpt["WarnInputFieldEmpty"        ].attribute("Enabled", config.optDialogs.warnInputFieldEmpty);
-    inOpt["WarnModificationTimeError"  ].attribute("Enabled", config.optDialogs.warnModificationTimeError);
-    //inOpt["WarnDatabaseError"          ].attribute("Enabled", config.optDialogs.warnDatabaseError);
-    inOpt["WarnDependentFolderPair"    ].attribute("Enabled", config.optDialogs.warnDependentFolderPair);
-    inOpt["WarnDependentBaseFolders"   ].attribute("Enabled", config.optDialogs.warnDependentBaseFolders);
-    inOpt["WarnDirectoryLockFailed"    ].attribute("Enabled", config.optDialogs.warnDirectoryLockFailed);
-    inOpt["WarnVersioningFolderPartOfSync"  ].attribute("Enabled", config.optDialogs.warnVersioningFolderPartOfSync);
-    inOpt["ConfirmSaveConfig"               ].attribute("Enabled", config.optDialogs.popupOnConfigChange);
-    inOpt["ConfirmStartSync"                ].attribute("Enabled", config.optDialogs.confirmSyncStart);
-    inOpt["ConfirmExternalCommandMassInvoke"].attribute("Enabled", config.optDialogs.confirmExternalCommandMassInvoke);
+    //TODO: remove old parameter after migration! 2018-02-04
+    if (formatVer < 8)
+    {
+        XmlIn inOpt = inGeneral["OptionalDialogs"];
+        inOpt["ConfirmStartSync"                ].attribute("Enabled", cfg.confirmDlgs.confirmSyncStart);
+        inOpt["ConfirmSaveConfig"               ].attribute("Enabled", cfg.confirmDlgs.popupOnConfigChange);
+        inOpt["ConfirmExternalCommandMassInvoke"].attribute("Enabled", cfg.confirmDlgs.confirmExternalCommandMassInvoke);
+        inOpt["WarnUnresolvedConflicts"       ].attribute("Enabled", cfg.warnDlgs.warnUnresolvedConflicts);
+        inOpt["WarnNotEnoughDiskSpace"        ].attribute("Enabled", cfg.warnDlgs.warnNotEnoughDiskSpace);
+        inOpt["WarnSignificantDifference"     ].attribute("Enabled", cfg.warnDlgs.warnSignificantDifference);
+        inOpt["WarnRecycleBinNotAvailable"    ].attribute("Enabled", cfg.warnDlgs.warnRecyclerMissing);
+        inOpt["WarnInputFieldEmpty"           ].attribute("Enabled", cfg.warnDlgs.warnInputFieldEmpty);
+        inOpt["WarnModificationTimeError"     ].attribute("Enabled", cfg.warnDlgs.warnModificationTimeError);
+        inOpt["WarnDependentFolderPair"       ].attribute("Enabled", cfg.warnDlgs.warnDependentFolderPair);
+        inOpt["WarnDependentBaseFolders"      ].attribute("Enabled", cfg.warnDlgs.warnDependentBaseFolders);
+        inOpt["WarnDirectoryLockFailed"       ].attribute("Enabled", cfg.warnDlgs.warnDirectoryLockFailed);
+        inOpt["WarnVersioningFolderPartOfSync"].attribute("Enabled", cfg.warnDlgs.warnVersioningFolderPartOfSync);
+    }
+    else
+    {
+        XmlIn inOpt = inGeneral["OptionalDialogs"];
+        inOpt["ConfirmStartSync"                ].attribute("Show", cfg.confirmDlgs.confirmSyncStart);
+        inOpt["ConfirmSaveConfig"               ].attribute("Show", cfg.confirmDlgs.popupOnConfigChange);
+        inOpt["ConfirmExternalCommandMassInvoke"].attribute("Show", cfg.confirmDlgs.confirmExternalCommandMassInvoke);
+        inOpt["WarnUnresolvedConflicts"       ].attribute("Show", cfg.warnDlgs.warnUnresolvedConflicts);
+        inOpt["WarnNotEnoughDiskSpace"        ].attribute("Show", cfg.warnDlgs.warnNotEnoughDiskSpace);
+        inOpt["WarnSignificantDifference"     ].attribute("Show", cfg.warnDlgs.warnSignificantDifference);
+        inOpt["WarnRecycleBinNotAvailable"    ].attribute("Show", cfg.warnDlgs.warnRecyclerMissing);
+        inOpt["WarnInputFieldEmpty"           ].attribute("Show", cfg.warnDlgs.warnInputFieldEmpty);
+        inOpt["WarnModificationTimeError"     ].attribute("Show", cfg.warnDlgs.warnModificationTimeError);
+        inOpt["WarnDependentFolderPair"       ].attribute("Show", cfg.warnDlgs.warnDependentFolderPair);
+        inOpt["WarnDependentBaseFolders"      ].attribute("Show", cfg.warnDlgs.warnDependentBaseFolders);
+        inOpt["WarnDirectoryLockFailed"       ].attribute("Show", cfg.warnDlgs.warnDirectoryLockFailed);
+        inOpt["WarnVersioningFolderPartOfSync"].attribute("Show", cfg.warnDlgs.warnVersioningFolderPartOfSync);
+    }
 
     //gui specific global settings (optional)
     XmlIn inGui = in["Gui"];
     XmlIn inWnd = inGui["MainDialog"];
 
     //read application window size and position
-    inWnd.attribute("Width",     config.gui.mainDlg.dlgSize.x);
-    inWnd.attribute("Height",    config.gui.mainDlg.dlgSize.y);
-    inWnd.attribute("PosX",      config.gui.mainDlg.dlgPos.x);
-    inWnd.attribute("PosY",      config.gui.mainDlg.dlgPos.y);
-    inWnd.attribute("Maximized", config.gui.mainDlg.isMaximized);
+    inWnd.attribute("Width",     cfg.gui.mainDlg.dlgSize.x);
+    inWnd.attribute("Height",    cfg.gui.mainDlg.dlgSize.y);
+    inWnd.attribute("PosX",      cfg.gui.mainDlg.dlgPos.x);
+    inWnd.attribute("PosY",      cfg.gui.mainDlg.dlgPos.y);
+    inWnd.attribute("Maximized", cfg.gui.mainDlg.isMaximized);
 
     XmlIn inCopyTo = inWnd["ManualCopyTo"];
-    inCopyTo.attribute("KeepRelativePaths", config.gui.mainDlg.copyToCfg.keepRelPaths);
-    inCopyTo.attribute("OverwriteIfExists", config.gui.mainDlg.copyToCfg.overwriteIfExists);
+    inCopyTo.attribute("KeepRelativePaths", cfg.gui.mainDlg.copyToCfg.keepRelPaths);
+    inCopyTo.attribute("OverwriteIfExists", cfg.gui.mainDlg.copyToCfg.overwriteIfExists);
 
     XmlIn inCopyToHistory = inCopyTo["FolderHistory"];
-    inCopyToHistory(config.gui.mainDlg.copyToCfg.folderHistory);
-    inCopyToHistory.attribute("LastUsedPath", config.gui.mainDlg.copyToCfg.lastUsedPath);
-    inCopyToHistory.attribute("MaxSize",      config.gui.mainDlg.copyToCfg.historySizeMax);
+    inCopyToHistory(cfg.gui.mainDlg.copyToCfg.folderHistory);
+    inCopyToHistory.attribute("LastUsedPath", cfg.gui.mainDlg.copyToCfg.lastUsedPath);
+    inCopyToHistory.attribute("MaxSize",      cfg.gui.mainDlg.copyToCfg.historySizeMax);
 
-    inWnd["CaseSensitiveSearch"].attribute("Enabled", config.gui.mainDlg.textSearchRespectCase);
-    inWnd["FolderPairsVisible" ].attribute("Max",     config.gui.mainDlg.maxFolderPairsVisible);
+    //TODO: remove old parameter after migration! 2018-02-04
+    if (formatVer < 8)
+        inWnd["CaseSensitiveSearch"].attribute("Enabled", cfg.gui.mainDlg.textSearchRespectCase);
+    else
+        inWnd["Search"].attribute("CaseSensitive", cfg.gui.mainDlg.textSearchRespectCase);
+
+    inWnd["FolderPairsVisible" ].attribute("Max",     cfg.gui.mainDlg.maxFolderPairsVisible);
 
     //###########################################################
 
     XmlIn inConfig = inWnd["ConfigPanel"];
-    inConfig.attribute("ScrollPos",     config.gui.mainDlg.cfgGridTopRowPos);
-    inConfig.attribute("SyncOverdue",   config.gui.mainDlg.cfgGridSyncOverdueDays);
-    inConfig.attribute("SortByColumn",  config.gui.mainDlg.cfgGridLastSortColumn);
-    inConfig.attribute("SortAscending", config.gui.mainDlg.cfgGridLastSortAscending);
+    inConfig.attribute("ScrollPos",     cfg.gui.mainDlg.cfgGridTopRowPos);
+    inConfig.attribute("SyncOverdue",   cfg.gui.mainDlg.cfgGridSyncOverdueDays);
+    inConfig.attribute("SortByColumn",  cfg.gui.mainDlg.cfgGridLastSortColumn);
+    inConfig.attribute("SortAscending", cfg.gui.mainDlg.cfgGridLastSortAscending);
 
-    inConfig["Columns"](config.gui.mainDlg.cfgGridColumnAttribs);
+    inConfig["Columns"](cfg.gui.mainDlg.cfgGridColumnAttribs);
 
     //TODO: remove parameter migration after some time! 2018-01-08
     if (formatVer < 6)
     {
-        inGui["ConfigHistory"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
+        inGui["ConfigHistory"].attribute("MaxSize", cfg.gui.mainDlg.cfgHistItemsMax);
 
-		std::vector<Zstring> cfgHist;       
+        std::vector<Zstring> cfgHist;
         inGui["ConfigHistory"](cfgHist);
 
-		for (const Zstring& cfgPath : cfgHist)            
-				config.gui.mainDlg.cfgFileHistory.emplace_back(cfgPath, 0);
+        for (const Zstring& cfgPath : cfgHist)
+            cfg.gui.mainDlg.cfgFileHistory.emplace_back(cfgPath, 0);
     }
     else
     {
-        inConfig["Configurations"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
-        inConfig["Configurations"](config.gui.mainDlg.cfgFileHistory);
+        inConfig["Configurations"].attribute("MaxSize", cfg.gui.mainDlg.cfgHistItemsMax);
+        inConfig["Configurations"](cfg.gui.mainDlg.cfgFileHistory);
     }
 
     //TODO: remove parameter migration after some time! 2018-01-08
     if (formatVer < 6)
     {
-        inGui["LastUsedConfig"](config.gui.mainDlg.lastUsedConfigFiles);
+        inGui["LastUsedConfig"](cfg.gui.mainDlg.lastUsedConfigFiles);
     }
     else
     {
@@ -1248,116 +1313,144 @@ void readConfig(const XmlIn& in, XmlGlobalSettings& config, int formatVer)
             for (Zstring& filePath : cfgPaths)
                 filePath = resolveFreeFileSyncDriveMacro(filePath);
 
-            config.gui.mainDlg.lastUsedConfigFiles = cfgPaths;
+            cfg.gui.mainDlg.lastUsedConfigFiles = cfgPaths;
         }
     }
 
     //###########################################################
 
     XmlIn inOverview = inWnd["OverviewPanel"];
-    inOverview.attribute("ShowPercentage", config.gui.mainDlg.treeGridShowPercentBar);
-    inOverview.attribute("SortByColumn",   config.gui.mainDlg.treeGridLastSortColumn);
-    inOverview.attribute("SortAscending",  config.gui.mainDlg.treeGridLastSortAscending);
+    inOverview.attribute("ShowPercentage", cfg.gui.mainDlg.treeGridShowPercentBar);
+    inOverview.attribute("SortByColumn",   cfg.gui.mainDlg.treeGridLastSortColumn);
+    inOverview.attribute("SortAscending",  cfg.gui.mainDlg.treeGridLastSortAscending);
 
     //read column attributes
     XmlIn inColTree = inOverview["Columns"];
-    inColTree(config.gui.mainDlg.treeGridColumnAttribs);
+    inColTree(cfg.gui.mainDlg.treeGridColumnAttribs);
 
     XmlIn inFileGrid = inWnd["FilePanel"];
     //TODO: remove parameter migration after some time! 2018-01-08
     if (formatVer < 6)
         inFileGrid = inWnd["CenterPanel"];
 
-    inFileGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
-    inFileGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
-    inFileGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
-    inFileGrid.attribute("HistoryMaxSize", config.gui.mainDlg.folderHistItemsMax);
+    inFileGrid.attribute("ShowIcons",  cfg.gui.mainDlg.showIcons);
+    inFileGrid.attribute("IconSize",   cfg.gui.mainDlg.iconSize);
+    inFileGrid.attribute("SashOffset", cfg.gui.mainDlg.sashOffset);
+    inFileGrid.attribute("HistoryMaxSize", cfg.gui.mainDlg.folderHistItemsMax);
 
-    inFileGrid["ColumnsLeft"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
-    inFileGrid["ColumnsLeft"](config.gui.mainDlg.columnAttribLeft);
+    inFileGrid["ColumnsLeft"].attribute("PathFormat", cfg.gui.mainDlg.itemPathFormatLeftGrid);
+    inFileGrid["ColumnsLeft"](cfg.gui.mainDlg.columnAttribLeft);
 
-    inFileGrid["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
+    inFileGrid["FolderHistoryLeft" ](cfg.gui.mainDlg.folderHistoryLeft);
 
-    inFileGrid["ColumnsRight"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
-    inFileGrid["ColumnsRight"](config.gui.mainDlg.columnAttribRight);
+    inFileGrid["ColumnsRight"].attribute("PathFormat", cfg.gui.mainDlg.itemPathFormatRightGrid);
+    inFileGrid["ColumnsRight"](cfg.gui.mainDlg.columnAttribRight);
 
-    inFileGrid["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
+    inFileGrid["FolderHistoryRight"](cfg.gui.mainDlg.folderHistoryRight);
 
     //TODO: remove parameter migration after some time! 2018-01-08
     if (formatVer < 6)
     {
-        inGui["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
-        inGui["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
-        inGui["FolderHistoryLeft"].attribute("MaxSize", config.gui.mainDlg.folderHistItemsMax);
+        inGui["FolderHistoryLeft" ](cfg.gui.mainDlg.folderHistoryLeft);
+        inGui["FolderHistoryRight"](cfg.gui.mainDlg.folderHistoryRight);
+        inGui["FolderHistoryLeft"].attribute("MaxSize", cfg.gui.mainDlg.folderHistItemsMax);
     }
 
     //###########################################################
 
-    inWnd["DefaultViewFilter"](config.gui.mainDlg.viewFilterDefault);
-    inWnd["Perspective5"](config.gui.mainDlg.guiPerspectiveLast);
+    inWnd["DefaultViewFilter"](cfg.gui.mainDlg.viewFilterDefault);
 
-    std::vector<Zstring> tmp = splitFilterByLines(config.gui.defaultExclusionFilter); //default value
+    //TODO: remove old parameter after migration! 2018-02-04
+    if (formatVer < 8)
+    {
+        XmlIn sharedView = inWnd["DefaultViewFilter"]["Shared"];
+        sharedView.attribute("Equal",    cfg.gui.mainDlg.viewFilterDefault.equal);
+        sharedView.attribute("Conflict", cfg.gui.mainDlg.viewFilterDefault.conflict);
+        sharedView.attribute("Excluded", cfg.gui.mainDlg.viewFilterDefault.excluded);
+    }
+
+    //TODO: remove old parameter after migration! 2018-01-16
+    if (formatVer < 7)
+        inWnd["Perspective5"](cfg.gui.mainDlg.guiPerspectiveLast);
+    else
+        inWnd["Perspective"](cfg.gui.mainDlg.guiPerspectiveLast);
+
+    std::vector<Zstring> tmp = splitFilterByLines(cfg.gui.defaultExclusionFilter); //default value
     inGui["DefaultExclusionFilter"](tmp);
-    config.gui.defaultExclusionFilter = mergeFilterLines(tmp);
+    cfg.gui.defaultExclusionFilter = mergeFilterLines(tmp);
 
     //TODO: remove parameter migration after some time! 2016-09-23
     if (formatVer < 4)
-        config.gui.mainDlg.cfgHistItemsMax = std::max<size_t>(config.gui.mainDlg.cfgHistItemsMax, 100);
+        cfg.gui.mainDlg.cfgHistItemsMax = std::max<size_t>(cfg.gui.mainDlg.cfgHistItemsMax, 100);
 
     //TODO: remove if clause after migration! 2017-10-24
     if (formatVer < 5)
     {
-        inGui["OnCompletionHistory"](config.gui.commandHistory);
-        inGui["OnCompletionHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
+        inGui["OnCompletionHistory"](cfg.gui.commandHistory);
+        inGui["OnCompletionHistory"].attribute("MaxSize", cfg.gui.commandHistItemsMax);
     }
     else
     {
-        inGui["CommandHistory"](config.gui.commandHistory);
-        inGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
+        inGui["CommandHistory"](cfg.gui.commandHistory);
+        inGui["CommandHistory"].attribute("MaxSize", cfg.gui.commandHistItemsMax);
     }
 
     //external applications
     //TODO: remove old parameter after migration! 2016-05-28
     if (inGui["ExternalApplications"])
     {
-        inGui["ExternalApplications"](config.gui.externelApplications);
-        if (config.gui.externelApplications.empty()) //who knows, let's repair some old failed data migrations
-            config.gui.externelApplications = XmlGlobalSettings().gui.externelApplications;
+        inGui["ExternalApplications"](cfg.gui.externalApps);
+        if (cfg.gui.externalApps.empty()) //who knows, let's repair some old failed data migrations
+            cfg.gui.externalApps = XmlGlobalSettings().gui.externalApps;
         else
         {
         }
     }
     else
-        inGui["ExternalApps"](config.gui.externelApplications);
+    {
+        //TODO: remove old parameter after migration! 2018-01-16
+        if (formatVer < 7)
+        {
+            std::vector<std::pair<std::wstring, Zstring>> extApps;
+            if (inGui["ExternalApps"](extApps))
+            {
+                cfg.gui.externalApps.clear();
+                for (const auto& item : extApps)
+                    cfg.gui.externalApps.push_back({ item.first, item.second });
+            }
+        }
+        else
+            inGui["ExternalApps"](cfg.gui.externalApps);
+    }
 
     //TODO: remove macro migration after some time! 2016-06-30
     if (formatVer < 3)
-        for (auto& item : config.gui.externelApplications)
+        for (auto& item : cfg.gui.externalApps)
         {
-            replace(item.second, Zstr("%item2_path%"),   Zstr("%item_path2%"));
-            replace(item.second, Zstr("%item_folder%"),  Zstr("%folder_path%"));
-            replace(item.second, Zstr("%item2_folder%"), Zstr("%folder_path2%"));
+            replace(item.cmdLine, Zstr("%item2_path%"),   Zstr("%item_path2%"));
+            replace(item.cmdLine, Zstr("%item_folder%"),  Zstr("%folder_path%"));
+            replace(item.cmdLine, Zstr("%item2_folder%"), Zstr("%folder_path2%"));
 
-            replace(item.second, Zstr("explorer /select, \"%item_path%\""), Zstr("explorer /select, \"%local_path%\""));
-            replace(item.second, Zstr("\"%item_path%\""), Zstr("\"%local_path%\""));
-            replace(item.second, Zstr("xdg-open \"%item_path%\""), Zstr("xdg-open \"%local_path%\""));
-            replace(item.second, Zstr("open -R \"%item_path%\""), Zstr("open -R \"%local_path%\""));
-            replace(item.second, Zstr("open \"%item_path%\""), Zstr("open \"%local_path%\""));
+            replace(item.cmdLine, Zstr("explorer /select, \"%item_path%\""), Zstr("explorer /select, \"%local_path%\""));
+            replace(item.cmdLine, Zstr("\"%item_path%\""), Zstr("\"%local_path%\""));
+            replace(item.cmdLine, Zstr("xdg-open \"%item_path%\""), Zstr("xdg-open \"%local_path%\""));
+            replace(item.cmdLine, Zstr("open -R \"%item_path%\""), Zstr("open -R \"%local_path%\""));
+            replace(item.cmdLine, Zstr("open \"%item_path%\""), Zstr("open \"%local_path%\""));
 
-            if (contains(makeUpperCopy(item.second), Zstr("WINMERGEU.EXE")) ||
-                contains(makeUpperCopy(item.second), Zstr("PSPAD.EXE")))
+            if (contains(makeUpperCopy(item.cmdLine), Zstr("WINMERGEU.EXE")) ||
+                contains(makeUpperCopy(item.cmdLine), Zstr("PSPAD.EXE")))
             {
-                replace(item.second, Zstr("%item_path%"),  Zstr("%local_path%"));
-                replace(item.second, Zstr("%item_path2%"), Zstr("%local_path2%"));
+                replace(item.cmdLine, Zstr("%item_path%"),  Zstr("%local_path%"));
+                replace(item.cmdLine, Zstr("%item_path2%"), Zstr("%local_path2%"));
             }
         }
     //TODO: remove macro migration after some time! 2016-07-18
-    for (auto& item : config.gui.externelApplications)
-        replace(item.second, Zstr("%item_folder%"),  Zstr("%folder_path%"));
+    for (auto& item : cfg.gui.externalApps)
+        replace(item.cmdLine, Zstr("%item_folder%"),  Zstr("%folder_path%"));
 
     //last update check
-    inGui["LastOnlineCheck"  ](config.gui.lastUpdateCheck);
-    inGui["LastOnlineVersion"](config.gui.lastOnlineVersion);
+    inGui["LastOnlineCheck"  ](cfg.gui.lastUpdateCheck);
+    inGui["LastOnlineVersion"](cfg.gui.lastOnlineVersion);
 
     //batch specific global settings
     //XmlIn inBatch = in["Batch"];
@@ -1373,12 +1466,12 @@ int getConfigFormatVersion(const XmlDoc& doc)
 
 
 template <class ConfigType>
-void readConfig(const Zstring& filepath, XmlType type, ConfigType& cfg, int currentXmlFormatVer, std::wstring& warningMsg) //throw FileError
+void readConfig(const Zstring& filePath, XmlType type, ConfigType& cfg, int currentXmlFormatVer, std::wstring& warningMsg) //throw FileError
 {
-    XmlDoc doc = loadXmlDocument(filepath); //throw FileError
+    XmlDoc doc = loadXmlDocument(filePath); //throw FileError
 
     if (getXmlTypeNoThrow(doc) != type) //noexcept
-        throw FileError(replaceCpy(_("File %x does not contain a valid configuration."), L"%x", fmtPath(filepath)));
+        throw FileError(replaceCpy(_("File %x does not contain a valid configuration."), L"%x", fmtPath(filePath)));
 
     const int formatVer = getConfigFormatVersion(doc);
 
@@ -1387,11 +1480,11 @@ void readConfig(const Zstring& filepath, XmlType type, ConfigType& cfg, int curr
 
     try
     {
-        checkForMappingErrors(in, filepath); //throw FileError
+        checkForMappingErrors(in, filePath); //throw FileError
 
         //(try to) migrate old configuration automatically
         if (formatVer< currentXmlFormatVer)
-            try { xmlAccess::writeConfig(cfg, filepath); /*throw FileError*/ }
+            try { fff::writeConfig(cfg, filePath); /*throw FileError*/ }
             catch (FileError&) { assert(false); } //don't bother user!
     }
     catch (const FileError& e)
@@ -1402,28 +1495,28 @@ void readConfig(const Zstring& filepath, XmlType type, ConfigType& cfg, int curr
 }
 
 
-void xmlAccess::readConfig(const Zstring& filepath, XmlGuiConfig& cfg, std::wstring& warningMsg)
+void fff::readConfig(const Zstring& filePath, XmlGuiConfig& cfg, std::wstring& warningMsg)
 {
-    ::readConfig(filepath, XML_TYPE_GUI, cfg, XML_FORMAT_VER_FFS_GUI, warningMsg); //throw FileError
+    ::readConfig(filePath, XML_TYPE_GUI, cfg, XML_FORMAT_VER_FFS_CFG, warningMsg); //throw FileError
 }
 
 
-void xmlAccess::readConfig(const Zstring& filepath, XmlBatchConfig& cfg, std::wstring& warningMsg)
+void fff::readConfig(const Zstring& filePath, XmlBatchConfig& cfg, std::wstring& warningMsg)
 {
-    ::readConfig(filepath, XML_TYPE_BATCH, cfg, XML_FORMAT_VER_FFS_BATCH, warningMsg); //throw FileError
+    ::readConfig(filePath, XML_TYPE_BATCH, cfg, XML_FORMAT_VER_FFS_CFG, warningMsg); //throw FileError
 }
 
 
-void xmlAccess::readConfig(const Zstring& filepath, XmlGlobalSettings& cfg, std::wstring& warningMsg)
+void fff::readConfig(const Zstring& filePath, XmlGlobalSettings& cfg, std::wstring& warningMsg)
 {
-    ::readConfig(filepath, XML_TYPE_GLOBAL, cfg, XML_FORMAT_VER_GLOBAL, warningMsg); //throw FileError
+    ::readConfig(filePath, XML_TYPE_GLOBAL, cfg, XML_FORMAT_VER_GLOBAL, warningMsg); //throw FileError
 }
 
 
 namespace
 {
 template <class XmlCfg>
-XmlCfg parseConfig(const XmlDoc& doc, const Zstring& filepath, int currentXmlFormatVer, std::wstring& warningMsg) //nothrow
+XmlCfg parseConfig(const XmlDoc& doc, const Zstring& filePath, int currentXmlFormatVer, std::wstring& warningMsg) //nothrow
 {
     const int formatVer = getConfigFormatVersion(doc);
 
@@ -1433,11 +1526,11 @@ XmlCfg parseConfig(const XmlDoc& doc, const Zstring& filepath, int currentXmlFor
 
     try
     {
-        checkForMappingErrors(in, filepath); //throw FileError
+        checkForMappingErrors(in, filePath); //throw FileError
 
         //(try to) migrate old configuration if needed
         if (formatVer < currentXmlFormatVer)
-            try { xmlAccess::writeConfig(cfg, filepath); /*throw FileError*/ }
+            try { fff::writeConfig(cfg, filePath); /*throw FileError*/ }
             catch (FileError&) { assert(false); }     //don't bother user!
     }
     catch (const FileError& e)
@@ -1451,76 +1544,76 @@ XmlCfg parseConfig(const XmlDoc& doc, const Zstring& filepath, int currentXmlFor
 }
 
 
-void xmlAccess::readAnyConfig(const std::vector<Zstring>& filePaths, XmlGuiConfig& config, std::wstring& warningMsg) //throw FileError
+void fff::readAnyConfig(const std::vector<Zstring>& filePaths, XmlGuiConfig& cfg, std::wstring& warningMsg) //throw FileError
 {
     assert(!filePaths.empty());
 
-    std::vector<zen::MainConfiguration> mainCfgs;
+    std::vector<MainConfiguration> mainCfgs;
 
     for (auto it = filePaths.begin(); it != filePaths.end(); ++it)
     {
-        const Zstring& filepath = *it;
+        const Zstring& filePath = *it;
         const bool firstItem = it == filePaths.begin(); //init all non-"mainCfg" settings with first config file
 
-        XmlDoc doc = loadXmlDocument(filepath); //throw FileError
+        XmlDoc doc = loadXmlDocument(filePath); //throw FileError
 
         switch (getXmlTypeNoThrow(doc))
         {
             case XML_TYPE_GUI:
             {
-                XmlGuiConfig guiCfg = parseConfig<XmlGuiConfig>(doc, filepath, XML_FORMAT_VER_FFS_GUI, warningMsg); //nothrow
+                XmlGuiConfig guiCfg = parseConfig<XmlGuiConfig>(doc, filePath, XML_FORMAT_VER_FFS_CFG, warningMsg); //nothrow
                 if (firstItem)
-                    config = guiCfg;
+                    cfg = guiCfg;
                 mainCfgs.push_back(guiCfg.mainCfg);
             }
             break;
 
             case XML_TYPE_BATCH:
             {
-                XmlBatchConfig batchCfg = parseConfig<XmlBatchConfig>(doc, filepath, XML_FORMAT_VER_FFS_BATCH, warningMsg); //nothrow
+                XmlBatchConfig batchCfg = parseConfig<XmlBatchConfig>(doc, filePath, XML_FORMAT_VER_FFS_CFG, warningMsg); //nothrow
                 if (firstItem)
-                    config = convertBatchToGui(batchCfg);
+                    cfg = convertBatchToGui(batchCfg);
                 mainCfgs.push_back(batchCfg.mainCfg);
             }
             break;
 
             case XML_TYPE_GLOBAL:
             case XML_TYPE_OTHER:
-                throw FileError(replaceCpy(_("File %x does not contain a valid configuration."), L"%x", fmtPath(filepath)));
+                throw FileError(replaceCpy(_("File %x does not contain a valid configuration."), L"%x", fmtPath(filePath)));
         }
     }
 
-    config.mainCfg = merge(mainCfgs);
+    cfg.mainCfg = merge(mainCfgs);
 }
 
 //################################################################################################
 
 namespace
 {
-void writeConfig(const CompConfig& cmpConfig, XmlOut& out)
+void writeConfig(const CompConfig& cmpCfg, XmlOut& out)
 {
-    out["Variant" ](cmpConfig.compareVar);
-    out["Symlinks"](cmpConfig.handleSymlinks);
-    out["IgnoreTimeShift"](toTimeShiftPhrase(cmpConfig.ignoreTimeShiftMinutes));
+    out["Variant" ](cmpCfg.compareVar);
+    out["Symlinks"](cmpCfg.handleSymlinks);
+    out["IgnoreTimeShift"](toTimeShiftPhrase(cmpCfg.ignoreTimeShiftMinutes));
 }
 
 
-void writeConfig(const DirectionConfig& directCfg, XmlOut& out)
+void writeConfig(const DirectionConfig& dirCfg, XmlOut& out)
 {
-    out["Variant"](directCfg.var);
+    out["Variant"](dirCfg.var);
 
-    if (directCfg.var == DirectionConfig::CUSTOM)
+    if (dirCfg.var == DirectionConfig::CUSTOM)
     {
         XmlOut outCustDir = out["CustomDirections"];
-        outCustDir["LeftOnly"  ](directCfg.custom.exLeftSideOnly);
-        outCustDir["RightOnly" ](directCfg.custom.exRightSideOnly);
-        outCustDir["LeftNewer" ](directCfg.custom.leftNewer);
-        outCustDir["RightNewer"](directCfg.custom.rightNewer);
-        outCustDir["Different" ](directCfg.custom.different);
-        outCustDir["Conflict"  ](directCfg.custom.conflict);
+        outCustDir["LeftOnly"  ](dirCfg.custom.exLeftSideOnly);
+        outCustDir["RightOnly" ](dirCfg.custom.exRightSideOnly);
+        outCustDir["LeftNewer" ](dirCfg.custom.leftNewer);
+        outCustDir["RightNewer"](dirCfg.custom.rightNewer);
+        outCustDir["Different" ](dirCfg.custom.different);
+        outCustDir["Conflict"  ](dirCfg.custom.conflict);
     }
 
-    out["DetectMovedFiles"](directCfg.detectMovedFiles);
+    out["DetectMovedFiles"](dirCfg.detectMovedFiles);
 }
 
 
@@ -1619,108 +1712,109 @@ void writeConfig(const MainConfiguration& mainCfg, XmlOut& out)
 }
 
 
-void writeConfig(const XmlGuiConfig& config, XmlOut& out)
+void writeConfig(const XmlGuiConfig& cfg, XmlOut& out)
 {
-    writeConfig(config.mainCfg, out); //write main config
+    writeConfig(cfg.mainCfg, out); //write main config
 
     //write GUI specific config data
     XmlOut outGuiCfg = out["GuiConfig"];
 
-    outGuiCfg["MiddleGridView"](config.highlightSyncAction ? "Action" : "Category"); //refactor into enum!?
+    outGuiCfg["MiddleGridView"](cfg.highlightSyncAction ? "Action" : "Category"); //refactor into enum!?
 }
 
 
-void writeConfig(const BatchExclusiveConfig& config, XmlOut& out)
+void writeConfig(const BatchExclusiveConfig& cfg, XmlOut& out)
 {
     XmlOut outBatchCfg = out["BatchConfig"];
 
-    outBatchCfg["ErrorDialog"  ](config.batchErrorDialog);
-    outBatchCfg["PostSyncAction"](config.postSyncAction);
-    outBatchCfg["RunMinimized" ](config.runMinimized);
-    outBatchCfg["LogfileFolder"](config.logFolderPathPhrase);
-    outBatchCfg["LogfileFolder"].attribute("Limit", config.logfilesCountLimit);
+    outBatchCfg["ProgressDialog"].attribute("Minimized", cfg.runMinimized);
+    outBatchCfg["ProgressDialog"].attribute("AutoClose", cfg.autoCloseSummary);
+    outBatchCfg["ErrorDialog"  ](cfg.batchErrorDialog);
+    outBatchCfg["PostSyncAction"](cfg.postSyncAction);
+    outBatchCfg["LogfileFolder"](cfg.logFolderPathPhrase);
+    outBatchCfg["LogfileFolder"].attribute("Limit", cfg.logfilesCountLimit);
 }
 
 
-void writeConfig(const XmlBatchConfig& config, XmlOut& out)
+void writeConfig(const XmlBatchConfig& cfg, XmlOut& out)
 {
-    writeConfig(config.mainCfg,    out);
-    writeConfig(config.batchExCfg, out);
+    writeConfig(cfg.mainCfg,    out);
+    writeConfig(cfg.batchExCfg, out);
 }
 
 
-void writeConfig(const XmlGlobalSettings& config, XmlOut& out)
+void writeConfig(const XmlGlobalSettings& cfg, XmlOut& out)
 {
     XmlOut outGeneral = out["General"];
 
-    outGeneral["Language"].attribute("Name", config.programLanguage);
+    outGeneral["Language"].attribute("Name", cfg.programLanguage);
 
-    outGeneral["FailSafeFileCopy"         ].attribute("Enabled", config.failSafeFileCopy);
-    outGeneral["CopyLockedFiles"          ].attribute("Enabled", config.copyLockedFiles);
-    outGeneral["CopyFilePermissions"      ].attribute("Enabled", config.copyFilePermissions);
-    outGeneral["AutomaticRetry"           ].attribute("Count",   config.automaticRetryCount);
-    outGeneral["AutomaticRetry"           ].attribute("Delay",   config.automaticRetryDelay);
-    outGeneral["FileTimeTolerance"        ].attribute("Seconds", config.fileTimeTolerance);
-    outGeneral["FolderAccessTimeout"      ].attribute("Seconds", config.folderAccessTimeout);
-    outGeneral["RunWithBackgroundPriority"].attribute("Enabled", config.runWithBackgroundPriority);
-    outGeneral["LockDirectoriesDuringSync"].attribute("Enabled", config.createLockFile);
-    outGeneral["VerifyCopiedFiles"        ].attribute("Enabled", config.verifyFileCopy);
-    outGeneral["LastSyncsLogSizeMax"      ].attribute("Bytes",   config.lastSyncsLogFileSizeMax);
-    outGeneral["NotificationSound"        ].attribute("CompareFinished", config.soundFileCompareFinished);
-    outGeneral["NotificationSound"        ].attribute("SyncFinished",    config.soundFileSyncFinished);
+    outGeneral["FailSafeFileCopy"         ].attribute("Enabled", cfg.failSafeFileCopy);
+    outGeneral["CopyLockedFiles"          ].attribute("Enabled", cfg.copyLockedFiles);
+    outGeneral["CopyFilePermissions"      ].attribute("Enabled", cfg.copyFilePermissions);
+    outGeneral["AutomaticRetry"           ].attribute("Count",   cfg.automaticRetryCount);
+    outGeneral["AutomaticRetry"           ].attribute("Delay",   cfg.automaticRetryDelay);
+    outGeneral["FileTimeTolerance"        ].attribute("Seconds", cfg.fileTimeTolerance);
+    outGeneral["FolderAccessTimeout"      ].attribute("Seconds", cfg.folderAccessTimeout);
+    outGeneral["RunWithBackgroundPriority"].attribute("Enabled", cfg.runWithBackgroundPriority);
+    outGeneral["LockDirectoriesDuringSync"].attribute("Enabled", cfg.createLockFile);
+    outGeneral["VerifyCopiedFiles"        ].attribute("Enabled", cfg.verifyFileCopy);
+    outGeneral["LastSyncsLogSizeMax"      ].attribute("Bytes",   cfg.lastSyncsLogFileSizeMax);
+    outGeneral["NotificationSound"        ].attribute("CompareFinished", cfg.soundFileCompareFinished);
+    outGeneral["NotificationSound"        ].attribute("SyncFinished",    cfg.soundFileSyncFinished);
+    outGeneral["ProgressDialog"           ].attribute("AutoClose",    cfg.autoCloseProgressDialog);
 
     XmlOut outOpt = outGeneral["OptionalDialogs"];
-    outOpt["WarnUnresolvedConflicts"    ].attribute("Enabled", config.optDialogs.warnUnresolvedConflicts);
-    outOpt["WarnNotEnoughDiskSpace"     ].attribute("Enabled", config.optDialogs.warnNotEnoughDiskSpace);
-    outOpt["WarnSignificantDifference"  ].attribute("Enabled", config.optDialogs.warnSignificantDifference);
-    outOpt["WarnRecycleBinNotAvailable" ].attribute("Enabled", config.optDialogs.warnRecyclerMissing);
-    outOpt["WarnInputFieldEmpty"        ].attribute("Enabled", config.optDialogs.warnInputFieldEmpty);
-    outOpt["WarnModificationTimeError"  ].attribute("Enabled", config.optDialogs.warnModificationTimeError);
-    //outOpt["WarnDatabaseError"          ].attribute("Enabled", config.optDialogs.warnDatabaseError);
-    outOpt["WarnDependentFolderPair"    ].attribute("Enabled", config.optDialogs.warnDependentFolderPair);
-    outOpt["WarnDependentBaseFolders"   ].attribute("Enabled", config.optDialogs.warnDependentBaseFolders);
-    outOpt["WarnDirectoryLockFailed"    ].attribute("Enabled", config.optDialogs.warnDirectoryLockFailed);
-    outOpt["WarnVersioningFolderPartOfSync"  ].attribute("Enabled", config.optDialogs.warnVersioningFolderPartOfSync);
-    outOpt["ConfirmSaveConfig"               ].attribute("Enabled", config.optDialogs.popupOnConfigChange);
-    outOpt["ConfirmStartSync"                ].attribute("Enabled", config.optDialogs.confirmSyncStart);
-    outOpt["ConfirmExternalCommandMassInvoke"].attribute("Enabled", config.optDialogs.confirmExternalCommandMassInvoke);
+    outOpt["ConfirmStartSync"                ].attribute("Show", cfg.confirmDlgs.confirmSyncStart);
+    outOpt["ConfirmSaveConfig"               ].attribute("Show", cfg.confirmDlgs.popupOnConfigChange);
+    outOpt["ConfirmExternalCommandMassInvoke"].attribute("Show", cfg.confirmDlgs.confirmExternalCommandMassInvoke);
+    outOpt["WarnUnresolvedConflicts"       ].attribute("Show", cfg.warnDlgs.warnUnresolvedConflicts);
+    outOpt["WarnNotEnoughDiskSpace"        ].attribute("Show", cfg.warnDlgs.warnNotEnoughDiskSpace);
+    outOpt["WarnSignificantDifference"     ].attribute("Show", cfg.warnDlgs.warnSignificantDifference);
+    outOpt["WarnRecycleBinNotAvailable"    ].attribute("Show", cfg.warnDlgs.warnRecyclerMissing);
+    outOpt["WarnInputFieldEmpty"           ].attribute("Show", cfg.warnDlgs.warnInputFieldEmpty);
+    outOpt["WarnModificationTimeError"     ].attribute("Show", cfg.warnDlgs.warnModificationTimeError);
+    outOpt["WarnDependentFolderPair"       ].attribute("Show", cfg.warnDlgs.warnDependentFolderPair);
+    outOpt["WarnDependentBaseFolders"      ].attribute("Show", cfg.warnDlgs.warnDependentBaseFolders);
+    outOpt["WarnDirectoryLockFailed"       ].attribute("Show", cfg.warnDlgs.warnDirectoryLockFailed);
+    outOpt["WarnVersioningFolderPartOfSync"].attribute("Show", cfg.warnDlgs.warnVersioningFolderPartOfSync);
 
     //gui specific global settings (optional)
     XmlOut outGui = out["Gui"];
     XmlOut outWnd = outGui["MainDialog"];
 
     //write application window size and position
-    outWnd.attribute("Width",     config.gui.mainDlg.dlgSize.x);
-    outWnd.attribute("Height",    config.gui.mainDlg.dlgSize.y);
-    outWnd.attribute("PosX",      config.gui.mainDlg.dlgPos.x);
-    outWnd.attribute("PosY",      config.gui.mainDlg.dlgPos.y);
-    outWnd.attribute("Maximized", config.gui.mainDlg.isMaximized);
+    outWnd.attribute("Width",     cfg.gui.mainDlg.dlgSize.x);
+    outWnd.attribute("Height",    cfg.gui.mainDlg.dlgSize.y);
+    outWnd.attribute("PosX",      cfg.gui.mainDlg.dlgPos.x);
+    outWnd.attribute("PosY",      cfg.gui.mainDlg.dlgPos.y);
+    outWnd.attribute("Maximized", cfg.gui.mainDlg.isMaximized);
 
     XmlOut outCopyTo = outWnd["ManualCopyTo"];
-    outCopyTo.attribute("KeepRelativePaths", config.gui.mainDlg.copyToCfg.keepRelPaths);
-    outCopyTo.attribute("OverwriteIfExists", config.gui.mainDlg.copyToCfg.overwriteIfExists);
+    outCopyTo.attribute("KeepRelativePaths", cfg.gui.mainDlg.copyToCfg.keepRelPaths);
+    outCopyTo.attribute("OverwriteIfExists", cfg.gui.mainDlg.copyToCfg.overwriteIfExists);
 
     XmlOut outCopyToHistory = outCopyTo["FolderHistory"];
-    outCopyToHistory(config.gui.mainDlg.copyToCfg.folderHistory);
-    outCopyToHistory.attribute("LastUsedPath", config.gui.mainDlg.copyToCfg.lastUsedPath);
-    outCopyToHistory.attribute("MaxSize",      config.gui.mainDlg.copyToCfg.historySizeMax);
+    outCopyToHistory(cfg.gui.mainDlg.copyToCfg.folderHistory);
+    outCopyToHistory.attribute("LastUsedPath", cfg.gui.mainDlg.copyToCfg.lastUsedPath);
+    outCopyToHistory.attribute("MaxSize",      cfg.gui.mainDlg.copyToCfg.historySizeMax);
 
-    outWnd["CaseSensitiveSearch"].attribute("Enabled", config.gui.mainDlg.textSearchRespectCase);
-    outWnd["FolderPairsVisible" ].attribute("Max",     config.gui.mainDlg.maxFolderPairsVisible);
+    outWnd["Search"            ].attribute("CaseSensitive", cfg.gui.mainDlg.textSearchRespectCase);
+    outWnd["FolderPairsVisible"].attribute("Max",     cfg.gui.mainDlg.maxFolderPairsVisible);
 
     //###########################################################
 
     XmlOut outConfig = outWnd["ConfigPanel"];
-    outConfig.attribute("ScrollPos",     config.gui.mainDlg.cfgGridTopRowPos);
-    outConfig.attribute("SyncOverdue",   config.gui.mainDlg.cfgGridSyncOverdueDays);
-    outConfig.attribute("SortByColumn",  config.gui.mainDlg.cfgGridLastSortColumn);
-    outConfig.attribute("SortAscending", config.gui.mainDlg.cfgGridLastSortAscending);
+    outConfig.attribute("ScrollPos",     cfg.gui.mainDlg.cfgGridTopRowPos);
+    outConfig.attribute("SyncOverdue",   cfg.gui.mainDlg.cfgGridSyncOverdueDays);
+    outConfig.attribute("SortByColumn",  cfg.gui.mainDlg.cfgGridLastSortColumn);
+    outConfig.attribute("SortAscending", cfg.gui.mainDlg.cfgGridLastSortAscending);
 
-    outConfig["Columns"](config.gui.mainDlg.cfgGridColumnAttribs);
-    outConfig["Configurations"].attribute("MaxSize", config.gui.mainDlg.cfgHistItemsMax);
-    outConfig["Configurations"](config.gui.mainDlg.cfgFileHistory);
+    outConfig["Columns"](cfg.gui.mainDlg.cfgGridColumnAttribs);
+    outConfig["Configurations"].attribute("MaxSize", cfg.gui.mainDlg.cfgHistItemsMax);
+    outConfig["Configurations"](cfg.gui.mainDlg.cfgFileHistory);
     {
-        std::vector<Zstring> cfgPaths = config.gui.mainDlg.lastUsedConfigFiles;
+        std::vector<Zstring> cfgPaths = cfg.gui.mainDlg.lastUsedConfigFiles;
         for (Zstring& filePath : cfgPaths)
             filePath = substituteFreeFileSyncDriveLetter(filePath);
 
@@ -1730,46 +1824,46 @@ void writeConfig(const XmlGlobalSettings& config, XmlOut& out)
     //###########################################################
 
     XmlOut outOverview = outWnd["OverviewPanel"];
-    outOverview.attribute("ShowPercentage", config.gui.mainDlg.treeGridShowPercentBar);
-    outOverview.attribute("SortByColumn",   config.gui.mainDlg.treeGridLastSortColumn);
-    outOverview.attribute("SortAscending",  config.gui.mainDlg.treeGridLastSortAscending);
+    outOverview.attribute("ShowPercentage", cfg.gui.mainDlg.treeGridShowPercentBar);
+    outOverview.attribute("SortByColumn",   cfg.gui.mainDlg.treeGridLastSortColumn);
+    outOverview.attribute("SortAscending",  cfg.gui.mainDlg.treeGridLastSortAscending);
 
     //write column attributes
     XmlOut outColTree = outOverview["Columns"];
-    outColTree(config.gui.mainDlg.treeGridColumnAttribs);
+    outColTree(cfg.gui.mainDlg.treeGridColumnAttribs);
 
     XmlOut outFileGrid = outWnd["FilePanel"];
-    outFileGrid.attribute("ShowIcons",  config.gui.mainDlg.showIcons);
-    outFileGrid.attribute("IconSize",   config.gui.mainDlg.iconSize);
-    outFileGrid.attribute("SashOffset", config.gui.mainDlg.sashOffset);
-    outFileGrid.attribute("HistoryMaxSize", config.gui.mainDlg.folderHistItemsMax);
+    outFileGrid.attribute("ShowIcons",  cfg.gui.mainDlg.showIcons);
+    outFileGrid.attribute("IconSize",   cfg.gui.mainDlg.iconSize);
+    outFileGrid.attribute("SashOffset", cfg.gui.mainDlg.sashOffset);
+    outFileGrid.attribute("HistoryMaxSize", cfg.gui.mainDlg.folderHistItemsMax);
 
-    outFileGrid["ColumnsLeft"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatLeftGrid);
-    outFileGrid["ColumnsLeft"](config.gui.mainDlg.columnAttribLeft);
+    outFileGrid["ColumnsLeft"].attribute("PathFormat", cfg.gui.mainDlg.itemPathFormatLeftGrid);
+    outFileGrid["ColumnsLeft"](cfg.gui.mainDlg.columnAttribLeft);
 
-    outFileGrid["FolderHistoryLeft" ](config.gui.mainDlg.folderHistoryLeft);
+    outFileGrid["FolderHistoryLeft" ](cfg.gui.mainDlg.folderHistoryLeft);
 
-    outFileGrid["ColumnsRight"].attribute("PathFormat", config.gui.mainDlg.itemPathFormatRightGrid);
-    outFileGrid["ColumnsRight"](config.gui.mainDlg.columnAttribRight);
+    outFileGrid["ColumnsRight"].attribute("PathFormat", cfg.gui.mainDlg.itemPathFormatRightGrid);
+    outFileGrid["ColumnsRight"](cfg.gui.mainDlg.columnAttribRight);
 
-    outFileGrid["FolderHistoryRight"](config.gui.mainDlg.folderHistoryRight);
+    outFileGrid["FolderHistoryRight"](cfg.gui.mainDlg.folderHistoryRight);
 
     //###########################################################
 
-    outWnd["DefaultViewFilter"](config.gui.mainDlg.viewFilterDefault);
-    outWnd["Perspective5"](config.gui.mainDlg.guiPerspectiveLast);
+    outWnd["DefaultViewFilter"](cfg.gui.mainDlg.viewFilterDefault);
+    outWnd["Perspective"      ](cfg.gui.mainDlg.guiPerspectiveLast);
 
-    outGui["DefaultExclusionFilter"](splitFilterByLines(config.gui.defaultExclusionFilter));
+    outGui["DefaultExclusionFilter"](splitFilterByLines(cfg.gui.defaultExclusionFilter));
 
-    outGui["CommandHistory"](config.gui.commandHistory);
-    outGui["CommandHistory"].attribute("MaxSize", config.gui.commandHistItemsMax);
+    outGui["CommandHistory"](cfg.gui.commandHistory);
+    outGui["CommandHistory"].attribute("MaxSize", cfg.gui.commandHistItemsMax);
 
     //external applications
-    outGui["ExternalApps"](config.gui.externelApplications);
+    outGui["ExternalApps"](cfg.gui.externalApps);
 
     //last update check
-    outGui["LastOnlineCheck"  ](config.gui.lastUpdateCheck);
-    outGui["LastOnlineVersion"](config.gui.lastOnlineVersion);
+    outGui["LastOnlineCheck"  ](cfg.gui.lastUpdateCheck);
+    outGui["LastOnlineVersion"](cfg.gui.lastOnlineVersion);
 
     //batch specific global settings
     //XmlOut outBatch = out["Batch"];
@@ -1777,7 +1871,7 @@ void writeConfig(const XmlGlobalSettings& config, XmlOut& out)
 
 
 template <class ConfigType>
-void writeConfig(const ConfigType& config, XmlType type, int xmlFormatVer, const Zstring& filepath)
+void writeConfig(const ConfigType& cfg, XmlType type, int xmlFormatVer, const Zstring& filePath)
 {
     XmlDoc doc("FreeFileSync");
     setXmlType(doc, type); //throw()
@@ -1785,33 +1879,33 @@ void writeConfig(const ConfigType& config, XmlType type, int xmlFormatVer, const
     doc.root().setAttribute("XmlFormat", xmlFormatVer);
 
     XmlOut out(doc);
-    writeConfig(config, out);
+    writeConfig(cfg, out);
 
-    saveXmlDocument(doc, filepath); //throw FileError
+    saveXmlDocument(doc, filePath); //throw FileError
 }
 }
 
-void xmlAccess::writeConfig(const XmlGuiConfig& cfg, const Zstring& filepath)
+void fff::writeConfig(const XmlGuiConfig& cfg, const Zstring& filePath)
 {
-    ::writeConfig(cfg, XML_TYPE_GUI, XML_FORMAT_VER_FFS_GUI, filepath); //throw FileError
+    ::writeConfig(cfg, XML_TYPE_GUI, XML_FORMAT_VER_FFS_CFG, filePath); //throw FileError
 }
 
 
-void xmlAccess::writeConfig(const XmlBatchConfig& cfg, const Zstring& filepath)
+void fff::writeConfig(const XmlBatchConfig& cfg, const Zstring& filePath)
 {
-    ::writeConfig(cfg, XML_TYPE_BATCH, XML_FORMAT_VER_FFS_BATCH, filepath); //throw FileError
+    ::writeConfig(cfg, XML_TYPE_BATCH, XML_FORMAT_VER_FFS_CFG, filePath); //throw FileError
 }
 
 
-void xmlAccess::writeConfig(const XmlGlobalSettings& cfg, const Zstring& filepath)
+void fff::writeConfig(const XmlGlobalSettings& cfg, const Zstring& filePath)
 {
-    ::writeConfig(cfg, XML_TYPE_GLOBAL, XML_FORMAT_VER_GLOBAL, filepath); //throw FileError
+    ::writeConfig(cfg, XML_TYPE_GLOBAL, XML_FORMAT_VER_GLOBAL, filePath); //throw FileError
 }
 
 
-std::wstring xmlAccess::extractJobName(const Zstring& configFilename)
+std::wstring fff::extractJobName(const Zstring& cfgFilePath)
 {
-    const Zstring shortName = afterLast(configFilename, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
+    const Zstring shortName = afterLast(cfgFilePath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
     const Zstring jobName   = beforeLast(shortName, Zstr('.'), IF_MISSING_RETURN_ALL);
     return utfTo<std::wstring>(jobName);
 }

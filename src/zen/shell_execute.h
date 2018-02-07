@@ -17,10 +17,10 @@ namespace zen
 {
 //launch commandline and report errors via popup dialog
 //Windows: COM needs to be initialized before calling this function!
-enum ExecutionType
+enum class ExecutionType
 {
-    EXEC_TYPE_SYNC,
-    EXEC_TYPE_ASYNC
+    SYNC,
+    ASYNC
 };
 
 namespace
@@ -36,7 +36,7 @@ void shellExecute(const Zstring& command, ExecutionType type) //throw FileError
     - uses a zero-sized dummy window as a hack to keep focus which leaves a useless empty icon in ALT-TAB list in Windows
     */
 
-    if (type == EXEC_TYPE_SYNC)
+    if (type == ExecutionType::SYNC)
     {
         //Posix ::system() - execute a shell command
         const int rv = ::system(command.c_str()); //do NOT use std::system as its documentation says nothing about "WEXITSTATUS(rv)", ect...

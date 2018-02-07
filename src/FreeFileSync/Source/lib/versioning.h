@@ -15,7 +15,7 @@
 #include "../algorithm.h"
 
 
-namespace zen
+namespace fff
 {
 //e.g. move C:\Source\subdir\Sample.txt -> D:\Revisions\subdir\Sample.txt 2012-05-15 131513.txt
 //scheme: <revisions directory>\<relpath>\<filename>.<ext> YYYY-MM-DD HHMMSS.<ext>
@@ -34,11 +34,13 @@ class FileVersioner
 public:
     FileVersioner(const AbstractPath& versioningFolderPath, //throw FileError
                   VersioningStyle versioningStyle,
-                  const TimeComp& timeStamp) :
+                  const zen::TimeComp& timeStamp) :
         versioningFolderPath_(versioningFolderPath),
         versioningStyle_(versioningStyle),
-        timeStamp_(formatTime<Zstring>(Zstr("%Y-%m-%d %H%M%S"), timeStamp)) //e.g. "2012-05-15 131513"
+        timeStamp_(zen::formatTime<Zstring>(Zstr("%Y-%m-%d %H%M%S"), timeStamp)) //e.g. "2012-05-15 131513"
     {
+        using namespace zen;
+
         if (AbstractFileSystem::isNullPath(versioningFolderPath_))
             throw std::logic_error("Contract violation! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__));
 
@@ -49,7 +51,7 @@ public:
     bool revisionFile(const FileDescriptor& fileDescr, //throw FileError; return "false" if file is not existing
                       const Zstring& relativePath,
                       //called frequently if move has to revert to copy + delete => see zen::copyFile for limitations when throwing exceptions!
-                      const IOCallback& notifyUnbufferedIO); //may be nullptr
+                      const zen::IOCallback& notifyUnbufferedIO); //may be nullptr
 
     bool revisionSymlink(const AbstractPath& linkPath, const Zstring& relativePath); //throw FileError; return "false" if file is not existing
 
@@ -59,7 +61,7 @@ public:
                         const std::function<void(const std::wstring& displayPathFrom, const std::wstring& displayPathTo)>& onBeforeFileMove,   //one call for each *existing* object!
                         const std::function<void(const std::wstring& displayPathFrom, const std::wstring& displayPathTo)>& onBeforeFolderMove, //
                         //called frequently if move has to revert to copy + delete => see zen::copyFile for limitations when throwing exceptions!
-                        const IOCallback& notifyUnbufferedIO);
+                        const zen::IOCallback& notifyUnbufferedIO);
 
     //void limitVersions(std::function<void()> updateUI); //throw FileError; call when done revisioning!
 
@@ -67,7 +69,7 @@ private:
     void revisionFolderImpl(const AbstractPath& folderPath, const Zstring& relativePath,
                             const std::function<void(const std::wstring& displayPathFrom, const std::wstring& displayPathTo)>& onBeforeFileMove,
                             const std::function<void(const std::wstring& displayPathFrom, const std::wstring& displayPathTo)>& onBeforeFolderMove,
-                            const IOCallback& notifyUnbufferedIO); //throw FileError
+                            const zen::IOCallback& notifyUnbufferedIO); //throw FileError
 
     AbstractPath generateVersionedPath(const Zstring& relativePath) const;
 

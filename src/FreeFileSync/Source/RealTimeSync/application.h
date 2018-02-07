@@ -10,6 +10,8 @@
 #include <wx/app.h>
 
 
+namespace rts
+{
 class Application : public wxApp
 {
 public:
@@ -24,5 +26,6 @@ private:
     void onEnterEventLoop(wxEvent& event);
     //wxLayoutDirection GetLayoutDirection() const override { return wxLayout_LeftToRight; }
 };
+}
 
 #endif //APPLICATION_H_18506781708176342677

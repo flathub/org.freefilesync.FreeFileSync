@@ -11,6 +11,7 @@
 #include <wx/animate.h>
 #include <zen/zstring.h>
 
+
 namespace zen
 {
 void initResourceImages(const Zstring& filepath); //pass resources .zip file at application startup

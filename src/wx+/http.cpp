@@ -33,9 +33,9 @@ public:
     {
         ZEN_ON_SCOPE_FAIL( cleanup(); /*destructor call would lead to member double clean-up!!!*/ );
 
-        assert(!startsWith(url, L"https:", CmpAsciiNoCase())); //not supported by wxHTTP!
-        const std::wstring urlFmt = startsWith(url, L"http://",  CmpAsciiNoCase()) ||
-                                    startsWith(url, L"https://", CmpAsciiNoCase()) ? afterFirst(url, L"://", IF_MISSING_RETURN_NONE) : url;
+        //assert(!startsWith(url, L"https:", CmpAsciiNoCase())); //not supported by wxHTTP!
+
+        const std::wstring urlFmt =         afterFirst(url, L"://", IF_MISSING_RETURN_NONE);
         const std::wstring server =       beforeFirst(urlFmt, L'/', IF_MISSING_RETURN_ALL);
         const std::wstring page   = L'/' + afterFirst(urlFmt, L'/', IF_MISSING_RETURN_NONE);
 

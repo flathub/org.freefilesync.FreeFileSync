@@ -11,7 +11,7 @@
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
 namespace
 {
@@ -52,7 +52,7 @@ bool lessShortFileName(const FileSystemObject& a, const FileSystemObject& b)
         return true;
 
     //sort directories and files/symlinks by short name
-    return makeSortDirection(LessNaturalSort() /*even on Linux*/, Int2Type<ascending>())(a.getItemName<side>(), b.getItemName<side>());
+    return makeSortDirection(LessNaturalSort() /*even on Linux*/, zen::Int2Type<ascending>())(a.getItemName<side>(), b.getItemName<side>());
 }
 
 
@@ -65,9 +65,9 @@ bool lessFullPath(const FileSystemObject& a, const FileSystemObject& b)
     else if (b.isEmpty<side>())
         return true;
 
-    return makeSortDirection(LessNaturalSort() /*even on Linux*/, Int2Type<ascending>())(
-               utfTo<Zstring>(AFS::getDisplayPath(a.getAbstractPath<side>())),
-               utfTo<Zstring>(AFS::getDisplayPath(b.getAbstractPath<side>())));
+    return makeSortDirection(LessNaturalSort() /*even on Linux*/, zen::Int2Type<ascending>())(
+               zen::utfTo<Zstring>(AFS::getDisplayPath(a.getAbstractPath<side>())),
+               zen::utfTo<Zstring>(AFS::getDisplayPath(b.getAbstractPath<side>())));
 }
 
 
@@ -88,7 +88,7 @@ bool lessRelativeFolder(const FileSystemObject& a, const FileSystemObject& b)
     const int rv = CmpNaturalSort()(relFolderA.c_str(), relFolderA.size(),
                                     relFolderB.c_str(), relFolderB.size());
     if (rv != 0)
-        return makeSortDirection(std::less<int>(), Int2Type<ascending>())(rv, 0);
+        return makeSortDirection(std::less<int>(), zen::Int2Type<ascending>())(rv, 0);
 
     //make directories always appear before contained files
     if (isDirectoryB)
@@ -96,7 +96,7 @@ bool lessRelativeFolder(const FileSystemObject& a, const FileSystemObject& b)
     else if (isDirectoryA)
         return true;
 
-    return makeSortDirection(LessNaturalSort(), Int2Type<ascending>())(a.getPairItemName(), b.getPairItemName());
+    return makeSortDirection(LessNaturalSort(), zen::Int2Type<ascending>())(a.getPairItemName(), b.getPairItemName());
 }
 
 
@@ -125,7 +125,7 @@ bool lessFilesize(const FileSystemObject& a, const FileSystemObject& b)
         return true;
 
     //return list beginning with largest files first
-    return makeSortDirection(std::less<>(), Int2Type<ascending>())(fileA->getFileSize<side>(), fileB->getFileSize<side>());
+    return makeSortDirection(std::less<>(), zen::Int2Type<ascending>())(fileA->getFileSize<side>(), fileB->getFileSize<side>());
 }
 
 
@@ -152,7 +152,7 @@ bool lessFiletime(const FileSystemObject& a, const FileSystemObject& b)
     const int64_t dateB = fileB ? fileB->getLastWriteTime<side>() : symlinkB->getLastWriteTime<side>();
 
     //return list beginning with newest files first
-    return makeSortDirection(std::less<>(), Int2Type<ascending>())(dateA, dateB);
+    return makeSortDirection(std::less<>(), zen::Int2Type<ascending>())(dateA, dateB);
 }
 
 
@@ -174,7 +174,7 @@ bool lessExtension(const FileSystemObject& a, const FileSystemObject& b)
         return afterLast(fsObj.getItemName<side>(), Zchar('.'), zen::IF_MISSING_RETURN_NONE);
     };
 
-    return makeSortDirection(LessNaturalSort() /*even on Linux*/, Int2Type<ascending>())(getExtension(a), getExtension(b));
+    return makeSortDirection(LessNaturalSort() /*even on Linux*/, zen::Int2Type<ascending>())(getExtension(a), getExtension(b));
 }
 
 
@@ -187,14 +187,14 @@ bool lessCmpResult(const FileSystemObject& a, const FileSystemObject& b)
     if (b.getCategory() == FILE_EQUAL)
         return true;
 
-    return makeSortDirection(std::less<CompareFilesResult>(), Int2Type<ascending>())(a.getCategory(), b.getCategory());
+    return makeSortDirection(std::less<CompareFilesResult>(), zen::Int2Type<ascending>())(a.getCategory(), b.getCategory());
 }
 
 
 template <bool ascending> inline
 bool lessSyncDirection(const FileSystemObject& a, const FileSystemObject& b)
 {
-    return makeSortDirection(std::less<>(), Int2Type<ascending>())(a.getSyncOperation(), b.getSyncOperation());
+    return makeSortDirection(std::less<>(), zen::Int2Type<ascending>())(a.getSyncOperation(), b.getSyncOperation());
 }
 }
 

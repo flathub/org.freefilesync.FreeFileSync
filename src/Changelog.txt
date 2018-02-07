@@ -1,3 +1,21 @@
+FreeFileSync 9.8 [2018-02-06]
+-----------------------------
+New option to auto-close progress dialog
+Update last sync time if no differences found
+Added 5 seconds countdown before shutdown/sleep
+Preserve XML attribute creation order
+Support HTTPS web accesses without redirect
+Connect network share upon logon type not granted
+Fixed invalid pointer error when reading MTP
+Fixed temporary db file triggering RealTimeSync
+Fixed runtime error during uninstallation
+Continue status updates during sync cancellation
+Log number of items found during comparison
+Warn about outdated nviewH64.dll instead of crashing
+Show default log file path when saving a batch job
+Consider only full days for time since last sync
+
+
 FreeFileSync 9.7 [2018-01-12]
 -----------------------------
 New configuration management panel

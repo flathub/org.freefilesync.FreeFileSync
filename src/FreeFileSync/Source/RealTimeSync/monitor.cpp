@@ -10,7 +10,6 @@
 #include <zen/file_access.h>
 #include <zen/dir_watcher.h>
 #include <zen/thread.h>
-//#include <zen/tick_count.h>
 #include <zen/basic_math.h>
 #include <wx/utils.h>
 #include "../lib/resolve_path.h"
@@ -23,7 +22,7 @@ using namespace zen;
 
 namespace
 {
-const int FOLDER_EXISTENCE_CHECK_INTERVAL_SEC = 1; //unit: [s]
+const std::chrono::seconds FOLDER_EXISTENCE_CHECK_INTERVAL(1);
 
 
 std::vector<Zstring> getFormattedDirs(const std::vector<Zstring>& folderPathPhrases) //throw FileError
@@ -42,7 +41,7 @@ std::vector<Zstring> getFormattedDirs(const std::vector<Zstring>& folderPathPhra
         checkProtocol(Zstr("MTP"));  //
 
         //make unique: no need to resolve duplicate phrases more than once! (consider "[volume name]" syntax) -> shouldn't this be already buffered by OS?
-        folderPaths.insert(getResolvedFilePath(phrase));
+        folderPaths.insert(fff::getResolvedFilePath(phrase));
     }
 
     return { folderPaths.begin(), folderPaths.end() };
@@ -68,7 +67,7 @@ struct WaitResult
 
 
 WaitResult waitForChanges(const std::vector<Zstring>& folderPathPhrases, //throw FileError
-                          const std::function<void(bool readyForSync)>& onRefreshGui)
+                          const std::function<void(bool readyForSync)>& requestUiRefresh, std::chrono::milliseconds cbInterval)
 {
     const std::vector<Zstring> folderPaths = getFormattedDirs(folderPathPhrases); //throw FileError
     if (folderPaths.empty()) //pathological case, but we have to check else this function will wait endlessly
@@ -84,8 +83,8 @@ WaitResult waitForChanges(const std::vector<Zstring>& folderPathPhrases, //throw
             //a non-existent network path may block, so check existence asynchronously!
             auto ftDirAvailable = runAsync([=] { return dirAvailable(folderPath); });
 
-            while (ftDirAvailable.wait_for(std::chrono::milliseconds(rts::UI_UPDATE_INTERVAL_MS / 2)) != std::future_status::ready)
-                onRefreshGui(false /*readyForSync*/); //may throw!
+            while (ftDirAvailable.wait_for(cbInterval) != std::future_status::ready)
+                if (requestUiRefresh) requestUiRefresh(false /*readyForSync*/); //throw X
 
             if (!ftDirAvailable.get()) //folder not existing or can't access
                 return WaitResult(folderPath);
@@ -107,7 +106,7 @@ WaitResult waitForChanges(const std::vector<Zstring>& folderPathPhrases, //throw
         {
             const auto now = std::chrono::steady_clock::now();
 
-            if (numeric::dist(now, lastCheckTime) > std::chrono::seconds(FOLDER_EXISTENCE_CHECK_INTERVAL_SEC)) //handle potential chrono wrap-around!
+            if (numeric::dist(now, lastCheckTime) > FOLDER_EXISTENCE_CHECK_INTERVAL) //handle potential chrono wrap-around!
             {
                 lastCheckTime = now;
                 return true;
@@ -127,15 +126,16 @@ WaitResult waitForChanges(const std::vector<Zstring>& folderPathPhrases, //throw
                     return WaitResult(folderPath);
             try
             {
-                std::vector<DirWatcher::Entry> changedItems = watcher.getChanges([&] { onRefreshGui(false /*readyForSync*/); /*may throw!*/ }); //throw FileError
+                std::vector<DirWatcher::Entry> changedItems = watcher.getChanges([&] { requestUiRefresh(false /*readyForSync*/); /*throw X*/ },
+                                                                                 cbInterval); //throw FileError
 
                 //remove to be ignored changes
                 erase_if(changedItems, [](const DirWatcher::Entry& e)
                 {
                     return
-                        //endsWith(e.filepath_, Zstr(".ffs_tmp"))  ||
-                        endsWith(e.filepath_, Zstr(".ffs_lock")) || //sync.ffs_lock, sync.Del.ffs_lock
-                        endsWith(e.filepath_, Zstr(".ffs_db"));     //sync.ffs_db, .sync.tmp.ffs_db
+                        endsWith(e.filePath, Zstr(".ffs_tmp"))  || //sync.8ea2.ffs_tmp
+                        endsWith(e.filePath, Zstr(".ffs_lock")) || //sync.ffs_lock, sync.Del.ffs_lock
+                        endsWith(e.filePath, Zstr(".ffs_db"));     //sync.ffs_db
                     //no need to ignore temporary recycle bin directory: this must be caused by a file deletion anyway
                 });
 
@@ -150,15 +150,15 @@ WaitResult waitForChanges(const std::vector<Zstring>& folderPathPhrases, //throw
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(rts::UI_UPDATE_INTERVAL_MS / 2));
-        onRefreshGui(true /*readyForSync*/); //throw ?: may start sync at this presumably idle time
+        std::this_thread::sleep_for(cbInterval);
+        requestUiRefresh(true /*readyForSync*/); //throw X: may start sync at this presumably idle time
     }
 }
 
 
 //wait until all directories become available (again) + logs in network share
 void waitForMissingDirs(const std::vector<Zstring>& folderPathPhrases, //throw FileError
-                        const std::function<void(const Zstring& folderPath)>& onRefreshGui)
+                        const std::function<void(const Zstring& folderPath)>& requestUiRefresh, std::chrono::milliseconds cbInterval)
 {
     for (;;)
     {
@@ -171,19 +171,18 @@ void waitForMissingDirs(const std::vector<Zstring>& folderPathPhrases, //throw F
                 //2. check dir availability
                 return dirAvailable(folderPath);
             });
-            while (ftDirAvailable.wait_for(std::chrono::milliseconds(rts::UI_UPDATE_INTERVAL_MS / 2)) != std::future_status::ready)
-                onRefreshGui(folderPath); //may throw!
+            while (ftDirAvailable.wait_for(cbInterval) != std::future_status::ready)
+                if (requestUiRefresh) requestUiRefresh(folderPath); //throw X
 
             if (!ftDirAvailable.get())
             {
                 allAvailable = false;
                 //wait some time...
-                const int refreshInterval = rts::UI_UPDATE_INTERVAL_MS / 2;
-                static_assert(FOLDER_EXISTENCE_CHECK_INTERVAL_SEC * 1000 % refreshInterval == 0, "");
-                for (int i = 0; i < FOLDER_EXISTENCE_CHECK_INTERVAL_SEC * 1000 / refreshInterval; ++i)
+                const auto delayUntil = std::chrono::steady_clock::now() + FOLDER_EXISTENCE_CHECK_INTERVAL;
+                for (auto now = std::chrono::steady_clock::now(); now < delayUntil; now = std::chrono::steady_clock::now())
                 {
-                    onRefreshGui(folderPath); //may throw!
-                    std::this_thread::sleep_for(std::chrono::milliseconds(refreshInterval));
+                    if (requestUiRefresh) requestUiRefresh(folderPath); //throw X
+                    std::this_thread::sleep_for(cbInterval);
                 }
                 break;
             }
@@ -213,7 +212,7 @@ struct ExecCommandNowException {};
 }
 
 
-void rts::monitorDirectories(const std::vector<Zstring>& folderPathPhrases, unsigned int delay, rts::MonitorCallback& callback)
+void rts::monitorDirectories(const std::vector<Zstring>& folderPathPhrases, size_t delay, MonitorCallback& cb, std::chrono::milliseconds cbInterval)
 {
     if (folderPathPhrases.empty())
     {
@@ -223,12 +222,12 @@ void rts::monitorDirectories(const std::vector<Zstring>& folderPathPhrases, unsi
 
     auto execMonitoring = [&] //throw FileError
     {
-        callback.setPhase(MonitorCallback::MONITOR_PHASE_WAITING);
-        waitForMissingDirs(folderPathPhrases, [&](const Zstring& folderPath) { callback.requestUiRefresh(); }); //throw FileError
-        callback.setPhase(MonitorCallback::MONITOR_PHASE_ACTIVE);
+        cb.setPhase(MonitorCallback::MONITOR_PHASE_WAITING);
+        waitForMissingDirs(folderPathPhrases, [&](const Zstring& folderPath) { cb.requestUiRefresh(); }, cbInterval); //throw FileError
+        cb.setPhase(MonitorCallback::MONITOR_PHASE_ACTIVE);
 
         //schedule initial execution (*after* all directories have arrived, which could take some time which we don't want to include)
-        time_t nextExecDate = std::time(nullptr) + delay;
+        time_t nextExecTime = std::time(nullptr) + delay;
 
         for (;;) //loop over command invocations
         {
@@ -241,33 +240,33 @@ void rts::monitorDirectories(const std::vector<Zstring>& folderPathPhrases, unsi
                     WaitResult res = waitForChanges(folderPathPhrases, [&](bool readyForSync) //throw FileError, ExecCommandNowException
                     {
                         if (readyForSync)
-                            if (nextExecDate <= std::time(nullptr))
+                            if (nextExecTime <= std::time(nullptr))
                                 throw ExecCommandNowException(); //abort wait and start sync
-                        callback.requestUiRefresh();
-                    });
+                        cb.requestUiRefresh();
+                    }, cbInterval);
                     switch (res.type)
                     {
                         case WaitResult::CHANGE_DIR_UNAVAILABLE: //don't execute the command before all directories are available!
-                            callback.setPhase(MonitorCallback::MONITOR_PHASE_WAITING);
-                            waitForMissingDirs(folderPathPhrases, [&](const Zstring& folderPath) { callback.requestUiRefresh(); }); //throw FileError
-                            callback.setPhase(MonitorCallback::MONITOR_PHASE_ACTIVE);
+                            cb.setPhase(MonitorCallback::MONITOR_PHASE_WAITING);
+                            waitForMissingDirs(folderPathPhrases, [&](const Zstring& folderPath) { cb.requestUiRefresh(); }, cbInterval); //throw FileError
+                            cb.setPhase(MonitorCallback::MONITOR_PHASE_ACTIVE);
                             break;
 
                         case WaitResult::CHANGE_DETECTED:
                             lastChangeDetected = res.changedItem_;
                             break;
                     }
-                    nextExecDate = std::time(nullptr) + delay;
+                    nextExecTime = std::time(nullptr) + delay;
                 }
             }
             catch (ExecCommandNowException&) {}
 
-            ::wxSetEnv(L"change_path", utfTo<wxString>(lastChangeDetected.filepath_)); //some way to output what file changed to the user
-            ::wxSetEnv(L"change_action", toString(lastChangeDetected.action_)); //
+            ::wxSetEnv(L"change_path", utfTo<wxString>(lastChangeDetected.filePath)); //some way to output what file changed to the user
+            ::wxSetEnv(L"change_action", toString(lastChangeDetected.action));        //
 
             //execute command
-            callback.executeExternalCommand();
-            nextExecDate = std::numeric_limits<time_t>::max();
+            cb.executeExternalCommand();
+            nextExecTime = std::numeric_limits<time_t>::max();
         }
     };
 
@@ -278,6 +277,6 @@ void rts::monitorDirectories(const std::vector<Zstring>& folderPathPhrases, unsi
         }
         catch (const FileError& e)
         {
-            callback.reportError(e.toString());
+            cb.reportError(e.toString());
         }
 }

@@ -8,19 +8,13 @@
 #define DIR_LOCK_H_81740832174954356
 
 #include <memory>
+#include <chrono>
+#include <functional>
 #include <zen/file_error.h>
 
-namespace zen
-{
-const size_t GUI_CALLBACK_INTERVAL = 100;
 
-struct DirLockCallback //while waiting for the lock
+namespace fff
 {
-    virtual ~DirLockCallback() {}
-    virtual void requestUiRefresh() = 0; //allowed to throw exceptions
-    virtual void reportStatus(const std::wstring& text) = 0;
-};
-
 /*
 RAII structure to place a directory lock against other FFS processes:
         - recursive locking supported, even with alternate lockfile names, e.g. via symlinks, network mounts etc.
@@ -31,10 +25,13 @@ RAII structure to place a directory lock against other FFS processes:
         - race-free (Windows, almost on Linux(NFS))
         - NOT thread-safe! (1. global LockAdmin 2. locks for directory aliases should be created sequentially to detect duplicate locks!)
 */
+//while waiting for the lock
+using DirLockCallback = std::function<void(const std::wstring& msg)>; //throw X
+
 class DirLock
 {
 public:
-    DirLock(const Zstring& lockFilePath, DirLockCallback* callback = nullptr); //throw FileError, callback only used during construction
+    DirLock(const Zstring& lockFilePath, const DirLockCallback& notifyStatus, std::chrono::milliseconds cbInterval); //throw FileError, callback only used during construction
 
 private:
     class LockAdmin;

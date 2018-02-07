@@ -8,19 +8,18 @@
 #include <chrono>
 #include <zen/basic_math.h>
 
-using namespace zen;
-
 
 namespace
 {
 std::chrono::steady_clock::time_point lastExec;
 };
 
-bool zen::updateUiIsAllowed()
+
+bool fff::updateUiIsAllowed()
 {
     const auto now = std::chrono::steady_clock::now();
 
-    if (numeric::dist(now, lastExec) > std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS)) //handle potential chrono wrap-around!
+    if (numeric::dist(now, lastExec) > UI_UPDATE_INTERVAL) //handle potential chrono wrap-around!
     {
         lastExec = now;
         return true;

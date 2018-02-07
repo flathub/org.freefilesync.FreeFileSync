@@ -11,7 +11,8 @@
 #include <zen/file_error.h>
 #include <wx/language.h>
 
-namespace zen
+
+namespace fff
 {
 struct TranslationInfo
 {

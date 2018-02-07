@@ -12,7 +12,7 @@
 #include "../synchronization.h"
 
 
-namespace zen
+namespace fff
 {
 //parent window, optional: support correct dialog placement above parent on multiple monitor systems
 
@@ -46,7 +46,7 @@ ReturnSmallDlg::ButtonPressed showSyncConfirmationDlg(wxWindow* parent,
                                                       const SyncStatistics& statistics,
                                                       bool& dontShowAgain);
 
-ReturnSmallDlg::ButtonPressed showOptionsDlg(wxWindow* parent, xmlAccess::XmlGlobalSettings& globalSettings);
+ReturnSmallDlg::ButtonPressed showOptionsDlg(wxWindow* parent, XmlGlobalSettings& globalCfg);
 
 ReturnSmallDlg::ButtonPressed showSelectTimespanDlg(wxWindow* parent, time_t& timeFrom, time_t& timeTo);
 

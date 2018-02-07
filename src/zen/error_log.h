@@ -20,18 +20,18 @@ namespace zen
 {
 enum MessageType
 {
-    TYPE_INFO        = 0x1,
-    TYPE_WARNING     = 0x2,
-    TYPE_ERROR       = 0x4,
-    TYPE_FATAL_ERROR = 0x8,
+    MSG_TYPE_INFO        = 0x1,
+    MSG_TYPE_WARNING     = 0x2,
+    MSG_TYPE_ERROR       = 0x4,
+    MSG_TYPE_FATAL_ERROR = 0x8,
 };
 
 using MsgString = Zbase<wchar_t>; //std::wstring may employ small string optimization: we cannot accept bloating the "ErrorLog::entries" memory block below (think 1 million items)
 
 struct LogEntry
 {
-    time_t      time;
-    MessageType type;
+    time_t      time = 0;
+    MessageType type = MSG_TYPE_FATAL_ERROR;
     MsgString   message;
 };
 
@@ -45,7 +45,7 @@ public:
     template <class String> //a wchar_t-based string!
     void logMsg(const String& text, MessageType type);
 
-    int getItemCount(int typeFilter = TYPE_INFO | TYPE_WARNING | TYPE_ERROR | TYPE_FATAL_ERROR) const;
+    int getItemCount(int typeFilter = MSG_TYPE_INFO | MSG_TYPE_WARNING | MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR) const;
 
     //subset of std::vector<> interface:
     using const_iterator = std::vector<LogEntry>::const_iterator;
@@ -67,10 +67,9 @@ private:
 
 //######################## implementation ##########################
 template <class String> inline
-void ErrorLog::logMsg(const String& text, zen::MessageType type)
+void ErrorLog::logMsg(const String& text, MessageType type)
 {
-    const LogEntry newEntry = { std::time(nullptr), type, copyStringTo<MsgString>(text) };
-    entries_.push_back(newEntry);
+    entries_.push_back({ std::time(nullptr), type, copyStringTo<MsgString>(text) });
 }
 
 
@@ -90,13 +89,13 @@ String formatMessageImpl(const LogEntry& entry) //internal linkage
     {
         switch (entry.type)
         {
-            case TYPE_INFO:
+            case MSG_TYPE_INFO:
                 return _("Info");
-            case TYPE_WARNING:
+            case MSG_TYPE_WARNING:
                 return _("Warning");
-            case TYPE_ERROR:
+            case MSG_TYPE_ERROR:
                 return _("Error");
-            case TYPE_FATAL_ERROR:
+            case MSG_TYPE_FATAL_ERROR:
                 return _("Serious Error");
         }
         assert(false);
@@ -104,7 +103,7 @@ String formatMessageImpl(const LogEntry& entry) //internal linkage
     };
 
     String formattedText = L"[" + formatTime<String>(FORMAT_TIME, getLocalTime(entry.time)) + L"]  " + copyStringTo<String>(getTypeName()) + L":  ";
-    const size_t prefixLen = formattedText.size();
+    const size_t prefixLen = formattedText.size(); //considers UTF-16 only!
 
     for (auto it = entry.message.begin(); it != entry.message.end(); )
         if (*it == L'\n')

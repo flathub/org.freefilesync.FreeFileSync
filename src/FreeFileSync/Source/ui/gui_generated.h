@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  6 2017)
+// C++ code generated with wxFormBuilder (version Jan 23 2018)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO *NOT* EDIT THIS FILE!
@@ -11,13 +11,13 @@
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/intl.h>
-class CommandBox;
-class FolderHistoryBox;
-class ToggleButton;
+namespace fff { class CommandBox; }
+namespace fff { class FolderHistoryBox; }
+namespace fff { class TripleSplitter; }
 namespace zen { class BitmapTextButton; }
 namespace zen { class Graph2D; }
 namespace zen { class Grid; }
-namespace zen { class TripleSplitter; }
+namespace zen { class ToggleButton; }
 
 #include <wx/string.h>
 #include <wx/bitmap.h>
@@ -119,7 +119,7 @@ protected:
     wxBoxSizer* bSizerAddFolderPairs;
     zen::Grid* m_gridOverview;
     wxPanel* m_panelCenter;
-    zen::TripleSplitter* m_splitterMain;
+    fff::TripleSplitter* m_splitterMain;
     zen::Grid* m_gridMainL;
     zen::Grid* m_gridMainC;
     zen::Grid* m_gridMainR;
@@ -166,23 +166,23 @@ protected:
     wxPanel* m_panelViewFilter;
     wxBoxSizer* bSizerViewFilter;
     wxStaticText* m_staticTextViewType;
-    ToggleButton* m_bpButtonViewTypeSyncAction;
-    ToggleButton* m_bpButtonShowExcluded;
+    zen::ToggleButton* m_bpButtonViewTypeSyncAction;
+    zen::ToggleButton* m_bpButtonShowExcluded;
     wxStaticText* m_staticTextSelectView;
-    ToggleButton* m_bpButtonShowDeleteLeft;
-    ToggleButton* m_bpButtonShowUpdateLeft;
-    ToggleButton* m_bpButtonShowCreateLeft;
-    ToggleButton* m_bpButtonShowLeftOnly;
-    ToggleButton* m_bpButtonShowLeftNewer;
-    ToggleButton* m_bpButtonShowEqual;
-    ToggleButton* m_bpButtonShowDoNothing;
-    ToggleButton* m_bpButtonShowDifferent;
-    ToggleButton* m_bpButtonShowRightNewer;
-    ToggleButton* m_bpButtonShowRightOnly;
-    ToggleButton* m_bpButtonShowCreateRight;
-    ToggleButton* m_bpButtonShowUpdateRight;
-    ToggleButton* m_bpButtonShowDeleteRight;
-    ToggleButton* m_bpButtonShowConflict;
+    zen::ToggleButton* m_bpButtonShowDeleteLeft;
+    zen::ToggleButton* m_bpButtonShowUpdateLeft;
+    zen::ToggleButton* m_bpButtonShowCreateLeft;
+    zen::ToggleButton* m_bpButtonShowLeftOnly;
+    zen::ToggleButton* m_bpButtonShowLeftNewer;
+    zen::ToggleButton* m_bpButtonShowEqual;
+    zen::ToggleButton* m_bpButtonShowDoNothing;
+    zen::ToggleButton* m_bpButtonShowDifferent;
+    zen::ToggleButton* m_bpButtonShowRightNewer;
+    zen::ToggleButton* m_bpButtonShowRightOnly;
+    zen::ToggleButton* m_bpButtonShowCreateRight;
+    zen::ToggleButton* m_bpButtonShowUpdateRight;
+    zen::ToggleButton* m_bpButtonShowDeleteRight;
+    zen::ToggleButton* m_bpButtonShowConflict;
     wxStaticText* m_staticText96;
     wxPanel* m_panelStatistics;
     wxBoxSizer* bSizer1801;
@@ -244,13 +244,13 @@ protected:
 public:
     wxPanel* m_panelTopLeft;
     wxBitmapButton* m_bpButtonRemovePair;
-    FolderHistoryBox* m_folderPathLeft;
+    fff::FolderHistoryBox* m_folderPathLeft;
     wxBitmapButton* m_bpButtonSelectAltFolderLeft;
     wxBitmapButton* m_bpButtonAltCompCfg;
     wxBitmapButton* m_bpButtonLocalFilter;
     wxBitmapButton* m_bpButtonAltSyncCfg;
     wxPanel* m_panelTopRight;
-    FolderHistoryBox* m_folderPathRight;
+    fff::FolderHistoryBox* m_folderPathRight;
     wxBitmapButton* m_bpButtonSelectAltFolderRight;
     wxBoxSizer* bSizerStatistics;
     wxBoxSizer* bSizerData;
@@ -379,7 +379,7 @@ protected:
     wxStaticText* m_staticTextDeletionTypeDescription;
     wxHyperlinkCtrl* m_hyperlinkVersioning;
     wxPanel* m_panelVersioning;
-    FolderHistoryBox* m_versioningFolderPath;
+    fff::FolderHistoryBox* m_versioningFolderPath;
     wxButton* m_buttonSelectVersioningFolder;
     wxStaticText* m_staticText93;
     wxChoice* m_choiceVersioningStyle;
@@ -393,7 +393,7 @@ protected:
     wxStaticLine* m_staticline57;
     wxBoxSizer* bSizerOnCompletion;
     wxStaticText* m_staticText89;
-    CommandBox* m_comboBoxPostSyncCommand;
+    fff::CommandBox* m_comboBoxPostSyncCommand;
     wxBoxSizer* bSizerStdButtons;
     wxButton* m_buttonOkay;
     wxButton* m_buttonCancel;
@@ -467,14 +467,14 @@ public:
     wxPanel* m_panelLeft;
     wxBitmapButton* m_bpButtonFolderPairOptions;
     wxBitmapButton* m_bpButtonRemovePair;
-    FolderHistoryBox* m_folderPathLeft;
+    fff::FolderHistoryBox* m_folderPathLeft;
     wxBitmapButton* m_bpButtonSelectAltFolderLeft;
     wxPanel* m_panel20;
     wxBitmapButton* m_bpButtonAltCompCfg;
     wxBitmapButton* m_bpButtonLocalFilter;
     wxBitmapButton* m_bpButtonAltSyncCfg;
     wxPanel* m_panelRight;
-    FolderHistoryBox* m_folderPathRight;
+    fff::FolderHistoryBox* m_folderPathRight;
     wxBitmapButton* m_bpButtonSelectAltFolderRight;
 
     FolderPairPanelGenerated( wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = 0 );
@@ -739,6 +739,7 @@ public:
     wxNotebook* m_notebookResult;
     wxStaticLine* m_staticlineFooter;
     wxBoxSizer* bSizerStdButtons;
+    wxCheckBox* m_checkBoxAutoClose;
     wxButton* m_buttonClose;
     wxButton* m_buttonPause;
     wxButton* m_buttonStop;
@@ -756,9 +757,9 @@ class LogPanelGenerated : public wxPanel
 private:
 
 protected:
-    ToggleButton* m_bpButtonErrors;
-    ToggleButton* m_bpButtonWarnings;
-    ToggleButton* m_bpButtonInfo;
+    zen::ToggleButton* m_bpButtonErrors;
+    zen::ToggleButton* m_bpButtonWarnings;
+    zen::ToggleButton* m_bpButtonInfo;
     wxStaticLine* m_staticline13;
     zen::Grid* m_gridMessages;
 
@@ -787,6 +788,8 @@ protected:
     wxStaticText* m_staticTextDescr;
     wxStaticLine* m_staticline18;
     wxPanel* m_panel35;
+    wxStaticText* m_staticText146;
+    wxFlexGridSizer* ffgSizer11;
     wxStaticBitmap* m_bitmapMinimizeToTray;
     wxCheckBox* m_checkBoxRunMinimized;
     wxStaticLine* m_staticline26;
@@ -824,8 +827,9 @@ protected:
 
 
 public:
+    wxCheckBox* m_checkBoxAutoClose;
     wxChoice* m_choicePostSyncAction;
-    FolderHistoryBox* m_logFolderPath;
+    fff::FolderHistoryBox* m_logFolderPath;
     wxBitmapButton* m_bpButtonSelectAltLogFolder;
 
     BatchDlgGenerated( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Save as a Batch Job"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER );
@@ -897,7 +901,7 @@ protected:
 
 
 public:
-    FolderHistoryBox* m_targetFolderPath;
+    fff::FolderHistoryBox* m_targetFolderPath;
     wxBitmapButton* m_bpButtonSelectAltTargetFolder;
 
     CopyToDlgGenerated( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Copy items"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1, -1 ), long style = wxDEFAULT_DIALOG_STYLE|wxMAXIMIZE_BOX|wxRESIZE_BORDER );
@@ -944,7 +948,7 @@ protected:
     wxHyperlinkCtrl* m_hyperlink17;
     wxStaticLine* m_staticline192;
     zen::BitmapTextButton* m_buttonResetDialogs;
-    wxStaticLine* m_staticline40;
+    wxStaticText* m_staticText923;
     wxStaticLine* m_staticline36;
     wxBoxSizer* bSizerStdButtons;
     wxButton* m_buttonDefault;

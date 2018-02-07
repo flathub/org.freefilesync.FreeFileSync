@@ -14,7 +14,7 @@
 #include "lib/lock_holder.h"
 
 
-namespace zen
+namespace fff
 {
 struct FolderPairCfg
 {
@@ -48,10 +48,10 @@ struct FolderPairCfg
 std::vector<FolderPairCfg> extractCompareCfg(const MainConfiguration& mainCfg); //fill FolderPairCfg and resolve folder pairs
 
 //inform about (important) non-default global settings related to comparison and synchronization
-void logNonDefaultSettings(const xmlAccess::XmlGlobalSettings& currentSettings, ProcessCallback& callback);
+void logNonDefaultSettings(const XmlGlobalSettings& currentSettings, ProcessCallback& callback);
 
 //FFS core routine:
-FolderComparison compare(xmlAccess::OptionalDialogs& warnings,
+FolderComparison compare(WarningDialogs& warnings,
                          int fileTimeTolerance,
                          bool allowUserInteraction,
                          bool runWithBackgroundPriority,

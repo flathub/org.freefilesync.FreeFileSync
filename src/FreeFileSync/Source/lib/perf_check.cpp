@@ -5,123 +5,93 @@
 // *****************************************************************************
 
 #include "perf_check.h"
-
-#include <limits>
 #include <zen/basic_math.h>
 #include <zen/i18n.h>
 #include <zen/format_unit.h>
 
 using namespace zen;
+using namespace fff;
 
 
-PerfCheck::PerfCheck(unsigned int windowSizeRemainingTime,
-                     unsigned int windowSizeSpeed) :
-    windowSizeRemTime(windowSizeRemainingTime),
-    windowSizeSpeed_(windowSizeSpeed),
-    windowMax(std::max(windowSizeRemainingTime, windowSizeSpeed)) {}
+PerfCheck::PerfCheck(std::chrono::milliseconds windowSizeRemTime,
+                     std::chrono::milliseconds windowSizeSpeed) :
+    windowSizeRemTime_(windowSizeRemTime),
+    windowSizeSpeed_  (windowSizeSpeed),
+    windowMax_(std::max(windowSizeRemTime, windowSizeSpeed)) {}
 
 
-PerfCheck::~PerfCheck()
+void PerfCheck::addSample(std::chrono::nanoseconds timeElapsed, int itemsCurrent, double dataCurrent)
 {
-    /*
-    //write samples to a file
-    wxFFile outputFile(wxT("statistics.dat"), wxT("w"));
-
-    outputFile.Write(wxT("Time(ms);Objects;Data\n"));
-
-    for (auto it = samples.begin(); it != samples.end(); ++it)
-    {
-        outputFile.Write(numberTo<wxString>(it->first));
-        outputFile.Write(wxT(";"));
-        outputFile.Write(numberTo<wxString>(it->second.objCount_));
-        outputFile.Write(wxT(";"));
-        outputFile.Write(numberTo<wxString>(it->second.data_));
-        outputFile.Write(wxT("\n"));
-    }
-    */
-}
-
-
-void PerfCheck::addSample(int itemsCurrent, double dataCurrent, int64_t timeMs)
-{
-    samples.insert(samples.end(), std::make_pair(timeMs, Record(itemsCurrent, dataCurrent))); //use fact that time is monotonously ascending
+    samples_.insert(samples_.end(), { timeElapsed, { itemsCurrent, dataCurrent }}); //use fact that time is monotonously ascending
 
     //remove all records earlier than "now - windowMax"
-    auto it = samples.upper_bound(timeMs - windowMax);
-    if (it != samples.begin())
-        samples.erase(samples.begin(), --it); //keep one point before newBegin in order to handle "measurement holes"
+    auto it = samples_.upper_bound(timeElapsed - windowMax_);
+    if (it != samples_.begin())
+        samples_.erase(samples_.begin(), --it); //keep one point before newBegin in order to handle "measurement holes"
 }
 
 
-inline
-std::pair<const std::multimap<int64_t, PerfCheck::Record>::value_type*, const std::multimap<int64_t, PerfCheck::Record>::value_type*> PerfCheck::getBlockFromEnd(int64_t windowSize) const
+std::tuple<double /*timeDelta*/, int /*itemsDelta*/, double /*bytesDelta*/> PerfCheck::getBlockDeltas(std::chrono::milliseconds windowSize) const
 {
-    if (!samples.empty())
-    {
-        auto itBack = samples.rbegin();
-        //find start of records "window"
-        auto itFront = samples.upper_bound(itBack->first - windowSize);
-        if (itFront != samples.begin())
-            --itFront; //one point before window begin in order to handle "measurement holes"
-        return std::make_pair(&*itFront, &*itBack);
-    }
-    return std::make_pair(nullptr, nullptr);
+    if (samples_.empty()) return {};
+
+    auto itBack = samples_.rbegin();
+    //find start of records "window"
+    auto itFront = samples_.upper_bound(itBack->first - windowSize);
+    if (itFront != samples_.begin())
+        --itFront; //one point before window begin in order to handle "measurement holes"
+
+    const double timeDelta = std::chrono::duration<double>(itBack->first - itFront->first).count();
+    const int    itemsDelta = itBack->second.items - itFront->second.items;
+    const double bytesDelta = itBack->second.bytes - itFront->second.bytes;
+
+    //return { timeDelta, itemsDelta, bytesDelta }; -> requires C++17 (Linux only issue)
+	return std::make_tuple(timeDelta, itemsDelta, bytesDelta);
 }
 
 
-zen::Opt<double> PerfCheck::getRemainingTimeSec(double dataRemaining) const
+Opt<double> PerfCheck::getRemainingTimeSec(double dataRemaining) const
 {
-    auto blk = getBlockFromEnd(windowSizeRemTime);
-    if (blk.first && blk.second)
-    {
-        const auto& itemFront = *blk.first;
-        const auto& itemBack  = *blk.second;
-        //-----------------------------------------------------------------------------------------------
-        const int64_t timeDeltaMs = itemBack.first   - itemFront.first;
-        const double  bytesDelta   = itemBack.second.bytes_ - itemFront.second.bytes_;
+    double timeDelta  = 0;
+    int    itemsDelta = 0;
+    double bytesDelta = 0;
+    std::tie(timeDelta, itemsDelta, bytesDelta) = getBlockDeltas(windowSizeRemTime_);
+    //const auto [timeDelta, itemsDelta, bytesDelta] = getBlockDeltas(windowSizeRemTime_); C++17
 
-        //objects model logical operations *NOT* disk accesses, so we better play safe and use "bytes" only!
-        //http://sourceforge.net/p/freefilesync/feature-requests/197/
+    //objects model logical operations *NOT* disk accesses, so we better play safe and use "bytes" only!
+    //http://sourceforge.net/p/freefilesync/feature-requests/197/
 
-        if (!numeric::isNull(bytesDelta)) //sign(dataRemaining) != sign(bytesDelta) usually an error, so show it!
-            return dataRemaining * timeDeltaMs / 1000.0 / bytesDelta;
-    }
+    if (!numeric::isNull(bytesDelta)) //sign(dataRemaining) != sign(bytesDelta) usually an error, so show it!
+        return dataRemaining * timeDelta / bytesDelta;
+
     return NoValue();
 }
 
 
-zen::Opt<std::wstring> PerfCheck::getBytesPerSecond() const
+Opt<std::wstring> PerfCheck::getBytesPerSecond() const
 {
-    auto blk = getBlockFromEnd(windowSizeSpeed_);
-    if (blk.first && blk.second)
-    {
-        const auto& itemFront = *blk.first;
-        const auto& itemBack  = *blk.second;
-        //-----------------------------------------------------------------------------------------------
-        const int64_t timeDeltaMs = itemBack.first   - itemFront.first;
-        const double       bytesDelta  = itemBack.second.bytes_ - itemFront.second.bytes_;
+    double timeDelta  = 0;
+    int    itemsDelta = 0;
+    double bytesDelta = 0;
+    std::tie(timeDelta, itemsDelta, bytesDelta) = getBlockDeltas(windowSizeSpeed_);
 
-        if (timeDeltaMs != 0)
-            return formatFilesizeShort(static_cast<int64_t>(bytesDelta * 1000.0 / timeDeltaMs)) + _("/sec");
-    }
+    if (!numeric::isNull(timeDelta))
+        return formatFilesizeShort(numeric::round(bytesDelta / timeDelta)) + _("/sec");
+
     return NoValue();
 }
 
 
-zen::Opt<std::wstring> PerfCheck::getItemsPerSecond() const
+Opt<std::wstring> PerfCheck::getItemsPerSecond() const
 {
-    auto blk = getBlockFromEnd(windowSizeSpeed_);
-    if (blk.first && blk.second)
-    {
-        const auto& itemFront = *blk.first;
-        const auto& itemBack  = *blk.second;
-        //-----------------------------------------------------------------------------------------------
-        const int64_t timeDeltaMs = itemBack.first             - itemFront.first;
-        const int     itemsDelta  = itemBack.second.items_ - itemFront.second.items_;
+    double timeDelta  = 0;
+    int    itemsDelta = 0;
+    double bytesDelta = 0;
+    std::tie(timeDelta, itemsDelta, bytesDelta) = getBlockDeltas(windowSizeSpeed_);
 
-        if (timeDeltaMs != 0)
-            return replaceCpy(_("%x items/sec"), L"%x", formatTwoDigitPrecision(itemsDelta * 1000.0 / timeDeltaMs));
-    }
+    if (!numeric::isNull(timeDelta))
+        return replaceCpy(_("%x items/sec"), L"%x", formatTwoDigitPrecision(itemsDelta / timeDelta));
+
     return NoValue();
 }
 

@@ -14,7 +14,7 @@
 #include "folder_history_box.h"
 
 
-namespace zen
+namespace fff
 {
 //handle drag and drop, tooltip, label and manual input, coordinating a wxWindow, wxButton, and wxComboBox/wxTextCtrl
 /*
@@ -46,11 +46,13 @@ public:
     Zstring getPath() const;
     void setPath(const Zstring& folderPathPhrase);
 
+    void setBackgroundText(const std::wstring& text) { folderComboBox_.SetHint(text); }
+
 private:
     virtual bool shouldSetDroppedPaths(const std::vector<Zstring>& shellItemPaths) { return true; } //return true if drop should be processed
 
     void onMouseWheel     (wxMouseEvent&   event);
-    void onItemPathDropped(FileDropEvent&  event);
+    void onItemPathDropped(zen::FileDropEvent&  event);
     void onEditFolderPath (wxCommandEvent& event);
     void onSelectFolder   (wxCommandEvent& event);
     void onSelectAltFolder(wxCommandEvent& event);

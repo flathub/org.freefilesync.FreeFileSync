@@ -12,7 +12,8 @@
 #include <functional>
 #include <zen/string_base.h>
 
-namespace parse_plural
+
+namespace plural
 {
 //expression interface
 struct Expression { virtual ~Expression() {} };
@@ -110,7 +111,7 @@ pm-expression:
 .po format,e.g.: (n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)
 */
 
-namespace implementation
+namespace impl
 {
 template <class BinaryOp, class ParamType, class ResultType>
 struct BinaryExp : public Expr<ResultType>
@@ -441,7 +442,7 @@ PluralFormInfo::PluralFormInfo(const std::string& definition, int pluralCount) /
     forms_.resize(pluralCount);
     try
     {
-        parse_plural::PluralForm pf(definition); //throw parse_plural::ParsingError
+        PluralForm pf(definition); //throw ParsingError
         //PERF_START
 
         //perf: 80ns per iteration max (for arabic)
@@ -459,7 +460,7 @@ PluralFormInfo::PluralFormInfo(const std::string& definition, int pluralCount) /
                 throw InvalidPluralForm();
         }
     }
-    catch (const parse_plural::ParsingError&)
+    catch (const plural::ParsingError&)
     {
         throw InvalidPluralForm();
     }
@@ -471,7 +472,7 @@ PluralFormInfo::PluralFormInfo(const std::string& definition, int pluralCount) /
 
 
 inline
-PluralForm::PluralForm(const std::string& stream) : expr_(implementation::Parser(stream, n_).parse()) {} //throw ParsingError
+PluralForm::PluralForm(const std::string& stream) : expr_(impl::Parser(stream, n_).parse()) {} //throw ParsingError
 }
 
 #endif //PARSE_PLURAL_H_180465845670839576

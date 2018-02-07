@@ -14,7 +14,7 @@
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
 //tree view of FolderComparison
 class TreeView
@@ -99,7 +99,7 @@ public:
     ptrdiff_t getParent(size_t row) const; //return < 0 if none
 
     void setSortDirection(ColumnTypeTree colType, bool ascending); //apply permanently!
-    std::pair<ColumnTypeTree, bool> getSortDirection() { return std::make_pair(sortColumn_, sortAscending_); }
+    std::pair<ColumnTypeTree, bool> getSortDirection() { return { sortColumn_, sortAscending_ }; }
 
 private:
     struct DirNodeImpl;
@@ -172,13 +172,14 @@ private:
 
 Zstring getShortDisplayNameForFolderPair(const AbstractPath& itemPathL, const AbstractPath& itemPathR);
 
+
 namespace treegrid
 {
-void init(Grid& grid);
-TreeView& getDataView(Grid& grid);
+void init(zen::Grid& grid);
+TreeView& getDataView(zen::Grid& grid);
 
-void setShowPercentage(Grid& grid, bool value);
-bool getShowPercentage(const Grid& grid);
+void setShowPercentage(zen::Grid& grid, bool value);
+bool getShowPercentage(const zen::Grid& grid);
 }
 }
 

@@ -22,7 +22,7 @@
 #include "fs/abstract.h"
 
 
-namespace zen
+namespace fff
 {
 using AFS = AbstractFileSystem;
 
@@ -199,9 +199,9 @@ class ContainerObject : public virtual PathInformation
     friend class FileSystemObject;
 
 public:
-    using FileList    = FixedList<FilePair>;    //MergeSides::execute() requires a structure that doesn't invalidate pointers after push_back()
-    using SymlinkList = FixedList<SymlinkPair>; //
-    using FolderList  = FixedList<FolderPair>;
+    using FileList    = zen::FixedList<FilePair>;    //MergeSides::execute() requires a structure that doesn't invalidate pointers after push_back()
+    using SymlinkList = zen::FixedList<SymlinkPair>; //
+    using FolderList  = zen::FixedList<FolderPair>;
 
     FolderPair& addSubFolder(const Zstring&          itemNameL,
                              const FolderAttributes& left,    //file exists on both sides
@@ -545,9 +545,9 @@ private:
     void flip         () override;
     void removeObjectL() override;
     void removeObjectR() override;
-    void notifySyncCfgChanged() override { syncOpBuffered_ = NoValue(); FileSystemObject::notifySyncCfgChanged(); ContainerObject::notifySyncCfgChanged(); }
+    void notifySyncCfgChanged() override { syncOpBuffered_ = zen::NoValue(); FileSystemObject::notifySyncCfgChanged(); ContainerObject::notifySyncCfgChanged(); }
 
-    mutable Opt<SyncOperation> syncOpBuffered_; //determining sync-op for directory may be expensive as it depends on child-objects => buffer
+    mutable zen::Opt<SyncOperation> syncOpBuffered_; //determining sync-op for directory may be expensive as it depends on child-objects => buffer
 
     FolderAttributes attrL_;
     FolderAttributes attrR_;

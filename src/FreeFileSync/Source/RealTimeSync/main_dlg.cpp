@@ -25,6 +25,7 @@
     #include <gtk/gtk.h>
 
 using namespace zen;
+using namespace rts;
 
 
 namespace
@@ -32,7 +33,7 @@ namespace
 }
 
 
-class DirectoryPanel : public FolderGenerated
+class rts::DirectoryPanel : public FolderGenerated
 {
 public:
     DirectoryPanel(wxWindow* parent) :
@@ -43,7 +44,7 @@ public:
     Zstring getPath() const { return folderSelector_.getPath(); }
 
 private:
-    zen::FolderSelector2 folderSelector_;
+    FolderSelector2 folderSelector_;
 };
 
 
@@ -55,7 +56,7 @@ void MainDialog::create(const Zstring& cfgFile)
 
 MainDialog::MainDialog(wxDialog* dlg, const Zstring& cfgFileName)
     : MainDlgGenerated(dlg),
-      lastRunConfigPath_(zen::getConfigDirPathPf() + Zstr("LastRun.ffs_real"))
+      lastRunConfigPath_(fff::getConfigDirPathPf() + Zstr("LastRun.ffs_real"))
 {
 
     SetIcon(getRtsIcon()); //set application icon
@@ -76,7 +77,7 @@ MainDialog::MainDialog(wxDialog* dlg, const Zstring& cfgFileName)
     dirpathFirst = std::make_unique<FolderSelector2>(*m_panelMainFolder, *m_buttonSelectFolderMain, *m_txtCtrlDirectoryMain, m_staticTextFinalPath);
 
     //--------------------------- load config values ------------------------------------
-    xmlAccess::XmlRealConfig newConfig;
+    XmlRealConfig newConfig;
 
     Zstring currentConfigFile = cfgFileName;
     if (currentConfigFile.empty())
@@ -90,7 +91,7 @@ MainDialog::MainDialog(wxDialog* dlg, const Zstring& cfgFileName)
         try
         {
             std::wstring warningMsg;
-            xmlAccess::readRealOrBatchConfig(currentConfigFile, newConfig, warningMsg); //throw FileError
+            readRealOrBatchConfig(currentConfigFile, newConfig, warningMsg); //throw FileError
 
             if (!warningMsg.empty())
                 showNotificationDialog(this, DialogInfoType::WARNING, PopupDialogCfg().setDetailInstructions(warningMsg));
@@ -131,7 +132,7 @@ MainDialog::MainDialog(wxDialog* dlg, const Zstring& cfgFileName)
 MainDialog::~MainDialog()
 {
     //save current configuration
-    const xmlAccess::XmlRealConfig currentCfg = getConfiguration();
+    const XmlRealConfig currentCfg = getConfiguration();
 
     try //write config to XML
     {
@@ -153,7 +154,7 @@ void MainDialog::onQueryEndSession()
 
 void MainDialog::OnShowHelp(wxCommandEvent& event)
 {
-    zen::displayHelpEntry(L"realtimesync", this);
+    fff::displayHelpEntry(L"realtimesync", this);
 }
 
 
@@ -193,9 +194,10 @@ void MainDialog::OnStart(wxCommandEvent& event)
 {
     Hide();
 
-    xmlAccess::XmlRealConfig currentCfg = getConfiguration();
+    XmlRealConfig currentCfg = getConfiguration();
+    const Zstring activeCfgFilePath = !equalFilePath(activeConfigFile_, lastRunConfigPath_) ? activeConfigFile_ : Zstring();
 
-    switch (rts::startDirectoryMonitor(currentCfg, xmlAccess::extractJobName(utfTo<Zstring>(currentConfigFileName_))))
+    switch (rts::startDirectoryMonitor(currentCfg, fff::extractJobName(activeCfgFilePath)))
     {
         case rts::EXIT_APP:
             Close();
@@ -212,29 +214,29 @@ void MainDialog::OnStart(wxCommandEvent& event)
 
 void MainDialog::OnConfigSave(wxCommandEvent& event)
 {
-    Zstring defaultFileName = currentConfigFileName_.empty() ? Zstr("Realtime.ffs_real") : currentConfigFileName_;
+    Zstring defaultFilePath = !activeConfigFile_.empty() && !equalFilePath(activeConfigFile_, lastRunConfigPath_) ? activeConfigFile_ : Zstr("Realtime.ffs_real");
     //attention: currentConfigFileName may be an imported *.ffs_batch file! We don't want to overwrite it with a GUI config!
-    if (endsWith(defaultFileName, Zstr(".ffs_batch"), CmpFilePath()))
-        defaultFileName = beforeLast(defaultFileName, Zstr("."), IF_MISSING_RETURN_NONE) + Zstr(".ffs_real");
+    if (endsWith(defaultFilePath, Zstr(".ffs_batch"), CmpFilePath()))
+        defaultFilePath = beforeLast(defaultFilePath, Zstr("."), IF_MISSING_RETURN_NONE) + Zstr(".ffs_real");
 
     wxFileDialog filePicker(this,
                             wxString(),
                             //OS X really needs dir/file separated like this:
-                            utfTo<wxString>(beforeLast(defaultFileName, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE)), //default dir
-                            utfTo<wxString>(afterLast (defaultFileName, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL)), //default file
+                            utfTo<wxString>(beforeLast(defaultFilePath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE)), //default dir
+                            utfTo<wxString>(afterLast (defaultFilePath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL)), //default file
                             wxString(L"RealTimeSync (*.ffs_real)|*.ffs_real") + L"|" +_("All files") + L" (*.*)|*",
                             wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (filePicker.ShowModal() != wxID_OK)
         return;
 
-    const Zstring newFileName = utfTo<Zstring>(filePicker.GetPath());
+    const Zstring targetFilePath = utfTo<Zstring>(filePicker.GetPath());
 
     //write config to XML
-    const xmlAccess::XmlRealConfig currentCfg = getConfiguration();
+    const XmlRealConfig currentCfg = getConfiguration();
     try
     {
-        writeConfig(currentCfg, newFileName); //throw FileError
-        setLastUsedConfig(newFileName);
+        writeConfig(currentCfg, targetFilePath); //throw FileError
+        setLastUsedConfig(targetFilePath);
     }
     catch (const FileError& e)
     {
@@ -245,21 +247,22 @@ void MainDialog::OnConfigSave(wxCommandEvent& event)
 
 void MainDialog::loadConfig(const Zstring& filepath)
 {
-    xmlAccess::XmlRealConfig newConfig;
+    XmlRealConfig newConfig;
 
-    try
-    {
-        std::wstring warningMsg;
-        xmlAccess::readRealOrBatchConfig(filepath, newConfig, warningMsg); //throw FileError
+    if (!filepath.empty())
+        try
+        {
+            std::wstring warningMsg;
+            readRealOrBatchConfig(filepath, newConfig, warningMsg); //throw FileError
 
-        if (!warningMsg.empty())
-            showNotificationDialog(this, DialogInfoType::WARNING, PopupDialogCfg().setDetailInstructions(warningMsg));
-    }
-    catch (const FileError& e)
-    {
-        showNotificationDialog(this, DialogInfoType::ERROR2, PopupDialogCfg().setDetailInstructions(e.toString()));
-        return;
-    }
+            if (!warningMsg.empty())
+                showNotificationDialog(this, DialogInfoType::WARNING, PopupDialogCfg().setDetailInstructions(warningMsg));
+        }
+        catch (const FileError& e)
+        {
+            showNotificationDialog(this, DialogInfoType::ERROR2, PopupDialogCfg().setDetailInstructions(e.toString()));
+            return;
+        }
 
     setConfiguration(newConfig);
     setLastUsedConfig(filepath);
@@ -268,25 +271,31 @@ void MainDialog::loadConfig(const Zstring& filepath)
 
 void MainDialog::setLastUsedConfig(const Zstring& filepath)
 {
-    //set title
-    if (filepath == lastRunConfigPath_)
-    {
-        SetTitle(wxString(L"RealTimeSync ") + zen::ffsVersion + SPACED_DASH + _("Automated Synchronization"));
-        currentConfigFileName_.clear();
-    }
+    activeConfigFile_ = filepath;
+
+    const Zstring activeCfgFilePath = !equalFilePath(activeConfigFile_, lastRunConfigPath_) ? activeConfigFile_ : Zstring();
+
+    if (!activeCfgFilePath.empty())
+        SetTitle(utfTo<wxString>(activeCfgFilePath));
     else
-    {
-        SetTitle(utfTo<wxString>(filepath));
-        currentConfigFileName_ = filepath;
-    }
+        SetTitle(wxString(L"RealTimeSync ") + fff::ffsVersion + SPACED_DASH + _("Automated Synchronization"));
+
+}
+
+
+void MainDialog::OnConfigNew(wxCommandEvent& event)
+{
+    loadConfig({});
 }
 
 
 void MainDialog::OnConfigLoad(wxCommandEvent& event)
 {
+    const Zstring activeCfgFilePath = !equalFilePath(activeConfigFile_, lastRunConfigPath_) ? activeConfigFile_ : Zstring();
+
     wxFileDialog filePicker(this,
                             wxString(),
-                            utfTo<wxString>(beforeLast(currentConfigFileName_, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE)), //default dir
+                            utfTo<wxString>(beforeLast(activeCfgFilePath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE)), //default dir
                             wxString(), //default file
                             wxString(L"RealTimeSync (*.ffs_real; *.ffs_batch)|*.ffs_real;*.ffs_batch") + L"|" +_("All files") + L" (*.*)|*",
                             wxFD_OPEN);
@@ -303,7 +312,7 @@ void MainDialog::onFilesDropped(FileDropEvent& event)
 }
 
 
-void MainDialog::setConfiguration(const xmlAccess::XmlRealConfig& cfg)
+void MainDialog::setConfiguration(const XmlRealConfig& cfg)
 {
     //clear existing folders
     dirpathFirst->setPath(Zstring());
@@ -326,9 +335,9 @@ void MainDialog::setConfiguration(const xmlAccess::XmlRealConfig& cfg)
 }
 
 
-xmlAccess::XmlRealConfig MainDialog::getConfiguration()
+XmlRealConfig MainDialog::getConfiguration()
 {
-    xmlAccess::XmlRealConfig output;
+    XmlRealConfig output;
 
     output.directories.push_back(utfTo<Zstring>(dirpathFirst->getPath()));
     for (const DirectoryPanel* dne : dirpathsExtra)

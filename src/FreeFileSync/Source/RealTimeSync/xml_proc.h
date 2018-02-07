@@ -12,7 +12,7 @@
 #include <zen/zstring.h>
 #include <wx/language.h>
 
-namespace xmlAccess
+namespace rts
 {
 struct XmlRealConfig
 {
@@ -26,7 +26,7 @@ void writeConfig(const XmlRealConfig& config, const Zstring& filepath); //throw 
 
 
 //reuse (some of) FreeFileSync's xml files
-void readRealOrBatchConfig(const Zstring& filepath, xmlAccess::XmlRealConfig& config, std::wstring& warningMsg); //throw FileError
+void readRealOrBatchConfig(const Zstring& filepath, XmlRealConfig& config, std::wstring& warningMsg); //throw FileError
 
 wxLanguage getProgramLanguage();
 }

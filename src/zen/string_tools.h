@@ -27,6 +27,7 @@ template <class Char> bool isDigit     (Char c); //not exactly the same as "std:
 template <class Char> bool isHexDigit  (Char c);
 template <class Char> bool isAsciiAlpha(Char c);
 template <class Char> Char asciiToLower(Char c);
+template <class Char> Char asciiToUpper(Char c);
 
 //case-sensitive comparison (compile-time correctness:  use different number of arguments as STL comparison predicates!)
 struct CmpBinary { template <class Char> int operator()(const Char* lhs, size_t lhsLen, const Char* rhs, size_t rhsLen) const; };
@@ -155,6 +156,15 @@ Char asciiToLower(Char c)
 {
     if (static_cast<Char>('A') <= c && c <= static_cast<Char>('Z'))
         return static_cast<Char>(c - static_cast<Char>('A') + static_cast<Char>('a'));
+    return c;
+}
+
+
+template <class Char> inline
+Char asciiToUpper(Char c)
+{
+    if (static_cast<Char>('a') <= c && c <= static_cast<Char>('z'))
+        return static_cast<Char>(c - static_cast<Char>('a') + static_cast<Char>('A'));
     return c;
 }
 
@@ -740,7 +750,7 @@ std::pair<char, char> hexify(unsigned char c, bool upperCase)
         else
             return static_cast<char>('a' + (num - 10));
     };
-    return std::make_pair(hexifyDigit(c / 16), hexifyDigit(c % 16));
+    return { hexifyDigit(c / 16), hexifyDigit(c % 16) };
 }
 
 

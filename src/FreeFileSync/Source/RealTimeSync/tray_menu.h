@@ -18,7 +18,7 @@ enum AbortReason
     SHOW_GUI,
     EXIT_APP
 };
-AbortReason startDirectoryMonitor(const xmlAccess::XmlRealConfig& config, const wxString& jobname); //jobname may be empty
+AbortReason startDirectoryMonitor(const XmlRealConfig& config, const wxString& jobname); //jobname may be empty
 }
 
 #endif //TRAY_MENU_H_3967857420987534253245

@@ -13,7 +13,7 @@
 
 namespace zen
 {
-    const char LINE_BREAK[] = "\n"; //since OS X apple uses newline, too
+    const char LINE_BREAK[] = "\n"; //since OS X Apple uses newline, too
 
 /*
 OS-buffered file IO optimized for

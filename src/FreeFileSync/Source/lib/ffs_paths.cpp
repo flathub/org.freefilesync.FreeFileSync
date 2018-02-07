@@ -25,14 +25,14 @@ Zstring getExecutablePathPf() //directory containing executable WITH path separa
 
 
 
-bool zen::isPortableVersion()
+bool fff::isPortableVersion()
 {
     return !endsWith(getExecutablePathPf(), "/bin/");  //this check is a bit lame...
 
 }
 
 
-Zstring zen::getResourceDirPf()
+Zstring fff::getResourceDirPf()
 {
     //make independent from wxWidgets global variable "appname"; support being called by RealTimeSync
     auto appName = wxTheApp->GetAppName();
@@ -46,7 +46,7 @@ Zstring zen::getResourceDirPf()
 }
 
 
-Zstring zen::getConfigDirPathPf()
+Zstring fff::getConfigDirPathPf()
 {
     //make independent from wxWidgets global variable "appname"; support being called by RealTimeSync
     auto appName = wxTheApp->GetAppName();
@@ -69,7 +69,7 @@ Zstring zen::getConfigDirPathPf()
 
 
 //this function is called by RealTimeSync!!!
-Zstring zen::getFreeFileSyncLauncherPath()
+Zstring fff::getFreeFileSyncLauncherPath()
 {
     return getExecutablePathPf() + Zstr("FreeFileSync");
 

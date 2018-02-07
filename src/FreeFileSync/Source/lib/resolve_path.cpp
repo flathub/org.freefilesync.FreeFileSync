@@ -32,8 +32,8 @@ Opt<Zstring> getEnvironmentVar(const Zstring& name)
     trim(value); //remove leading, trailing blanks
 
     //remove leading, trailing double-quotes
-    if (startsWith(value, Zstr("\"")) &&
-        endsWith  (value, Zstr("\"")) &&
+    if (startsWith(value, Zstr('\"')) &&
+        endsWith  (value, Zstr('\"')) &&
         value.length() >= 2)
         value = Zstring(value.c_str() + 1, value.length() - 2);
 
@@ -124,7 +124,7 @@ const Zchar MACRO_SEP = Zstr('%');
 }
 
 //returns expanded or original string
-Zstring zen::expandMacros(const Zstring& text)
+Zstring fff::expandMacros(const Zstring& text)
 {
     if (contains(text, MACRO_SEP))
     {
@@ -173,7 +173,6 @@ Zstring expandVolumeName(Zstring pathPhrase)  // [volname]:\folder       [volnam
     }
     return pathPhrase;
 }
-}
 
 
 void getDirectoryAliasesRecursive(const Zstring& pathPhrase, std::set<Zstring, LessFilePath>& output)
@@ -205,15 +204,16 @@ void getDirectoryAliasesRecursive(const Zstring& pathPhrase, std::set<Zstring, L
 
     //4. replace (all) macros: %UserProfile% -> C:\Users\<user>
     {
-        const Zstring pathExp = expandMacros(pathPhrase);
+        const Zstring pathExp = fff::expandMacros(pathPhrase);
         if (pathExp != pathPhrase)
             if (output.insert(pathExp).second)
                 getDirectoryAliasesRecursive(pathExp, output); //recurse!
     }
 }
+}
 
 
-std::vector<Zstring> zen::getDirectoryAliases(const Zstring& folderPathPhrase)
+std::vector<Zstring> fff::getDirectoryAliases(const Zstring& folderPathPhrase)
 {
     const Zstring dirPath = trimCpy(folderPathPhrase, true, false);
     if (dirPath.empty())
@@ -230,7 +230,7 @@ std::vector<Zstring> zen::getDirectoryAliases(const Zstring& folderPathPhrase)
 
 
 //coordinate changes with acceptsFolderPathPhraseNative()!
-Zstring zen::getResolvedFilePath(const Zstring& pathPhrase) //noexcept
+Zstring fff::getResolvedFilePath(const Zstring& pathPhrase) //noexcept
 {
     Zstring path = pathPhrase;
 

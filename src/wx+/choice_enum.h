@@ -33,7 +33,6 @@ Update enum tooltips (after user changed selection):
     updateTooltipEnumVal(enumDescrMap, *m_choiceHandleError);
 */
 
-
 namespace zen
 {
 template <class Enum>
@@ -41,7 +40,7 @@ struct EnumDescrList
 {
     EnumDescrList& add(Enum value, const wxString& text, const wxString& tooltip = {})
     {
-        descrList.emplace_back(value, std::make_pair(text, tooltip));
+        descrList.push_back({ value, { text, tooltip } });
         return *this;
     }
     using DescrList = std::vector<std::pair<Enum, std::pair<wxString, wxString>>>;

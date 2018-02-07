@@ -118,6 +118,18 @@
 <source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
 <target>Wird dieser Fehler ignoriert, werden die Ordner als leer angesehen. Fehlende Ordner werden bei Bedarf automatisch erstellt.</target>
 
+<source>Comparison finished:</source>
+<target>Vergleich abgeschlossen:</target>
+
+<source>
+<pluralform>1 item found</pluralform>
+<pluralform>%x items found</pluralform>
+</source>
+<target>
+<pluralform>1 Element gefunden</pluralform>
+<pluralform>%x Elemente gefunden</pluralform>
+</target>
+
 <source>File %x has an invalid date.</source>
 <target>Die Datei %x hat ein ungültiges Datum.</target>
 
@@ -177,9 +189,6 @@
 
 <source>Using non-default global settings:</source>
 <target>Nicht dem Standard entsprechende globale Einstellungen:</target>
-
-<source>Starting comparison</source>
-<target>Starte Vergleich</target>
 
 <source>A folder input field is empty.</source>
 <target>Ein Ordnereingabefeld ist leer.</target>
@@ -321,14 +330,14 @@ Tatsächlich: %y bytes
 <source>Unable to move %x to the recycle bin.</source>
 <target>%x kann nicht in den Papierkorb verschoben werden.</target>
 
+<source>Cannot find %x.</source>
+<target>%x wurde nicht gefunden.</target>
+
 <source>Cannot open file %x.</source>
 <target>Die Datei %x kann nicht geöffnet werden.</target>
 
 <source>Cannot find device %x.</source>
 <target>Das Gerät %x wurde nicht gefunden.</target>
-
-<source>Cannot find %x.</source>
-<target>%x wurde nicht gefunden.</target>
 
 <source>Type of item %x is not supported:</source>
 <target>Der Typ des Elements %x wird nicht unterstützt:</target>
@@ -435,6 +444,9 @@ Tatsächlich: %y bytes
 <source>Lock owner:</source>
 <target>Sperreigentümer:</target>
 
+<source>Detecting abandoned lock...</source>
+<target>Ermittle aufgegebene Sperre...</target>
+
 <source>
 <pluralform>1 sec</pluralform>
 <pluralform>%x sec</pluralform>
@@ -443,9 +455,6 @@ Tatsächlich: %y bytes
 <pluralform>1 Sek.</pluralform>
 <pluralform>%x Sek.</pluralform>
 </target>
-
-<source>Detecting abandoned lock...</source>
-<target>Ermittle aufgegebene Sperre...</target>
 
 <source>Items processed:</source>
 <target>Verarbeitete Elemente:</target>
@@ -501,9 +510,6 @@ Tatsächlich: %y bytes
 <source>Volume name %x is not part of file path %y.</source>
 <target>Laufwerksname %x ist kein Teil des Dateipfades %y.</target>
 
-<source>Stop requested: Waiting for current operation to finish...</source>
-<target>Unterbrechung wurde eingeleitet: Warte bis der aktuelle Vorgang beendet ist...</target>
-
 <source>Unable to create time stamp for versioning:</source>
 <target>Der Zeitstempel für die Versionierung kann nicht erstellt werden:</target>
 
@@ -515,6 +521,9 @@ Tatsächlich: %y bytes
 
 <source>Select a folder</source>
 <target>Ordner auswählen</target>
+
+<source>&New</source>
+<target>&Neu</target>
 
 <source>&Open...</source>
 <target>Ö&ffnen...</target>
@@ -731,26 +740,23 @@ Die Befehlszeile wird ausgelöst, wenn:
 <source>job name</source>
 <target>Auftragsname</target>
 
-<source>Show summary</source>
-<target>Zusammenfassung zeigen</target>
+<source>System: Sleep</source>
+<target>System: Energie sparen</target>
 
-<source>Sleep</source>
-<target>Energie sparen</target>
+<source>System: Shut down</source>
+<target>System: Herunterfahren</target>
 
-<source>Shut down</source>
-<target>Herunterfahren</target>
-
-<source>Synchronization stopped</source>
-<target>Synchronisation unterbrochen</target>
+<source>Cleaning up old log files...</source>
+<target>Bereinige alte Protokolldateien...</target>
 
 <source>Stopped</source>
-<target>Unterbrochen</target>
+<target>Gestoppt</target>
 
-<source>Synchronization completed with errors</source>
-<target>Synchronisation mit Fehlern abgeschlossen</target>
+<source>Completed with errors</source>
+<target>Mit Fehlern abgeschlossen</target>
 
-<source>Synchronization completed with warnings</source>
-<target>Synchronisation mit Warnungen abgeschlossen</target>
+<source>Completed with warnings</source>
+<target>Mit Warnungen abgeschlossen</target>
 
 <source>Warning</source>
 <target>Warnung</target>
@@ -758,14 +764,11 @@ Die Befehlszeile wird ausgelöst, wenn:
 <source>Nothing to synchronize</source>
 <target>Es gibt nichts zu synchronisieren</target>
 
-<source>Synchronization completed successfully</source>
-<target>Synchronisation erfolgreich abgeschlossen</target>
+<source>Completed</source>
+<target>Fertig</target>
 
 <source>Executing command %x</source>
 <target>Führe Befehl aus: %x</target>
-
-<source>Cleaning up old log files...</source>
-<target>Bereinige alte Protokolldateien...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
 <target>Sie können auf FreeFileSyncs Hauptfenster wechseln, um das Problem zu beheben.</target>
@@ -782,14 +785,8 @@ Die Befehlszeile wird ausgelöst, wenn:
 <source>Switching to FreeFileSync's main window</source>
 <target>Wechsle auf FreeFileSyncs Hauptfenster</target>
 
-<source>
-<pluralform>Automatic retry in 1 second...</pluralform>
-<pluralform>Automatic retry in %x seconds...</pluralform>
-</source>
-<target>
-<pluralform>Automatische Wiederholung in 1 Sekunde...</pluralform>
-<pluralform>Automatische Wiederholung in %x Sekunden...</pluralform>
-</target>
+<source>Automatic retry</source>
+<target>Automatische Wiederholung</target>
 
 <source>Ignore &all</source>
 <target>&Alle ignorieren</target>
@@ -883,9 +880,6 @@ Die Befehlszeile wird ausgelöst, wenn:
 
 <source>Please select a folder on a local file system, network or an MTP device.</source>
 <target>Bitte wählen Sie einen Ordner auf einem lokalen Dateisystem, Netzwerk oder MTP Gerät.</target>
-
-<source>&New</source>
-<target>&Neu</target>
 
 <source>&Save</source>
 <target>&Speichern</target>
@@ -1207,6 +1201,9 @@ Die Befehlszeile wird ausgelöst, wenn:
 <source>When finished:</source>
 <target>Am Ende:</target>
 
+<source>Auto-Close</source>
+<target>Automatisch schließen</target>
+
 <source>Close</source>
 <target>Schließen</target>
 
@@ -1219,6 +1216,9 @@ Die Befehlszeile wird ausgelöst, wenn:
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
 <target>Erstellt eine Batchdatei für die unbeaufsichtigte Synchronisation. Zum Starten die Datei doppelklicken oder in einen Taskplaner eintragen: %x</target>
 
+<source>Progress dialog:</source>
+<target>Fortschrittsdialog:</target>
+
 <source>Run minimized</source>
 <target>Minimiert ausführen</target>
 
@@ -1229,7 +1229,7 @@ Die Befehlszeile wird ausgelöst, wenn:
 <target>&Abbrechen</target>
 
 <source>Stop synchronization at first error</source>
-<target>Synchronisation beim ersten Fehler unterbrechen</target>
+<target>Synchronisation beim ersten Fehler stoppen</target>
 
 <source>Save log:</source>
 <target>Protokoll speichern:</target>
@@ -1597,6 +1597,9 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <source>Paused</source>
 <target>Angehalten</target>
 
+<source>Stop requested...</source>
+<target>Wird gestoppt...</target>
+
 <source>Initializing...</source>
 <target>Initialisiere...</target>
 
@@ -1605,9 +1608,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 
 <source>Comparing content...</source>
 <target>Vergleiche Dateiinhalt...</target>
-
-<source>Completed</source>
-<target>Fertig</target>
 
 <source>Info</source>
 <target>Info</target>
@@ -1619,7 +1619,7 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 <target>&Fortfahren</target>
 
 <source>Progress</source>
-<target>Verlauf</target>
+<target>Fortschritt</target>
 
 <source>Log</source>
 <target>Protokoll</target>
@@ -1689,12 +1689,6 @@ Dadurch wird ein konsistenter Datenstand auch bei schweren Fehlern garantiert.
 
 <source>Parameters for opposite side</source>
 <target>Parameter für gegenüberliegende Seite</target>
-
-<source>Show hidden dialogs and warning messages again?</source>
-<target>Sollen versteckte Fenster und Warnmeldungen wieder gezeigt werden?</target>
-
-<source>&Show</source>
-<target>&Zeigen</target>
 
 <source>Downloading update...</source>
 <target>Lade Aktualisierung...</target>

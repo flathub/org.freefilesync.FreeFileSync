@@ -26,7 +26,7 @@
     #include <gtk/gtk.h>
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace fff;
 
 
 IMPLEMENT_APP(Application)
@@ -67,7 +67,7 @@ bool Application::OnInit()
     try
     {
         //tentatively set program language to OS default until GlobalSettings.xml is read later
-        setLanguage(xmlAccess::XmlGlobalSettings().programLanguage); //throw FileError
+        setLanguage(XmlGlobalSettings().programLanguage); //throw FileError
     }
     catch (const FileError&) { assert(false); }
 
@@ -356,7 +356,7 @@ void Application::launch(const std::vector<Zstring>& commandArgs)
 
     //distinguish sync scenarios:
     //---------------------------
-    const Zstring globalConfigFilePath = !globalConfigFile.empty() ? globalConfigFile : xmlAccess::getGlobalConfigFile();
+    const Zstring globalConfigFilePath = !globalConfigFile.empty() ? globalConfigFile : getGlobalConfigFile();
 
     if (configFiles.empty())
     {
@@ -462,7 +462,7 @@ void runGuiMode(const Zstring& globalConfigFilePath) { MainDialog::create(global
 
 
 void runGuiMode(const Zstring& globalConfigFilePath,
-                const xmlAccess::XmlGuiConfig& guiCfg,
+                const XmlGuiConfig& guiCfg,
                 const std::vector<Zstring>& cfgFilePaths,
                 bool startComparison)
 {
@@ -543,13 +543,14 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
 
     try //begin of synchronization process (all in one try-catch block)
     {
-        const std::chrono::system_clock::time_point batchStartTime = std::chrono::system_clock::now();
+        const std::chrono::system_clock::time_point syncStartTime = std::chrono::system_clock::now();
 
         //class handling status updates and error messages
         BatchStatusHandler statusHandler(!batchCfg.batchExCfg.runMinimized, //throw AbortProcess, BatchRequestSwitchToMainDialog
+                                         batchCfg.batchExCfg.autoCloseSummary,
                                          extractJobName(cfgFilePath),
                                          globalCfg.soundFileSyncFinished,
-                                         batchStartTime,
+                                         syncStartTime,
                                          batchCfg.batchExCfg.logFolderPathPhrase,
                                          batchCfg.batchExCfg.logfilesCountLimit,
                                          globalCfg.lastSyncsLogFileSizeMax,
@@ -570,7 +571,7 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
         std::unique_ptr<LockHolder> dirLocks;
 
         //COMPARE DIRECTORIES
-        FolderComparison cmpResult = compare(globalCfg.optDialogs,
+        FolderComparison cmpResult = compare(globalCfg.warnDlgs,
                                              globalCfg.fileTimeTolerance,
                                              showPopupAllowed, //allowUserInteraction
                                              globalCfg.runWithBackgroundPriority,
@@ -585,7 +586,7 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
         if (syncProcessCfg.size() != cmpResult.size())
             throw std::logic_error("Contract violation! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__));
 
-        synchronize(batchStartTime,
+        synchronize(syncStartTime,
                     globalCfg.verifyFileCopy,
                     globalCfg.copyLockedFiles,
                     globalCfg.copyFilePermissions,
@@ -594,11 +595,11 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
                     globalCfg.folderAccessTimeout,
                     syncProcessCfg,
                     cmpResult,
-                    globalCfg.optDialogs,
+                    globalCfg.warnDlgs,
                     statusHandler); //throw ?
 
         //not cancelled? => update last sync date for the selected cfg file
-        for (xmlAccess::ConfigFileItem& cfi : globalCfg.gui.mainDlg.cfgFileHistory)
+        for (ConfigFileItem& cfi : globalCfg.gui.mainDlg.cfgFileHistory)
             if (equalFilePath(cfi.filePath, cfgFilePath))
             {
                 cfi.lastSyncTime = std::time(nullptr);
@@ -609,12 +610,12 @@ void runBatchMode(const Zstring& globalConfigFilePath, const XmlBatchConfig& bat
     catch (BatchRequestSwitchToMainDialog&)
     {
         //open new toplevel window *after* progress dialog is gone => run on main event loop
-        return MainDialog::create(globalConfigFilePath, &globalCfg, xmlAccess::convertBatchToGui(batchCfg), { cfgFilePath }, true /*startComparison*/);
+        return MainDialog::create(globalConfigFilePath, &globalCfg, convertBatchToGui(batchCfg), { cfgFilePath }, true /*startComparison*/);
     }
 
     try //save global settings to XML: e.g. ignored warnings
     {
-        xmlAccess::writeConfig(globalCfg, globalConfigFilePath); //FileError
+        writeConfig(globalCfg, globalConfigFilePath); //FileError
     }
     catch (const FileError& e)
     {

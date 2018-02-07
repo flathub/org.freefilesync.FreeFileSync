@@ -12,9 +12,10 @@
 #include <iterator>
 
 using namespace zen;
+using namespace fff;
 
 
-bool zen::operator<(const HardFilter& lhs, const HardFilter& rhs)
+bool fff::operator<(const HardFilter& lhs, const HardFilter& rhs)
 {
     if (typeid(lhs) != typeid(rhs))
         return typeid(lhs).before(typeid(rhs)); //in worst case, order is guaranteed to be stable only during each program run
@@ -217,7 +218,7 @@ bool matchesMaskBegin(const Zstring& name, const std::vector<Zstring>& masks)
 }
 
 
-std::vector<Zstring> zen::splitByDelimiter(const Zstring& filterString)
+std::vector<Zstring> fff::splitByDelimiter(const Zstring& filterString)
 {
     //delimiters may be FILTER_ITEM_SEPARATOR or '\n'
     std::vector<Zstring> output;

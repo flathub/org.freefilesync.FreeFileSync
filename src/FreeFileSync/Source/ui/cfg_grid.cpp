@@ -15,11 +15,12 @@
 #include "../lib/ffs_paths.h"
 
 using namespace zen;
+using namespace fff;
 
 
-Zstring zen::getLastRunConfigPath()
+Zstring fff::getLastRunConfigPath()
 {
-    return zen::getConfigDirPathPf() + Zstr("LastRun.ffs_gui");
+    return getConfigDirPathPf() + Zstr("LastRun.ffs_gui");
 }
 
 
@@ -170,6 +171,25 @@ public:
 private:
     size_t getRowCount() const override { return cfgView_.getRowCount(); }
 
+    static int getDaysPast(time_t last)
+    {
+        time_t now = std::time(nullptr);
+
+        const TimeComp tcNow  = getLocalTime(now);
+        const TimeComp tcLast = getLocalTime(last);
+        if (tcNow  == TimeComp() || tcLast  == TimeComp())
+        {
+            assert(false);
+            return 0;
+        }
+
+        //truncate down to midnight => incorrect during DST switches, but doesn't matter due to numeric::round() below
+        now  -= tcNow .hour * 3600 + tcNow .minute * 60 + tcNow .second;
+        last -= tcLast.hour * 3600 + tcLast.minute * 60 + tcLast.second;
+
+        return numeric::round((now - last) / (24.0 * 3600));
+    }
+
     std::wstring getValue(size_t row, ColumnType colType) const override
     {
         if (const ConfigView::Details* item = cfgView_.getItem(row))
@@ -186,7 +206,7 @@ private:
                     if (item->lastSyncTime == 0)
                         return std::wstring(1, EN_DASH);
 
-                    const int daysPast = numeric::round((std::time(nullptr) - item->lastSyncTime) / (24.0 * 3600));
+                    const int daysPast = getDaysPast(item->lastSyncTime);
                     if (daysPast == 0)
                         return _("Today");
 
@@ -240,11 +260,9 @@ private:
                 {
                     wxDCTextColourChanger dummy2(dc);
                     if (syncOverdueDays_ > 0)
-                    {
-                        const int daysPast = numeric::round((std::time(nullptr) - item->lastSyncTime) / (24.0 * 3600));
-                        if (daysPast >= syncOverdueDays_)
+                        if (getDaysPast(item->lastSyncTime) >= syncOverdueDays_)
                             dummy2.Set(*wxRED);
-                    }
+
                     drawCellText(dc, rectTmp, getValue(row, colType), wxALIGN_CENTER);
                 }
                 break;

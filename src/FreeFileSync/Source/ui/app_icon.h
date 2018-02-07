@@ -11,11 +11,12 @@
 #include <wx+/image_resources.h>
 
 
-namespace zen
+namespace fff
 {
 inline
 wxIcon getFfsIcon()
 {
+    using namespace zen;
     //wxWidgets' bitmap to icon conversion on OS X can only deal with very specific sizes => check on all platforms!
     assert(getResourceImage(L"FreeFileSync").GetWidth () == getResourceImage(L"FreeFileSync").GetHeight() &&
            getResourceImage(L"FreeFileSync").GetWidth() % 128 == 0);

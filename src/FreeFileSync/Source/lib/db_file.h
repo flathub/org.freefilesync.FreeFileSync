@@ -11,7 +11,7 @@
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
 const Zchar SYNC_DB_FILE_ENDING[] = Zstr(".ffs_db"); //don't use Zstring as global constant: avoid static initialization order problem in global namespace!
 
@@ -21,7 +21,7 @@ struct InSyncDescrFile //subset of FileAttributes
         modTime(modTimeIn),
         fileId(idIn) {}
 
-    time_t modTime;
+    time_t modTime = 0;
     AFS::FileId fileId; // == file id: optional! (however, always set on Linux, and *generally* available on Windows)
 };
 
@@ -29,7 +29,7 @@ struct InSyncDescrLink
 {
     explicit InSyncDescrLink(time_t modTimeIn) : modTime(modTimeIn) {}
 
-    time_t modTime;
+    time_t modTime = 0;
 };
 
 
@@ -39,8 +39,8 @@ struct InSyncFile
     InSyncFile(const InSyncDescrFile& l, const InSyncDescrFile& r, CompareVariant cv, uint64_t fileSizeIn) : left(l), right(r), cmpVar(cv), fileSize(fileSizeIn) {}
     InSyncDescrFile left;  //support flip()!
     InSyncDescrFile right; //
-    CompareVariant cmpVar; //the one active while finding "file in sync"
-    uint64_t fileSize; //file size must be identical on both sides!
+    CompareVariant cmpVar = CompareVariant::TIME_SIZE; //the one active while finding "file in sync"
+    uint64_t fileSize = 0; //file size must be identical on both sides!
 };
 
 struct InSyncSymlink
@@ -48,7 +48,7 @@ struct InSyncSymlink
     InSyncSymlink(const InSyncDescrLink& l, const InSyncDescrLink& r, CompareVariant cv) : left(l), right(r), cmpVar(cv) {}
     InSyncDescrLink left;
     InSyncDescrLink right;
-    CompareVariant cmpVar;
+    CompareVariant cmpVar = CompareVariant::TIME_SIZE;
 };
 
 struct InSyncFolder
@@ -62,7 +62,7 @@ struct InSyncFolder
     };
     InSyncFolder(InSyncStatus statusIn) : status(statusIn) {}
 
-    InSyncStatus status;
+    InSyncStatus status = DIR_STATUS_STRAW_MAN;
 
     //------------------------------------------------------------------
     using FolderList  = std::map<Zstring, InSyncFolder,  LessFilePath>; //

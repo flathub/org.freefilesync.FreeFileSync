@@ -14,7 +14,7 @@
 #include "process_callback.h"
 
 
-namespace zen
+namespace fff
 {
 void swapGrids(const MainConfiguration& config, FolderComparison& folderCmp); //throw FileError
 
@@ -48,8 +48,8 @@ struct PathDependency
     AbstractPath basePathChild;
     Zstring relPath; //filled if child path is sub folder of parent path; empty if child path == parent path
 };
-Opt<PathDependency> getPathDependency(const AbstractPath& basePathL, const HardFilter& filterL,
-                                      const AbstractPath& basePathR, const HardFilter& filterR);
+zen::Opt<PathDependency> getPathDependency(const AbstractPath& basePathL, const HardFilter& filterL,
+                                           const AbstractPath& basePathR, const HardFilter& filterR);
 
 std::pair<std::wstring, int> getSelectedItemsAsString( //returns string with item names and total count of selected(!) items, NOT total files/dirs!
     const std::vector<const FileSystemObject*>& selectionLeft,   //all pointers need to be bound!
@@ -61,7 +61,7 @@ void copyToAlternateFolder(const std::vector<const FileSystemObject*>& rowsToCop
                            const Zstring& targetFolderPathPhrase,
                            bool keepRelPaths,
                            bool overwriteIfExists,
-                           xmlAccess::OptionalDialogs& warnings,
+                           WarningDialogs& warnings,
                            ProcessCallback& callback);
 
 //manual deletion of files on main grid

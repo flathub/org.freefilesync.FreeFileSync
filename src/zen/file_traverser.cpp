@@ -55,7 +55,7 @@ void zen::traverseFolder(const Zstring& dirPath,
                 continue;
 
             const Zstring& itemName = itemNameRaw;
-            if (itemName.empty()) //checks result of osx::normalizeUtfForPosix, too!
+            if (itemName.empty()) //checks result of normalizeUtfForPosix, too!
                 throw FileError(replaceCpy(_("Cannot read directory %x."), L"%x", fmtPath(dirPath)), L"readdir_r: Data corruption; item with empty name.");
 
             const Zstring& itemPath = appendSeparator(dirPath) + itemName;

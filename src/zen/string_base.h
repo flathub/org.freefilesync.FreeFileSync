@@ -13,8 +13,8 @@
 #include <atomic>
 #include "string_tools.h"
 
-//Zbase - a policy based string class optimizing performance and flexibility
 
+//Zbase - a policy based string class optimizing performance and flexibility
 namespace zen
 {
 /*

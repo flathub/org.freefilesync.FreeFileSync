@@ -31,7 +31,7 @@ template <class T> T  clampCpy(T val, T minVal, T maxVal);
 template <class T, class InputIterator> //precondition: range must be sorted!
 auto nearMatch(const T& val, InputIterator first, InputIterator last);
 
-int round(double d); //"little rounding function"
+int64_t round(double d); //"little rounding function"
 
 template <class N, class D>
 auto integerDivideRoundUp(N numerator, D denominator);
@@ -182,7 +182,7 @@ std::pair<InputIterator, InputIterator> minMaxElement(InputIterator first, Input
             }
         }
     }
-    return std::make_pair(lowest, largest);
+    return { lowest, largest };
 }
 
 
@@ -220,20 +220,20 @@ bool isNull(T value)
 
 
 inline
-int round(double d)
+int64_t round(double d)
 {
-    assert(d - 0.5 >= std::numeric_limits<int>::min() && //if double is larger than what int can represent:
-           d + 0.5 <= std::numeric_limits<int>::max());  //=> undefined behavior!
-    return static_cast<int>(d < 0 ? d - 0.5 : d + 0.5);
+    assert(d - 0.5 >= std::numeric_limits<int64_t>::min() && //if double is larger than what int can represent:
+           d + 0.5 <= std::numeric_limits<int64_t>::max());  //=> undefined behavior!
+    return static_cast<int64_t>(d < 0 ? d - 0.5 : d + 0.5);
 }
 
 
 template <class N, class D> inline
 auto integerDivideRoundUp(N numerator, D denominator)
 {
-    static_assert(std::is_integral<N>::value && std::is_unsigned<N>::value, "");
-    static_assert(std::is_integral<D>::value && std::is_unsigned<D>::value, "");
-    assert(denominator > 0);
+    static_assert(std::is_integral<N>::value, "");
+    static_assert(std::is_integral<D>::value, "");
+    assert(numerator > 0 && denominator > 0);
     return (numerator + denominator - 1) / denominator;
 }
 

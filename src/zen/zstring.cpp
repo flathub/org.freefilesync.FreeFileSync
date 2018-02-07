@@ -44,18 +44,17 @@ int compareNoCaseUtf8(const char* lhs, size_t lhsLen, const char* rhs, size_t rh
     //- strncasecmp implements ASCII CI-comparsion only! => signature is broken for UTF8-input; toupper() similarly doesn't support Unicode
     //- wcsncasecmp: https://opensource.apple.com/source/Libc/Libc-763.12/string/wcsncasecmp-fbsd.c
     // => re-implement comparison based on towlower() to avoid memory allocations
-    using namespace zen::implementation;
 
-    UtfDecoder<char> decL(lhs, lhsLen);
-    UtfDecoder<char> decR(rhs, rhsLen);
+    impl::UtfDecoder<char> decL(lhs, lhsLen);
+    impl::UtfDecoder<char> decR(rhs, rhsLen);
     for (;;)
     {
-        const Opt<CodePoint> cpL = decL.getNext();
-        const Opt<CodePoint> cpR = decR.getNext();
+        const Opt<impl::CodePoint> cpL = decL.getNext();
+        const Opt<impl::CodePoint> cpR = decR.getNext();
         if (!cpL || !cpR)
             return static_cast<int>(!cpR) - static_cast<int>(!cpL);
 
-        static_assert(sizeof(wchar_t) == sizeof(CodePoint), "");
+        static_assert(sizeof(wchar_t) == sizeof(impl::CodePoint), "");
         const wchar_t charL = ::towlower(static_cast<wchar_t>(*cpL)); //ordering: towlower() converts to higher code points than towupper()
         const wchar_t charR = ::towlower(static_cast<wchar_t>(*cpR)); //uses LC_CTYPE category of current locale
         if (charL != charR)

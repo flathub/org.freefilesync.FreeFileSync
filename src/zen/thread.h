@@ -73,7 +73,7 @@ std::async replacement without crappy semantics:
 
 Example:
         Zstring dirpath = ...
-        auto ft = zen::runAsync([=](){ return zen::dirExists(dirpath); });
+        auto ft = zen::runAsync([=]{ return zen::dirExists(dirpath); });
         if (ft.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && ft.get())
             //dir exising
 */

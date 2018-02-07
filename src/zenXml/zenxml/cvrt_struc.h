@@ -9,6 +9,7 @@
 
 #include "dom.h"
 
+
 namespace zen
 {
 /**
@@ -30,11 +31,6 @@ template <class T> bool readStruc(const XmlElement& input, T& value);
   \param output The output XML element.
 */
 template <class T> void writeStruc(const T& value, XmlElement& output);
-
-
-
-
-
 
 
 
@@ -140,7 +136,7 @@ struct ConvertElement<T, VALUE_TYPE_STL_CONTAINER>
                 value.insert(value.end(), childVal);
             else
                 success = false;
-			//should we support insertion of partially-loaded struct??
+            //should we support insertion of partially-loaded struct??
         }
         return success;
     }

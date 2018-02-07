@@ -12,6 +12,7 @@
 #endif
 
 using namespace zen;
+using namespace fff;
 
 
 #if   defined HAVE_UBUNTU_UNITY //Ubuntu unity

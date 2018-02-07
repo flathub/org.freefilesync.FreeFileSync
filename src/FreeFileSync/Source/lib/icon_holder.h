@@ -9,9 +9,9 @@
 
 #include <memory>
 
-//used by fs/abstract.h => check carefully before adding dependencies!
 
-namespace zen
+//used by fs/abstract.h => check carefully before adding dependencies!
+namespace fff
 {
 struct ImageHolder //prepare conversion to wxImage as much as possible while staying thread-safe (in contrast to wxIcon/wxBitmap)
 {

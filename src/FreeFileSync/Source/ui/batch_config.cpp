@@ -14,10 +14,11 @@
 #include "gui_generated.h"
 #include "folder_selector.h"
 #include "../lib/help_provider.h"
+#include "../lib/generate_logfile.h"
 
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace fff;
 
 
 namespace
@@ -40,7 +41,11 @@ private:
     void OnSaveBatchJob(wxCommandEvent& event) override;
 
     void OnToggleIgnoreErrors(wxCommandEvent& event) override { updateGui(); }
-    void OnToggleRunMinimized(wxCommandEvent& event) override { updateGui(); }
+    void OnToggleRunMinimized(wxCommandEvent& event) override
+    {
+        m_checkBoxAutoClose->SetValue(m_checkBoxRunMinimized->GetValue()); //usually user wants to change both
+        updateGui();
+    }
 
     void OnHelpScheduleBatch(wxHyperlinkEvent& event) override { displayHelpEntry(L"schedule-a-batch-job", this); }
 
@@ -76,11 +81,12 @@ BatchDialog::BatchDialog(wxWindow* parent, BatchDialogConfig& dlgCfg) :
 
     logfileDir_ = std::make_unique<FolderSelector>(*m_panelLogfile, *m_buttonSelectLogFolder, *m_bpButtonSelectAltLogFolder, *m_logFolderPath, nullptr /*staticText*/, nullptr /*wxWindow*/);
 
+    logfileDir_->setBackgroundText(utfTo<std::wstring>(getDefaultLogFolderPath()));
+
     enumPostSyncAction_.
-    add(PostSyncAction::SUMMARY,  _("Show summary")).
-    add(PostSyncAction::EXIT,     replaceCpy(_("E&xit"), L"&", L"")). //reuse translation
-    add(PostSyncAction::SLEEP,    _("Sleep")).
-    add(PostSyncAction::SHUTDOWN, _("Shut down"));
+    add(PostSyncAction::NONE,     L"").
+    add(PostSyncAction::SLEEP,    _("System: Sleep")).
+    add(PostSyncAction::SHUTDOWN, _("System: Shut down"));
 
     setConfig(dlgCfg);
 
@@ -135,6 +141,7 @@ void BatchDialog::setConfig(const BatchDialogConfig& dlgCfg)
     }
 
     m_checkBoxRunMinimized->SetValue(dlgCfg.batchExCfg.runMinimized);
+    m_checkBoxAutoClose   ->SetValue(dlgCfg.batchExCfg.autoCloseSummary);
     setEnumVal(enumPostSyncAction_, *m_choicePostSyncAction, dlgCfg.batchExCfg.postSyncAction);
     logfileDir_->setPath(dlgCfg.batchExCfg.logFolderPathPhrase);
 
@@ -156,6 +163,7 @@ BatchDialogConfig BatchDialog::getConfig() const
 
     dlgCfg.batchExCfg.batchErrorDialog    = m_radioBtnErrorDialogCancel->GetValue() ? BatchErrorDialog::CANCEL : BatchErrorDialog::SHOW;
     dlgCfg.batchExCfg.runMinimized        = m_checkBoxRunMinimized->GetValue();
+    dlgCfg.batchExCfg.autoCloseSummary    = m_checkBoxAutoClose   ->GetValue();
     dlgCfg.batchExCfg.postSyncAction = getEnumVal(enumPostSyncAction_, *m_choicePostSyncAction);
     dlgCfg.batchExCfg.logFolderPathPhrase = utfTo<Zstring>(logfileDir_->getPath());
 
@@ -180,7 +188,7 @@ void BatchDialog::OnSaveBatchJob(wxCommandEvent& event)
 }
 
 
-ReturnBatchConfig::ButtonPressed zen::showBatchConfigDialog(wxWindow* parent,
+ReturnBatchConfig::ButtonPressed fff::showBatchConfigDialog(wxWindow* parent,
                                                             BatchExclusiveConfig& batchExCfg,
                                                             bool& ignoreErrors)
 {

@@ -7,6 +7,9 @@
 	<plural_definition>n == 1 ? 0 : 1</plural_definition>
 </header>
 
+<source>Cannot set directory locks for the following folders:</source>
+<target></target>
+
 <source>Both sides have changed since last synchronization.</source>
 <target>Двете страни са променени след последната синхронизация.</target>
 
@@ -53,16 +56,19 @@
 <target>Проверява достъпността на кошчето за папка %x...</target>
 
 <source>The recycle bin is not supported by the following folders. Deleted or overwritten files will not be able to be restored:</source>
-<target>Кошчето не се поддържа от следните папки. Изтритите или презаписани файлове няма да могат да се възстановяват:</target>
+<target>Кошчето не се поддържа за следните папки. Изтритите или презаписани файлове няма да могат да се възстановяват:</target>
 
 <source>An exception occurred</source>
 <target>Възникна изключение</target>
 
 <source>A directory path is expected after %x.</source>
-<target>Очаква път до директорията след %x.</target>
+<target>Очаква се път до директория след %x.</target>
 
 <source>Syntax error</source>
 <target>Синтактична грешка</target>
+
+<source>A left and a right directory path are expected after %x.</source>
+<target>Очаква се път до лява и дясна директория след %x.</target>
 
 <source>Cannot find file %x.</source>
 <target>Не е намерен файл %x.</target>
@@ -456,9 +462,6 @@ Actual: %y bytes
 <source>Error parsing file %x, row %y, column %z.</source>
 <target>Грешка при анализ на файл %x, ред %y, колона %z.</target>
 
-<source>Cannot set directory lock for %x.</source>
-<target>Не може да заключи директорията за %x.</target>
-
 <source>
 <pluralform>1 thread</pluralform>
 <pluralform>%x threads</pluralform>
@@ -796,6 +799,27 @@ The command is triggered if:
 
 <source>Serious Error</source>
 <target>Сериозна грешка</target>
+
+<source>Last session</source>
+<target>Последна сесия</target>
+
+<source>Today</source>
+<target>Днес</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 ден</pluralform>
+<pluralform>%x дена</pluralform>
+</target>
+
+<source>Name</source>
+<target>Име</target>
+
+<source>Last sync</source>
+<target>Последна синхронизация</target>
 
 <source>Folder</source>
 <target>Папка</target>
@@ -1324,6 +1348,9 @@ This guarantees a consistent state even in case of a serious error.
 <source>Activate offline</source>
 <target>Активирайте офлайн</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Маркирай конфигурациите, които не са изпълнявани в течение на повече от следния брой дни:</target>
+
 <source>Save as a Batch Job</source>
 <target>Запази като пакетна задача</target>
 
@@ -1341,6 +1368,9 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>FreeFileSync Donation Edition</source>
 <target>FreeFileSync-Дарителско-Издание</target>
+
+<source>Highlight Configurations</source>
+<target>Маркирай конфигурациите</target>
 
 <source>&Options</source>
 <target>&Опции</target>
@@ -1465,9 +1495,6 @@ This guarantees a consistent state even in case of a serious error.
 <source>Select time span...</source>
 <target>Избор на времеви интервал...</target>
 
-<source>Last session</source>
-<target>Последна сесия</target>
-
 <source>Folder Comparison and Synchronization</source>
 <target>Сравняване и синхронизация на папки</target>
 
@@ -1486,8 +1513,11 @@ This guarantees a consistent state even in case of a serious error.
 <source>Do&n't save</source>
 <target>&Не запазвай</target>
 
-<source>Remove entry from list</source>
-<target>Премахни позицията от списъка</target>
+<source>Hide configuration</source>
+<target>Скрий конфигурацията</target>
+
+<source>Highlight...</source>
+<target>Маркирай...</target>
 
 <source>Clear filter</source>
 <target>Изчисти филтъра</target>
@@ -1499,16 +1529,16 @@ This guarantees a consistent state even in case of a serious error.
 <target>Покажи файловете, съществуващи само отдясно</target>
 
 <source>Show files that are newer on left</source>
-<target>Покажи по-новите файлове отляво</target>
+<target>Покажи файловете от двете страни; файлът отляво е по-нов</target>
 
 <source>Show files that are newer on right</source>
-<target>Покажи по-новите файлове отдясно</target>
+<target>Покажи файловете от двете страни; файлът отдясно е по-нов</target>
 
 <source>Show files that are equal</source>
 <target>Покажи еднаквите файлове</target>
 
 <source>Show files that are different</source>
-<target>Покажи различаващите се файлове</target>
+<target>Покажи нееднаквите файлове</target>
 
 <source>Show conflicts</source>
 <target>Покажи конфликтите</target>
@@ -1562,7 +1592,7 @@ This guarantees a consistent state even in case of a serious error.
 <target>Файловия списък е експортиран</target>
 
 <source>Searching for program updates...</source>
-<target>Търсене на обновления на програмата...</target>
+<target>Търси обновления на програмата...</target>
 
 <source>Paused</source>
 <target>Пауза</target>
@@ -1571,7 +1601,7 @@ This guarantees a consistent state even in case of a serious error.
 <target>Инициализация...</target>
 
 <source>Scanning...</source>
-<target>Търсене на файлове...</target>
+<target>Търси файлове...</target>
 
 <source>Comparing content...</source>
 <target>Сравнява съдържанието на файлове...</target>
@@ -1699,9 +1729,6 @@ This guarantees a consistent state even in case of a serious error.
 <source>Synchronization</source>
 <target>Синхронизиране</target>
 
-<source>Today</source>
-<target>Днес</target>
-
 <source>This week</source>
 <target>Тази седмица</target>
 
@@ -1770,9 +1797,6 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>Files</source>
 <target>Файлове</target>
-
-<source>Name</source>
-<target>Име</target>
 
 <source>Percentage</source>
 <target>Процент</target>
@@ -1885,15 +1909,6 @@ This guarantees a consistent state even in case of a serious error.
 <pluralform>%x часа</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 ден</pluralform>
-<pluralform>%x дена</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Не може да зададе привилегията %x.</target>
 
@@ -1960,6 +1975,9 @@ This guarantees a consistent state even in case of a serious error.
 <source>Start menu</source>
 <target>В стартовото меню</target>
 
+<source>Send To</source>
+<target>Изпрати до</target>
+
 <source>Registering FreeFileSync file extensions</source>
 <target>Регистриране на файлови разширения за FreeFileSync</target>
 
@@ -1987,6 +2005,6 @@ This guarantees a consistent state even in case of a serious error.
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Моля, изберете локален тип инсталация или пък друга папка за инсталация.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>Режим на мълчаливо инсталиране е възможен само за FreeFileSync-Дарителско-Издание.</target>
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>Опцията %x инсталиране е възможна само за FreeFileSync-ДарителскоИздание.</target>
 

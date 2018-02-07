@@ -17,7 +17,7 @@
 #include "../lib/status_handler_impl.h"
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace fff;
 
 
 StatusHandlerTemporaryPanel::StatusHandlerTemporaryPanel(MainDialog& dlg) : mainDlg_(dlg)
@@ -122,13 +122,13 @@ void StatusHandlerTemporaryPanel::initNewPhase(int itemsTotal, int64_t bytesTota
 
     mainDlg_.compareStatus_->initNewPhase(); //call after "StatusHandler::initNewPhase"
 
-    forceUiRefresh(); //throw ?; OS X needs a full yield to update GUI and get rid of "dummy" texts
+    forceUiRefresh(); //throw X; OS X needs a full yield to update GUI and get rid of "dummy" texts
 }
 
 
 void StatusHandlerTemporaryPanel::reportInfo(const std::wstring& text)
 {
-    errorLog_.logMsg(text, TYPE_INFO); //log first!
+    errorLog_.logMsg(text, MSG_TYPE_INFO); //log first!
     StatusHandler::reportInfo(text); //throw X
 }
 
@@ -139,11 +139,11 @@ ProcessCallback::Response StatusHandlerTemporaryPanel::reportError(const std::ws
     //=> similar behavior like "ignoreErrors" which is also not used for the comparison phase in GUI mode
 
     //always, except for "retry":
-    auto guardWriteLog = zen::makeGuard<ScopeGuardRunMode::ON_EXIT>([&] { errorLog_.logMsg(errorMessage, TYPE_ERROR); });
+    auto guardWriteLog = zen::makeGuard<ScopeGuardRunMode::ON_EXIT>([&] { errorLog_.logMsg(errorMessage, MSG_TYPE_ERROR); });
 
     if (!mainDlg_.compareStatus_->getOptionIgnoreErrors())
     {
-        forceUiRefresh();
+        forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
 
         switch (showConfirmationDialog(&mainDlg_, DialogInfoType::ERROR2, PopupDialogCfg().
                                        setDetailInstructions(errorMessage),
@@ -158,7 +158,7 @@ ProcessCallback::Response StatusHandlerTemporaryPanel::reportError(const std::ws
 
             case ConfirmationButton3::DECLINE: //retry
                 guardWriteLog.dismiss();
-                errorLog_.logMsg(errorMessage + L"\n-> " + _("Retrying operation..."), TYPE_INFO); //explain why there are duplicate "doing operation X" info messages in the log!
+                errorLog_.logMsg(errorMessage + L"\n-> " + _("Retrying operation..."), MSG_TYPE_INFO); //explain why there are duplicate "doing operation X" info messages in the log!
                 return ProcessCallback::RETRY;
 
             case ConfirmationButton3::CANCEL:
@@ -176,23 +176,23 @@ ProcessCallback::Response StatusHandlerTemporaryPanel::reportError(const std::ws
 
 void StatusHandlerTemporaryPanel::reportFatalError(const std::wstring& errorMessage)
 {
-    errorLog_.logMsg(errorMessage, TYPE_FATAL_ERROR);
+    errorLog_.logMsg(errorMessage, MSG_TYPE_FATAL_ERROR);
 
-    forceUiRefresh();
+    forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
     showNotificationDialog(&mainDlg_, DialogInfoType::ERROR2, PopupDialogCfg().setTitle(_("Serious Error")).setDetailInstructions(errorMessage));
 }
 
 
 void StatusHandlerTemporaryPanel::reportWarning(const std::wstring& warningMessage, bool& warningActive)
 {
-    errorLog_.logMsg(warningMessage, TYPE_WARNING);
+    errorLog_.logMsg(warningMessage, MSG_TYPE_WARNING);
 
     if (!warningActive) //if errors are ignored, then warnings should also
         return;
 
     if (!mainDlg_.compareStatus_->getOptionIgnoreErrors())
     {
-        forceUiRefresh();
+        forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
 
         bool dontWarnAgain = false;
         switch (showConfirmationDialog(&mainDlg_, DialogInfoType::WARNING,
@@ -212,7 +212,7 @@ void StatusHandlerTemporaryPanel::reportWarning(const std::wstring& warningMessa
 }
 
 
-void StatusHandlerTemporaryPanel::forceUiRefresh()
+void StatusHandlerTemporaryPanel::forceUiRefreshNoThrow()
 {
     mainDlg_.compareStatus_->updateGui();
 }
@@ -226,6 +226,7 @@ void StatusHandlerTemporaryPanel::OnAbortCompare(wxCommandEvent& event)
 //########################################################################################################
 
 StatusHandlerFloatingDialog::StatusHandlerFloatingDialog(wxFrame* parentDlg,
+                                                         const std::chrono::system_clock::time_point& startTime,
                                                          size_t lastSyncsLogFileSizeMax,
                                                          bool ignoreErrors,
                                                          size_t automaticRetryCount,
@@ -234,23 +235,19 @@ StatusHandlerFloatingDialog::StatusHandlerFloatingDialog(wxFrame* parentDlg,
                                                          const Zstring& soundFileSyncComplete,
                                                          const Zstring& postSyncCommand,
                                                          PostSyncCondition postSyncCondition,
-                                                         bool& exitAfterSync) :
-    progressDlg_(createProgressDialog(*this, [this] { this->onProgressDialogTerminate(); },
-*this,
-parentDlg,
-true, /*showProgress*/
-jobName,
-soundFileSyncComplete,
-ignoreErrors,
-PostSyncAction::SUMMARY)),
-               lastSyncsLogFileSizeMax_(lastSyncsLogFileSizeMax),
-               automaticRetryCount_(automaticRetryCount),
-               automaticRetryDelay_(automaticRetryDelay),
-               jobName_(jobName),
-               startTime_(std::time(nullptr)),
-               postSyncCommand_(postSyncCommand),
-               postSyncCondition_(postSyncCondition),
-               exitAfterSync_(exitAfterSync)
+                                                         bool& exitAfterSync,
+                                                         bool& autoCloseDialog) :
+    progressDlg_(createProgressDialog(*this, [this] { this->onProgressDialogTerminate(); }, *this, parentDlg, true /*showProgress*/, autoCloseDialog,
+jobName, soundFileSyncComplete, ignoreErrors, PostSyncAction2::NONE)),
+         lastSyncsLogFileSizeMax_(lastSyncsLogFileSizeMax),
+         automaticRetryCount_(automaticRetryCount),
+         automaticRetryDelay_(automaticRetryDelay),
+         jobName_(jobName),
+         startTime_(startTime),
+         postSyncCommand_(postSyncCommand),
+         postSyncCondition_(postSyncCondition),
+         exitAfterSync_(exitAfterSync),
+         autoCloseDialogOut_(autoCloseDialog)
 {
     assert(!exitAfterSync);
 }
@@ -258,8 +255,8 @@ PostSyncAction::SUMMARY)),
 
 StatusHandlerFloatingDialog::~StatusHandlerFloatingDialog()
 {
-    const int totalErrors   = errorLog_.getItemCount(TYPE_ERROR | TYPE_FATAL_ERROR); //evaluate before finalizing log
-    const int totalWarnings = errorLog_.getItemCount(TYPE_WARNING);
+    const int totalErrors   = errorLog_.getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR); //evaluate before finalizing log
+    const int totalWarnings = errorLog_.getItemCount(MSG_TYPE_WARNING);
 
     //finalize error log
     SyncProgressDialog::SyncResult finalStatus = SyncProgressDialog::RESULT_FINISHED_WITH_SUCCESS;
@@ -267,20 +264,20 @@ StatusHandlerFloatingDialog::~StatusHandlerFloatingDialog()
     if (getAbortStatus())
     {
         finalStatus = SyncProgressDialog::RESULT_ABORTED;
-        finalStatusMsg = _("Synchronization stopped");
-        errorLog_.logMsg(finalStatusMsg, TYPE_ERROR);
+        finalStatusMsg = _("Stopped");
+        errorLog_.logMsg(finalStatusMsg, MSG_TYPE_ERROR);
     }
     else if (totalErrors > 0)
     {
         finalStatus = SyncProgressDialog::RESULT_FINISHED_WITH_ERROR;
-        finalStatusMsg = _("Synchronization completed with errors");
-        errorLog_.logMsg(finalStatusMsg, TYPE_ERROR);
+        finalStatusMsg = _("Completed with errors");
+        errorLog_.logMsg(finalStatusMsg, MSG_TYPE_ERROR);
     }
     else if (totalWarnings > 0)
     {
         finalStatus = SyncProgressDialog::RESULT_FINISHED_WITH_WARNINGS;
-        finalStatusMsg = _("Synchronization completed with warnings");
-        errorLog_.logMsg(finalStatusMsg, TYPE_WARNING); //give status code same warning priority as display category!
+        finalStatusMsg = _("Completed with warnings");
+        errorLog_.logMsg(finalStatusMsg, MSG_TYPE_WARNING); //give status code same warning priority as display category!
     }
     else
     {
@@ -288,14 +285,16 @@ StatusHandlerFloatingDialog::~StatusHandlerFloatingDialog()
             getBytesTotal(PHASE_SYNCHRONIZING) == 0)
             finalStatusMsg = _("Nothing to synchronize"); //even if "ignored conflicts" occurred!
         else
-            finalStatusMsg = _("Synchronization completed successfully");
-        errorLog_.logMsg(finalStatusMsg, TYPE_INFO);
+            finalStatusMsg = _("Completed");
+        errorLog_.logMsg(finalStatusMsg, MSG_TYPE_INFO);
     }
 
     //post sync command
     Zstring commandLine = [&]
     {
-        if (!getAbortStatus() || *getAbortStatus() != AbortTrigger::USER) //user cancelled => don't run post sync command!
+        if (getAbortStatus() && *getAbortStatus() == AbortTrigger::USER)
+            ; //user cancelled => don't run post sync command!
+        else
             switch (postSyncCondition_)
             {
                 case PostSyncCondition::COMPLETION:
@@ -316,7 +315,7 @@ StatusHandlerFloatingDialog::~StatusHandlerFloatingDialog()
     trim(commandLine);
 
     if (!commandLine.empty())
-        errorLog_.logMsg(replaceCpy(_("Executing command %x"), L"%x", fmtPath(commandLine)), TYPE_INFO);
+        errorLog_.logMsg(replaceCpy(_("Executing command %x"), L"%x", fmtPath(commandLine)), MSG_TYPE_INFO);
 
     //----------------- write results into LastSyncs.log------------------------
     const SummaryInfo summary =
@@ -324,72 +323,103 @@ StatusHandlerFloatingDialog::~StatusHandlerFloatingDialog()
         jobName_, finalStatusMsg,
         getItemsCurrent(PHASE_SYNCHRONIZING), getBytesCurrent(PHASE_SYNCHRONIZING),
         getItemsTotal  (PHASE_SYNCHRONIZING), getBytesTotal  (PHASE_SYNCHRONIZING),
-        std::time(nullptr) - startTime_
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - startTime_).count()
+    };
+    if (progressDlg_) progressDlg_->timerSetStatus(false /*active*/); //keep correct summary window stats considering count down timer, system sleep
+
+    //do NOT use tryReportingError()! saving log files should not be cancellable!
+    auto notifyStatusNoThrow = [&](const std::wstring& msg)
+    {
+        try { reportStatus(msg); /*throw X*/ }
+        catch (...) {}
     };
 
     try
     {
-        saveToLastSyncsLog(summary, errorLog_, lastSyncsLogFileSizeMax_, OnUpdateLogfileStatusNoThrow(*this, utfTo<std::wstring>(getLastSyncsLogfilePath()))); //throw FileError
+        saveToLastSyncsLog(summary, errorLog_, lastSyncsLogFileSizeMax_, notifyStatusNoThrow); //throw FileError, (X)
     }
-    catch (FileError&) { assert(false); }
+    catch (const FileError& e) { errorLog_.logMsg(e.toString(), MSG_TYPE_ERROR); }
 
     //execute post sync command *after* writing log files, so that user can refer to the log via the command!
     if (!commandLine.empty())
         try
         {
-            //use EXEC_TYPE_ASYNC until there is reason not to: https://www.freefilesync.org/forum/viewtopic.php?t=31
-            tryReportingError([&] { shellExecute(expandMacros(commandLine), EXEC_TYPE_ASYNC); /*throw FileError*/ }, *this); //throw X
+            //use ExecutionType::ASYNC until there is reason not to: https://www.freefilesync.org/forum/viewtopic.php?t=31
+            shellExecute(expandMacros(commandLine), ExecutionType::ASYNC); //throw FileError
         }
-        catch (...) {}
+        catch (const FileError& e) { errorLog_.logMsg(e.toString(), MSG_TYPE_ERROR); }
 
     if (progressDlg_)
     {
+        auto mayRunAfterCountDown = [&](const std::wstring& operationName)
+        {
+            auto notifyStatusThrowOnCancel = [&](const std::wstring& msg)
+            {
+                try { reportStatus(msg); /*throw X*/ }
+                catch (...)
+                {
+                    if (getAbortStatus() && *getAbortStatus() == AbortTrigger::USER)
+                        throw;
+                }
+            };
+
+            if (progressDlg_->getWindowIfVisible())
+                try
+                {
+                    delayAndCountDown(operationName, 5 /*delayInSec*/, notifyStatusThrowOnCancel); //throw X
+                }
+                catch (...) { return false; }
+
+            return true;
+        };
+
         //post sync action
-        bool showSummary = true;
-        bool triggerSleep = false;
-        if (!getAbortStatus() || *getAbortStatus() != AbortTrigger::USER) //user cancelled => don't run post sync action!
+        bool autoClose = false;
+        if (getAbortStatus() && *getAbortStatus() == AbortTrigger::USER)
+            ; //user cancelled => don't run post sync command!
+        else
             switch (progressDlg_->getOptionPostSyncAction())
             {
-                case PostSyncAction::SUMMARY:
+                case PostSyncAction2::NONE:
+                    autoClose = progressDlg_->getOptionAutoCloseDialog();
                     break;
-                case PostSyncAction::EXIT:
-                    showSummary = false;
-                    exitAfterSync_ = true; //program shutdown must be handled by calling context!
+                case PostSyncAction2::EXIT:
+                    autoClose = exitAfterSync_ = true; //program exit must be handled by calling context!
                     break;
-                case PostSyncAction::SLEEP:
-                    triggerSleep = true;
+                case PostSyncAction2::SLEEP:
+                    if (mayRunAfterCountDown(_("System: Sleep")))
+                        try
+                        {
+                            suspendSystem(); //throw FileError
+                            autoClose = progressDlg_->getOptionAutoCloseDialog();
+                        }
+                        catch (const FileError& e) { errorLog_.logMsg(e.toString(), MSG_TYPE_ERROR); }
                     break;
-                case PostSyncAction::SHUTDOWN:
-                    showSummary = false;
-                    exitAfterSync_ = true;
-                    try
-                    {
-                        tryReportingError([&] { shutdownSystem(); /*throw FileError*/ }, *this); //throw X
-                    }
-                    catch (...) {}
+                case PostSyncAction2::SHUTDOWN:
+                    if (mayRunAfterCountDown(_("System: Shut down")))
+                        try
+                        {
+                            shutdownSystem(); //throw FileError
+                            autoClose = exitAfterSync_ = true;
+                        }
+                        catch (const FileError& e) { errorLog_.logMsg(e.toString(), MSG_TYPE_ERROR); }
                     break;
             }
 
         //close progress dialog
-        if (showSummary)
-            progressDlg_->showSummary(finalStatus, errorLog_);
+        if (autoClose)
+            progressDlg_->closeDirectly(!exitAfterSync_ /*restoreParentFrame*/);
         else
-            progressDlg_->closeDirectly(false /*restoreParentFrame*/);
-
-        if (triggerSleep) //sleep *after* showing results dialog (consider total time!)
-            try
-            {
-                tryReportingError([&] { suspendSystem(); /*throw FileError*/ }, *this); //throw X
-            }
-            catch (...) {}
+            progressDlg_->showSummary(finalStatus, errorLog_);
 
         //wait until progress dialog notified shutdown via onProgressDialogTerminate()
         //-> required since it has our "this" pointer captured in lambda "notifyWindowTerminate"!
         //-> nicely manages dialog lifetime
-        while (progressDlg_)
+        for (;;)
         {
             wxTheApp->Yield(); //*first* refresh GUI (removing flicker) before sleeping!
-            std::this_thread::sleep_for(std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS));
+            if (!progressDlg_) break;
+            std::this_thread::sleep_for(UI_UPDATE_INTERVAL);
         }
     }
 }
@@ -402,7 +432,7 @@ void StatusHandlerFloatingDialog::initNewPhase(int itemsTotal, int64_t bytesTota
     if (progressDlg_)
         progressDlg_->initNewPhase(); //call after "StatusHandler::initNewPhase"
 
-    forceUiRefresh(); //throw ?; OS X needs a full yield to update GUI and get rid of "dummy" texts
+    forceUiRefresh(); //throw X; OS X needs a full yield to update GUI and get rid of "dummy" texts
 }
 
 
@@ -417,7 +447,7 @@ void StatusHandlerFloatingDialog::updateProcessedData(int itemsDelta, int64_t by
 
 void StatusHandlerFloatingDialog::reportInfo(const std::wstring& text)
 {
-    errorLog_.logMsg(text, TYPE_INFO); //log first!
+    errorLog_.logMsg(text, MSG_TYPE_INFO); //log first!
     StatusHandler::reportInfo(text); //throw X
 }
 
@@ -429,26 +459,18 @@ ProcessCallback::Response StatusHandlerFloatingDialog::reportError(const std::ws
     //auto-retry
     if (retryNumber < automaticRetryCount_)
     {
-        errorLog_.logMsg(errorMessage + L"\n-> " +
-                         _P("Automatic retry in 1 second...", "Automatic retry in %x seconds...", automaticRetryDelay_), TYPE_INFO);
-        //delay
-        const int iterations = static_cast<int>(1000 * automaticRetryDelay_ / UI_UPDATE_INTERVAL_MS); //always round down: don't allow for negative remaining time below
-        for (int i = 0; i < iterations; ++i)
-        {
-            reportStatus(_("Error") + L": " + _P("Automatic retry in 1 second...", "Automatic retry in %x seconds...",
-                                                 (1000 * automaticRetryDelay_ - i * UI_UPDATE_INTERVAL_MS + 999) / 1000)); //integer round up
-            std::this_thread::sleep_for(std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS));
-        }
+        errorLog_.logMsg(errorMessage + L"\n-> " + _("Automatic retry"), MSG_TYPE_INFO);
+        delayAndCountDown(_("Automatic retry"), automaticRetryDelay_, [&](const std::wstring& msg) { this->reportStatus(_("Error") + L": " + msg); });
         return ProcessCallback::RETRY;
     }
 
     //always, except for "retry":
-    auto guardWriteLog = zen::makeGuard<ScopeGuardRunMode::ON_EXIT>([&] { errorLog_.logMsg(errorMessage, TYPE_ERROR); });
+    auto guardWriteLog = zen::makeGuard<ScopeGuardRunMode::ON_EXIT>([&] { errorLog_.logMsg(errorMessage, MSG_TYPE_ERROR); });
 
     if (!progressDlg_->getOptionIgnoreErrors())
     {
         PauseTimers dummy(*progressDlg_);
-        forceUiRefresh();
+        forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
 
         switch (showConfirmationDialog(progressDlg_->getWindowIfVisible(), DialogInfoType::ERROR2, PopupDialogCfg().
                                        setDetailInstructions(errorMessage),
@@ -463,7 +485,7 @@ ProcessCallback::Response StatusHandlerFloatingDialog::reportError(const std::ws
 
             case ConfirmationButton3::DECLINE: //retry
                 guardWriteLog.dismiss();
-                errorLog_.logMsg(errorMessage + L"\n-> " + _("Retrying operation..."), TYPE_INFO); //explain why there are duplicate "doing operation X" info messages in the log!
+                errorLog_.logMsg(errorMessage + L"\n-> " + _("Retrying operation..."), MSG_TYPE_INFO); //explain why there are duplicate "doing operation X" info messages in the log!
                 return ProcessCallback::RETRY;
 
             case ConfirmationButton3::CANCEL:
@@ -483,12 +505,12 @@ void StatusHandlerFloatingDialog::reportFatalError(const std::wstring& errorMess
 {
     if (!progressDlg_) abortProcessNow();
 
-    errorLog_.logMsg(errorMessage, TYPE_FATAL_ERROR);
+    errorLog_.logMsg(errorMessage, MSG_TYPE_FATAL_ERROR);
 
     if (!progressDlg_->getOptionIgnoreErrors())
     {
         PauseTimers dummy(*progressDlg_);
-        forceUiRefresh();
+        forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
 
         switch (showConfirmationDialog(progressDlg_->getWindowIfVisible(), DialogInfoType::ERROR2,
                                        PopupDialogCfg().setTitle(_("Serious Error")).
@@ -514,7 +536,7 @@ void StatusHandlerFloatingDialog::reportWarning(const std::wstring& warningMessa
 {
     if (!progressDlg_) abortProcessNow();
 
-    errorLog_.logMsg(warningMessage, TYPE_WARNING);
+    errorLog_.logMsg(warningMessage, MSG_TYPE_WARNING);
 
     if (!warningActive)
         return;
@@ -522,7 +544,7 @@ void StatusHandlerFloatingDialog::reportWarning(const std::wstring& warningMessa
     if (!progressDlg_->getOptionIgnoreErrors())
     {
         PauseTimers dummy(*progressDlg_);
-        forceUiRefresh();
+        forceUiRefreshNoThrow(); //noexcept! => don't throw here when error occurs during clean up!
 
         bool dontWarnAgain = false;
         switch (showConfirmationDialog(progressDlg_->getWindowIfVisible(), DialogInfoType::WARNING,
@@ -542,7 +564,7 @@ void StatusHandlerFloatingDialog::reportWarning(const std::wstring& warningMessa
 }
 
 
-void StatusHandlerFloatingDialog::forceUiRefresh()
+void StatusHandlerFloatingDialog::forceUiRefreshNoThrow()
 {
     if (progressDlg_)
         progressDlg_->updateGui();
@@ -551,5 +573,9 @@ void StatusHandlerFloatingDialog::forceUiRefresh()
 
 void StatusHandlerFloatingDialog::onProgressDialogTerminate()
 {
+    //output parameters owned by SyncProgressDialog
+    if (progressDlg_)
+        autoCloseDialogOut_ = progressDlg_->getOptionAutoCloseDialog();
+
     progressDlg_ = nullptr;
 }

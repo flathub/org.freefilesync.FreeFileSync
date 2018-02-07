@@ -15,7 +15,7 @@
 #include "../process_callback.h"
 
 
-namespace zen
+namespace fff
 {
 namespace
 {
@@ -27,7 +27,7 @@ struct FolderStatus
 {
     std::set<AbstractPath, AFS::LessAbstractPath> existing;
     std::set<AbstractPath, AFS::LessAbstractPath> notExisting;
-    std::map<AbstractPath, FileError, AFS::LessAbstractPath> failedChecks;
+    std::map<AbstractPath, zen::FileError, AFS::LessAbstractPath> failedChecks;
 };
 
 FolderStatus getFolderStatusNonBlocking(const std::set<AbstractPath, AFS::LessAbstractPath>& folderPaths, int folderAccessTimeout, bool allowUserInteraction, ProcessCallback& procCallback)
@@ -60,7 +60,7 @@ FolderStatus getFolderStatusNonBlocking(const std::set<AbstractPath, AFS::LessAb
         procCallback.reportStatus(replaceCpy(_("Searching for folder %x..."), L"%x", displayPathFmt)); //may throw!
 
         while (numeric::dist(std::chrono::steady_clock::now(), startTime) < std::chrono::seconds(folderAccessTimeout) && //handle potential chrono wrap-around!
-               fi.second.wait_for(std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS / 2)) != std::future_status::ready)
+               fi.second.wait_for(UI_UPDATE_INTERVAL / 2) != std::future_status::ready)
             procCallback.requestUiRefresh(); //may throw!
 
         if (isReady(fi.second))

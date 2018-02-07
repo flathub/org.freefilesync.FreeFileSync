@@ -13,6 +13,7 @@
 #include "string_tools.h"
 #include "format_unit.h"
 
+
 //minimal layer enabling text translation - without platform/library dependencies!
 
 #define ZEN_TRANS_CONCAT_SUB(X, Y) X ## Y
@@ -55,7 +56,7 @@ std::shared_ptr<const TranslationHandler> getTranslator();
 
 
 //######################## implementation ##############################
-namespace implementation
+namespace impl
 {
 inline
 Global<const TranslationHandler>& refGlobalTranslationHandler()
@@ -69,14 +70,14 @@ Global<const TranslationHandler>& refGlobalTranslationHandler()
 inline
 std::shared_ptr<const TranslationHandler> getTranslator()
 {
-    return implementation::refGlobalTranslationHandler().get();
+    return impl::refGlobalTranslationHandler().get();
 }
 
 
 inline
 void setTranslator(std::unique_ptr<const TranslationHandler>&& newHandler)
 {
-    implementation::refGlobalTranslationHandler().set(std::move(newHandler));
+    impl::refGlobalTranslationHandler().set(std::move(newHandler));
 }
 
 

@@ -13,27 +13,27 @@
 #include "../lib/icon_buffer.h"
 
 
-namespace zen
+namespace fff
 {
 //setup grid to show grid view within three components:
 namespace filegrid
 {
-void init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight);
-FileView& getDataView(Grid& grid);
+void init(zen::Grid& gridLeft, zen::Grid& gridCenter, zen::Grid& gridRight);
+FileView& getDataView(zen::Grid& grid);
 
 
-void highlightSyncAction(Grid& gridCenter, bool value);
+void highlightSyncAction(zen::Grid& gridCenter, bool value);
 
-void setupIcons(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, bool show, IconBuffer::IconSize sz);
+void setupIcons(zen::Grid& gridLeft, zen::Grid& gridCenter, zen::Grid& gridRight, bool show, IconBuffer::IconSize sz);
 
-void setItemPathForm(Grid& grid, ItemPathFormat fmt); //only for left/right grid
+void setItemPathForm(zen::Grid& grid, ItemPathFormat fmt); //only for left/right grid
 
-void refresh(Grid& gridLeft, Grid& gridCenter, Grid& gridRight);
+void refresh(zen::Grid& gridLeft, zen::Grid& gridCenter, zen::Grid& gridRight);
 
-void setScrollMaster(Grid& grid);
+void setScrollMaster(zen::Grid& grid);
 
 //mark rows selected in overview panel and navigate to leading object
-void setNavigationMarker(Grid& gridLeft,
+void setNavigationMarker(zen::Grid& gridLeft,
                          std::unordered_set<const FileSystemObject*>&& markedFilesAndLinks,//mark files/symlinks directly within a container
                          std::unordered_set<const ContainerObject*>&& markedContainer);    //mark full container including child-objects
 }

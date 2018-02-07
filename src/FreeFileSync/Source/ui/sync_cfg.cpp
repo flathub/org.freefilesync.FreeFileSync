@@ -25,7 +25,7 @@
 
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace fff;
 
 
 namespace
@@ -1183,7 +1183,7 @@ void ConfigDialog::OnOkay(wxCommandEvent& event)
 
 //########################################################################################
 
-ReturnSyncConfig::ButtonPressed zen::showSyncConfigDlg(wxWindow* parent,
+ReturnSyncConfig::ButtonPressed fff::showSyncConfigDlg(wxWindow* parent,
                                                        SyncConfigPanel panelToShow,
                                                        int localPairIndexToShow,
 

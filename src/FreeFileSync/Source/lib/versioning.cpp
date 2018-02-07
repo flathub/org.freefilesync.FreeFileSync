@@ -2,6 +2,7 @@
 #include <cstddef> //required by GCC 4.8.1 to find ptrdiff_t
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -14,7 +15,7 @@ Zstring getDotExtension(const Zstring& relativePath) //including "." if extensio
 };
 }
 
-bool impl::isMatchingVersion(const Zstring& shortname, const Zstring& shortnameVersioned) //e.g. ("Sample.txt", "Sample.txt 2012-05-15 131513.txt")
+bool fff::impl::isMatchingVersion(const Zstring& shortname, const Zstring& shortnameVersioned) //e.g. ("Sample.txt", "Sample.txt 2012-05-15 131513.txt")
 {
     auto it = shortnameVersioned.begin();
     auto itLast = shortnameVersioned.end();
@@ -110,13 +111,10 @@ void moveExistingItemToVersioning(const AbstractPath& sourcePath, const Abstract
         try { pd = AFS::getPathStatus(targetPath); /*throw FileError*/ }
         catch (FileError&)
         {
-
-            warn_static("remove after test: https://www.freefilesync.org/forum/viewtopic.php?f=8&t=4765&p=15981#p15981")
-            warn_static("really? is previous exception is more relevant?")
-            throw;
-
-
-        } //previous exception is more relevant
+            //previous exception is more relevant in general
+            //BUT, we might be hiding a second unrelated issue: https://www.freefilesync.org/forum/viewtopic.php?t=4765#p16016
+            //=> FFS considers session faulty and tries to create a new one, which might fail with: LIBSSH2_ERROR_AUTHENTICATION_FAILED
+        }
 
         if (pd)
         {

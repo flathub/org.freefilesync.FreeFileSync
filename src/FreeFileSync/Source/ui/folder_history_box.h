@@ -13,10 +13,10 @@
 #include <zen/stl_tools.h>
 #include <zen/utf.h>
 
-//combobox with history function + functionality to delete items (DEL)
 
-
-class FolderHistory
+namespace fff
+{
+class FolderHistory //combobox with history function + functionality to delete items (DEL)
 {
 public:
     FolderHistory() {}
@@ -87,6 +87,6 @@ private:
 
     std::shared_ptr<FolderHistory> sharedHistory_;
 };
-
+}
 
 #endif //FOLDER_HISTORY_BOX_H_08170517045945

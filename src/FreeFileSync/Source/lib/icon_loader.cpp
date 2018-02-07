@@ -12,6 +12,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -84,7 +85,7 @@ ImageHolder imageHolderFromGicon(GIcon* gicon, int pixelSize)
                 ZEN_ON_SCOPE_EXIT(::gtk_icon_info_free(iconInfo));
                 if (GdkPixbuf* pixBuf = ::gtk_icon_info_load_icon(iconInfo, nullptr))
                 {
-                    ZEN_ON_SCOPE_EXIT(::g_object_unref(pixBuf)); //superseedes "::gdk_pixbuf_unref"!
+                    ZEN_ON_SCOPE_EXIT(::g_object_unref(pixBuf)); //supersedes "::gdk_pixbuf_unref"!
                     return copyToImageHolder(pixBuf);
                 }
             }
@@ -93,7 +94,7 @@ ImageHolder imageHolderFromGicon(GIcon* gicon, int pixelSize)
 }
 
 
-ImageHolder zen::getIconByTemplatePath(const Zstring& templatePath, int pixelSize)
+ImageHolder fff::getIconByTemplatePath(const Zstring& templatePath, int pixelSize)
 {
     //uses full file name, e.g. "AUTHORS" has own mime type on Linux:
     if (gchar* contentType = ::g_content_type_guess(templatePath.c_str(), //const gchar* filename,
@@ -113,7 +114,7 @@ ImageHolder zen::getIconByTemplatePath(const Zstring& templatePath, int pixelSiz
 }
 
 
-ImageHolder zen::genericFileIcon(int pixelSize)
+ImageHolder fff::genericFileIcon(int pixelSize)
 {
     //we're called by getDisplayIcon()! -> avoid endless recursion!
     if (GIcon* fileIcon = ::g_content_type_get_icon("text/plain"))
@@ -126,7 +127,7 @@ ImageHolder zen::genericFileIcon(int pixelSize)
 }
 
 
-ImageHolder zen::genericDirIcon(int pixelSize)
+ImageHolder fff::genericDirIcon(int pixelSize)
 {
     if (GIcon* dirIcon = ::g_content_type_get_icon("inode/directory")) //should contain fallback to GTK_STOCK_DIRECTORY ("gtk-directory")
     {
@@ -138,7 +139,7 @@ ImageHolder zen::genericDirIcon(int pixelSize)
 }
 
 
-ImageHolder zen::getFileIcon(const Zstring& filePath, int pixelSize)
+ImageHolder fff::getFileIcon(const Zstring& filePath, int pixelSize)
 {
     //2. retrieve file icons
     GFile* file = ::g_file_new_for_path(filePath.c_str()); //documented to "never fail"
@@ -156,7 +157,7 @@ ImageHolder zen::getFileIcon(const Zstring& filePath, int pixelSize)
 }
 
 
-ImageHolder zen::getThumbnailImage(const Zstring& filePath, int pixelSize) //return null icon on failure
+ImageHolder fff::getThumbnailImage(const Zstring& filePath, int pixelSize) //return null icon on failure
 {
     struct ::stat fileInfo = {};
     if (::stat(filePath.c_str(), &fileInfo) == 0)

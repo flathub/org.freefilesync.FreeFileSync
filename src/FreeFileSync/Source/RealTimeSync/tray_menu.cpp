@@ -19,13 +19,15 @@
 #include "monitor.h"
 #include "../lib/resolve_path.h"
 
-using namespace rts;
 using namespace zen;
+using namespace rts;
 
 
 namespace
 {
-const int RETRY_AFTER_ERROR_INTERVAL_SEC = 15; //unit: [s]
+const std::chrono::seconds RETRY_AFTER_ERROR_INTERVAL(15);
+const std::chrono::milliseconds UI_UPDATE_INTERVAL(100); //perform ui updates not more often than necessary, 100 seems to be a good value with only a minimal performance loss
+
 
 std::chrono::steady_clock::time_point lastExec;
 
@@ -34,7 +36,7 @@ bool updateUiIsAllowed()
 {
     const auto now = std::chrono::steady_clock::now();
 
-    if (numeric::dist(now, lastExec) > std::chrono::milliseconds(rts::UI_UPDATE_INTERVAL_MS)) //handle potential chrono wrap-around!
+    if (numeric::dist(now, lastExec) > UI_UPDATE_INTERVAL) //handle potential chrono wrap-around!
     {
         lastExec = now;
         return true;
@@ -239,7 +241,7 @@ private:
 }
 
 
-rts::AbortReason rts::startDirectoryMonitor(const xmlAccess::XmlRealConfig& config, const wxString& jobname)
+rts::AbortReason rts::startDirectoryMonitor(const XmlRealConfig& config, const wxString& jobname)
 {
     std::vector<Zstring> dirNamesNonFmt = config.directories;
     erase_if(dirNamesNonFmt, [](const Zstring& str) { return trimCpy(str).empty(); }); //remove empty entries WITHOUT formatting paths yet!
@@ -278,10 +280,10 @@ rts::AbortReason rts::startDirectoryMonitor(const xmlAccess::XmlRealConfig& conf
 
         void executeExternalCommand() override
         {
-            auto cmdLineExp = expandMacros(cmdLine_);
+            auto cmdLineExp = fff::expandMacros(cmdLine_);
             try
             {
-                shellExecute(cmdLineExp, EXEC_TYPE_SYNC); //throw FileError
+                shellExecute(cmdLineExp, ExecutionType::SYNC); //throw FileError
             }
             catch (const FileError& e)
             {
@@ -301,8 +303,8 @@ rts::AbortReason rts::startDirectoryMonitor(const xmlAccess::XmlRealConfig& conf
             trayIcon.clearShowErrorRequested();
 
             //wait for some time, then return to retry
-            static_assert(RETRY_AFTER_ERROR_INTERVAL_SEC * 1000 % UI_UPDATE_INTERVAL_MS == 0, "");
-            for (int i = 0; i < RETRY_AFTER_ERROR_INTERVAL_SEC * 1000 / UI_UPDATE_INTERVAL_MS; ++i)
+            const auto delayUntil = std::chrono::steady_clock::now() + RETRY_AFTER_ERROR_INTERVAL;
+            for (auto now = std::chrono::steady_clock::now(); now < delayUntil; now = std::chrono::steady_clock::now())
             {
                 trayIcon.doUiRefreshNow(); //throw AbortMonitoring
 
@@ -316,7 +318,7 @@ rts::AbortReason rts::startDirectoryMonitor(const xmlAccess::XmlRealConfig& conf
                         case ConfirmationButton::CANCEL:
                             throw AbortMonitoring(SHOW_GUI);
                     }
-                std::this_thread::sleep_for(std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS));
+                std::this_thread::sleep_for(UI_UPDATE_INTERVAL);
             }
         }
 
@@ -326,7 +328,7 @@ rts::AbortReason rts::startDirectoryMonitor(const xmlAccess::XmlRealConfig& conf
 
     try
     {
-        monitorDirectories(dirNamesNonFmt, config.delay, cb); //cb: throw AbortMonitoring
+        monitorDirectories(dirNamesNonFmt, config.delay, cb, UI_UPDATE_INTERVAL / 2); //cb: throw AbortMonitoring
         assert(false);
         return SHOW_GUI;
     }

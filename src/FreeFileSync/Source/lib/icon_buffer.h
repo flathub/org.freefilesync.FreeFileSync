@@ -15,7 +15,7 @@
 #include "../fs/abstract.h"
 
 
-namespace zen
+namespace fff
 {
 class IconBuffer
 {
@@ -31,10 +31,10 @@ public:
     ~IconBuffer();
 
     static int getSize(IconSize sz); //expected and *maximum* icon size in pixel
-    int getSize() const { return getSize(iconSizeType); } //
+    int getSize() const { return getSize(iconSizeType_); } //
 
     bool          readyForRetrieval(const AbstractPath& filePath);
-    Opt<wxBitmap> retrieveFileIcon (const AbstractPath& filePath); //... and mark as hot
+    zen::Opt<wxBitmap> retrieveFileIcon (const AbstractPath& filePath); //... and mark as hot
     void          setWorkload      (const std::vector<AbstractPath>& load); //(re-)set new workload of icons to be retrieved;
 
     wxBitmap getIconByExtension(const Zstring& filePath); //...and add to buffer
@@ -47,7 +47,7 @@ private:
     struct Impl;
     const std::unique_ptr<Impl> pimpl_;
 
-    const IconSize iconSizeType;
+    const IconSize iconSizeType_;
 };
 
 bool hasLinkExtension(const Zstring& filepath);

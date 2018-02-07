@@ -12,6 +12,7 @@
 #include <zen/utf.h>
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -24,7 +25,7 @@ std::vector<std::pair<std::wstring, Zstring>> getDefaultCommands() //(gui name/c
 {
     return
     {
-        //{_("Sleep"), Zstr("rundll32.exe powrprof.dll,SetSuspendState Sleep")},
+        //{_("System: Sleep"), Zstr("rundll32.exe powrprof.dll,SetSuspendState Sleep")},
     };
 }
 

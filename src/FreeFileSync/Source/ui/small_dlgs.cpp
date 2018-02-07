@@ -5,7 +5,6 @@
 // *****************************************************************************
 
 #include "small_dlgs.h"
-//#include <chrono>
 #include <zen/time.h>
 #include <zen/format_unit.h>
 #include <zen/build_info.h>
@@ -35,6 +34,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
 
 class AboutDlg : public AboutDlgGenerated
@@ -106,7 +106,7 @@ AboutDlg::AboutDlg(wxWindow* parent) : AboutDlgGenerated(parent)
     //generate logo: put *after* first Fit()
     Layout(); //make sure m_panelLogo has final width (required by wxGTK)
 
-    wxImage appnameImg = createImageFromText(wxString(L"FreeFileSync ") + zen::ffsVersion,
+    wxImage appnameImg = createImageFromText(wxString(L"FreeFileSync ") + ffsVersion,
                                              wxFont(wxNORMAL_FONT->GetPointSize() * 1.8, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, L"Tahoma"),
                                              *wxBLACK); //accessibility: align foreground/background colors!
     wxImage buildImg = createImageFromText(replaceCpy(_("Build: %x"), L"%x", build),
@@ -153,7 +153,7 @@ void AboutDlg::onLocalKeyEvent(wxKeyEvent& event) //process key events without e
 }
 
 
-void zen::showAboutDialog(wxWindow* parent)
+void fff::showAboutDialog(wxWindow* parent)
 {
     AboutDlg aboutDlg(parent);
     aboutDlg.ShowModal();
@@ -224,7 +224,7 @@ CopyToDialog::CopyToDialog(wxWindow* parent,
     http://trac.wxwidgets.org/ticket/14823 "Menu not disabled when showing modal dialogs in wxGTK under Unity"
     */
 
-    const std::pair<std::wstring, int> selectionInfo = zen::getSelectedItemsAsString(rowsOnLeft, rowsOnRight);
+    const std::pair<std::wstring, int> selectionInfo = getSelectedItemsAsString(rowsOnLeft, rowsOnRight);
 
     const wxString header = _P("Copy the following item to another folder?",
                                "Copy the following %x items to another folder?", selectionInfo.second);
@@ -278,7 +278,7 @@ void CopyToDialog::OnOK(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showCopyToDialog(wxWindow* parent,
+ReturnSmallDlg::ButtonPressed fff::showCopyToDialog(wxWindow* parent,
                                                     const std::vector<const FileSystemObject*>& rowsOnLeft,
                                                     const std::vector<const FileSystemObject*>& rowsOnRight,
                                                     Zstring& lastUsedPath,
@@ -359,8 +359,8 @@ DeleteDialog::DeleteDialog(wxWindow* parent,
 void DeleteDialog::updateGui()
 {
 
-    const std::pair<std::wstring, int> delInfo = zen::getSelectedItemsAsString(rowsToDeleteOnLeft_,
-                                                                               rowsToDeleteOnRight_);
+    const std::pair<std::wstring, int> delInfo = getSelectedItemsAsString(rowsToDeleteOnLeft_,
+                                                                          rowsToDeleteOnRight_);
     wxString header;
     if (m_checkBoxUseRecycler->GetValue())
     {
@@ -411,7 +411,7 @@ void DeleteDialog::OnOK(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showDeleteDialog(wxWindow* parent,
+ReturnSmallDlg::ButtonPressed fff::showDeleteDialog(wxWindow* parent,
                                                     const std::vector<const FileSystemObject*>& rowsOnLeft,
                                                     const std::vector<const FileSystemObject*>& rowsOnRight,
                                                     bool& useRecycleBin)
@@ -427,7 +427,7 @@ class SyncConfirmationDlg : public SyncConfirmationDlgGenerated
 public:
     SyncConfirmationDlg(wxWindow* parent,
                         const wxString& variantName,
-                        const zen::SyncStatistics& st,
+                        const SyncStatistics& st,
                         bool& dontShowAgain);
 private:
     void OnStartSync(wxCommandEvent& event) override;
@@ -509,9 +509,9 @@ void SyncConfirmationDlg::OnStartSync(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showSyncConfirmationDlg(wxWindow* parent,
+ReturnSmallDlg::ButtonPressed fff::showSyncConfirmationDlg(wxWindow* parent,
                                                            const wxString& variantName,
-                                                           const zen::SyncStatistics& statistics,
+                                                           const SyncStatistics& statistics,
                                                            bool& dontShowAgain)
 {
     SyncConfirmationDlg dlg(parent,
@@ -526,7 +526,7 @@ ReturnSmallDlg::ButtonPressed zen::showSyncConfirmationDlg(wxWindow* parent,
 class OptionsDlg : public OptionsDlgGenerated
 {
 public:
-    OptionsDlg(wxWindow* parent, xmlAccess::XmlGlobalSettings& globalSettings);
+    OptionsDlg(wxWindow* parent, XmlGlobalSettings& globalCfg);
 
 private:
     void OnOkay        (wxCommandEvent& event) override;
@@ -545,19 +545,29 @@ private:
 
     void OnToggleAutoRetryCount(wxCommandEvent& event) override { updateGui(); }
 
-    void setExtApp(const xmlAccess::ExternalApps& extApp);
-    xmlAccess::ExternalApps getExtApp() const;
+    void setExtApp(const std::vector<ExternalApp>& extApp);
+    std::vector<ExternalApp> getExtApp() const;
 
     std::map<std::wstring, std::wstring> descriptionTransToEng_; //"translated description" -> "english" mapping for external application config
 
+    //parameters NOT owned by GUI:
+    ConfirmationDialogs confirmDlgs_;
+    WarningDialogs warnDlgs_;
+    bool autoCloseProgressDialog_;
+
+    const XmlGlobalSettings defaultCfg_;
+
     //output-only parameters:
-    xmlAccess::XmlGlobalSettings& globalSettingsOut_;
+    XmlGlobalSettings& globalCfgOut_;
 };
 
 
-OptionsDlg::OptionsDlg(wxWindow* parent, xmlAccess::XmlGlobalSettings& globalSettings) :
+OptionsDlg::OptionsDlg(wxWindow* parent, XmlGlobalSettings& globalSettings) :
     OptionsDlgGenerated(parent),
-    globalSettingsOut_(globalSettings)
+    confirmDlgs_(globalSettings.confirmDlgs),
+    warnDlgs_   (globalSettings.warnDlgs),
+    autoCloseProgressDialog_(globalSettings.autoCloseProgressDialog),
+    globalCfgOut_(globalSettings)
 {
     setStandardButtonLayout(*bSizerStdButtons, StdButtons().setAffirmative(m_buttonOkay).setCancel(m_buttonCancel));
 
@@ -578,7 +588,7 @@ OptionsDlg::OptionsDlg(wxWindow* parent, xmlAccess::XmlGlobalSettings& globalSet
     m_spinCtrlAutoRetryCount->SetValue(globalSettings.automaticRetryCount);
     m_spinCtrlAutoRetryDelay->SetValue(globalSettings.automaticRetryDelay);
 
-    setExtApp(globalSettings.gui.externelApplications);
+    setExtApp(globalSettings.gui.externalApps);
 
     updateGui();
 
@@ -631,91 +641,90 @@ void OptionsDlg::updateGui()
 {
     const bool autoRetryActive = m_spinCtrlAutoRetryCount->GetValue() > 0;
     m_staticTextAutoRetryDelay->Enable(autoRetryActive);
-    m_spinCtrlAutoRetryDelay->Enable(autoRetryActive);
+    m_spinCtrlAutoRetryDelay  ->Enable(autoRetryActive);
+
+    m_buttonResetDialogs->Enable(confirmDlgs_             != defaultCfg_.confirmDlgs ||
+                                 warnDlgs_                != defaultCfg_.warnDlgs    ||
+                                 autoCloseProgressDialog_ != defaultCfg_.autoCloseProgressDialog);
+}
+
+
+void OptionsDlg::OnResetDialogs(wxCommandEvent& event)
+{
+    confirmDlgs_             = defaultCfg_.confirmDlgs;
+    warnDlgs_                = defaultCfg_.warnDlgs;
+    autoCloseProgressDialog_ = defaultCfg_.autoCloseProgressDialog;
+    updateGui();
+}
+
+
+void OptionsDlg::OnDefault(wxCommandEvent& event)
+{
+    m_checkBoxFailSafe       ->SetValue(defaultCfg_.failSafeFileCopy);
+    m_checkBoxCopyLocked     ->SetValue(defaultCfg_.copyLockedFiles);
+    m_checkBoxCopyPermissions->SetValue(defaultCfg_.copyFilePermissions);
+
+    m_spinCtrlAutoRetryCount->SetValue(defaultCfg_.automaticRetryCount);
+    m_spinCtrlAutoRetryDelay->SetValue(defaultCfg_.automaticRetryDelay);
+
+    setExtApp(defaultCfg_.gui.externalApps);
+    updateGui();
 }
 
 
 void OptionsDlg::OnOkay(wxCommandEvent& event)
 {
     //write settings only when okay-button is pressed (except hidden dialog reset)!
-    globalSettingsOut_.failSafeFileCopy    = m_checkBoxFailSafe->GetValue();
-    globalSettingsOut_.copyLockedFiles     = m_checkBoxCopyLocked->GetValue();
-    globalSettingsOut_.copyFilePermissions = m_checkBoxCopyPermissions->GetValue();
+    globalCfgOut_.failSafeFileCopy    = m_checkBoxFailSafe->GetValue();
+    globalCfgOut_.copyLockedFiles     = m_checkBoxCopyLocked->GetValue();
+    globalCfgOut_.copyFilePermissions = m_checkBoxCopyPermissions->GetValue();
 
-    globalSettingsOut_.automaticRetryCount = m_spinCtrlAutoRetryCount->GetValue();
-    globalSettingsOut_.automaticRetryDelay = m_spinCtrlAutoRetryDelay->GetValue();
+    globalCfgOut_.automaticRetryCount = m_spinCtrlAutoRetryCount->GetValue();
+    globalCfgOut_.automaticRetryDelay = m_spinCtrlAutoRetryDelay->GetValue();
 
-    globalSettingsOut_.gui.externelApplications = getExtApp();
+    globalCfgOut_.gui.externalApps = getExtApp();
+
+    globalCfgOut_.confirmDlgs             = confirmDlgs_;
+    globalCfgOut_.warnDlgs                = warnDlgs_;
+    globalCfgOut_.autoCloseProgressDialog = autoCloseProgressDialog_;
 
     EndModal(ReturnSmallDlg::BUTTON_OKAY);
 }
 
 
-void OptionsDlg::OnResetDialogs(wxCommandEvent& event)
+void OptionsDlg::setExtApp(const std::vector<ExternalApp>& extApps)
 {
-    switch (showConfirmationDialog(this, DialogInfoType::INFO,
-                                   PopupDialogCfg().setMainInstructions(_("Show hidden dialogs and warning messages again?")),
-                                   _("&Show")))
-    {
-        case ConfirmationButton::ACCEPT:
-            globalSettingsOut_.optDialogs = xmlAccess::OptionalDialogs();
-            break;
-        case ConfirmationButton::CANCEL:
-            break;
-    }
-}
+    auto extAppsTmp = extApps;
+    erase_if(extAppsTmp, [](auto& entry) { return entry.description.empty() && entry.cmdLine.empty(); });
 
-
-void OptionsDlg::OnDefault(wxCommandEvent& event)
-{
-    const xmlAccess::XmlGlobalSettings defaultCfg;
-
-    m_checkBoxFailSafe       ->SetValue(defaultCfg.failSafeFileCopy);
-    m_checkBoxCopyLocked     ->SetValue(defaultCfg.copyLockedFiles);
-    m_checkBoxCopyPermissions->SetValue(defaultCfg.copyFilePermissions);
-
-    m_spinCtrlAutoRetryCount->SetValue(defaultCfg.automaticRetryCount);
-    m_spinCtrlAutoRetryDelay->SetValue(defaultCfg.automaticRetryDelay);
-
-    setExtApp(defaultCfg.gui.externelApplications);
-
-    updateGui();
-}
-
-
-void OptionsDlg::setExtApp(const xmlAccess::ExternalApps& extApp)
-{
-    auto extAppTmp = extApp;
-    erase_if(extAppTmp, [](auto& entry) { return entry.first.empty() && entry.second.empty(); });
-
-    extAppTmp.emplace_back(); //append empty row to facilitate insertions by user
+    extAppsTmp.emplace_back(); //append empty row to facilitate insertions by user
 
     const int rowCount = m_gridCustomCommand->GetNumberRows();
     if (rowCount > 0)
         m_gridCustomCommand->DeleteRows(0, rowCount);
 
-    m_gridCustomCommand->AppendRows(static_cast<int>(extAppTmp.size()));
-    for (auto it = extAppTmp.begin(); it != extAppTmp.end(); ++it)
+    m_gridCustomCommand->AppendRows(static_cast<int>(extAppsTmp.size()));
+    for (auto it = extAppsTmp.begin(); it != extAppsTmp.end(); ++it)
     {
-        const int row = it - extAppTmp.begin();
+        const int row = it - extAppsTmp.begin();
 
-        const std::wstring description = zen::translate(it->first);
-        if (description != it->first) //remember english description to save in GlobalSettings.xml later rather than hard-code translation
-            descriptionTransToEng_[description] = it->first;
+        const std::wstring description = zen::translate(it->description);
+        if (description != it->description) //remember english description to save in GlobalSettings.xml later rather than hard-code translation
+            descriptionTransToEng_[description] = it->description;
 
         m_gridCustomCommand->SetCellValue(row, 0, description);
-        m_gridCustomCommand->SetCellValue(row, 1, utfTo<wxString>(it->second)); //commandline
+        m_gridCustomCommand->SetCellValue(row, 1, utfTo<wxString>(it->cmdLine)); //commandline
     }
 }
 
 
-xmlAccess::ExternalApps OptionsDlg::getExtApp() const
+std::vector<ExternalApp> OptionsDlg::getExtApp() const
 {
-    xmlAccess::ExternalApps output;
+    std::vector<ExternalApp> output;
     for (int i = 0; i < m_gridCustomCommand->GetNumberRows(); ++i)
     {
         auto description = copyStringTo<std::wstring>(m_gridCustomCommand->GetCellValue(i, 0));
-        auto commandline = utfTo<Zstring>        (m_gridCustomCommand->GetCellValue(i, 1));
+        auto commandline =             utfTo<Zstring>(m_gridCustomCommand->GetCellValue(i, 1));
 
         //try to undo translation of description for GlobalSettings.xml
         auto it = descriptionTransToEng_.find(description);
@@ -723,7 +732,7 @@ xmlAccess::ExternalApps OptionsDlg::getExtApp() const
             description = it->second;
 
         if (!description.empty() || !commandline.empty())
-            output.emplace_back(description, commandline);
+            output.push_back({ description, commandline });
     }
     return output;
 }
@@ -754,9 +763,9 @@ void OptionsDlg::OnRemoveRow(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showOptionsDlg(wxWindow* parent, xmlAccess::XmlGlobalSettings& globalSettings)
+ReturnSmallDlg::ButtonPressed fff::showOptionsDlg(wxWindow* parent, XmlGlobalSettings& globalCfg)
 {
-    OptionsDlg dlg(parent, globalSettings);
+    OptionsDlg dlg(parent, globalCfg);
     return static_cast<ReturnSmallDlg::ButtonPressed>(dlg.ShowModal());
 }
 
@@ -866,7 +875,7 @@ void SelectTimespanDlg::OnOkay(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showSelectTimespanDlg(wxWindow* parent, time_t& timeFrom, time_t& timeTo)
+ReturnSmallDlg::ButtonPressed fff::showSelectTimespanDlg(wxWindow* parent, time_t& timeFrom, time_t& timeTo)
 {
     SelectTimespanDlg timeSpanDlg(parent, timeFrom, timeTo);
     return static_cast<ReturnSmallDlg::ButtonPressed>(timeSpanDlg.ShowModal());
@@ -915,7 +924,7 @@ void CfgHighlightDlg::OnOkay(wxCommandEvent& event)
 }
 
 
-ReturnSmallDlg::ButtonPressed zen::showCfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays)
+ReturnSmallDlg::ButtonPressed fff::showCfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays)
 {
     CfgHighlightDlg cfgHighDlg(parent, cfgHistSyncOverdueDays);
     return static_cast<ReturnSmallDlg::ButtonPressed>(cfgHighDlg.ShowModal());
@@ -992,7 +1001,7 @@ void ActivationDlg::OnActivateOffline(wxCommandEvent& event)
 }
 
 
-ReturnActivationDlg zen::showActivationDialog(wxWindow* parent, const std::wstring& lastErrorMsg, const std::wstring& manualActivationUrl, std::wstring& manualActivationKey)
+ReturnActivationDlg fff::showActivationDialog(wxWindow* parent, const std::wstring& lastErrorMsg, const std::wstring& manualActivationUrl, std::wstring& manualActivationKey)
 {
     ActivationDlg dlg(parent, lastErrorMsg, manualActivationUrl, manualActivationKey);
     return static_cast<ReturnActivationDlg>(dlg.ShowModal());
@@ -1062,15 +1071,18 @@ DownloadProgressWindow::Impl::Impl(wxWindow* parent, int64_t fileSizeTotal) :
     Center(); //needs to be re-applied after a dialog size change!
     Show();
 
+    //clear gui flicker: window must be visible to make this work!
+    ::wxSafeYield(); //at least on OS X a real Yield() is required to flush pending GUI updates; Update() is not enough
+
     m_buttonCancel->SetFocus();
 }
 
 
-zen::DownloadProgressWindow::DownloadProgressWindow(wxWindow* parent, int64_t fileSizeTotal) :
+DownloadProgressWindow::DownloadProgressWindow(wxWindow* parent, int64_t fileSizeTotal) :
     pimpl_(new DownloadProgressWindow::Impl(parent, fileSizeTotal)) {}
 
-zen::DownloadProgressWindow::~DownloadProgressWindow() { pimpl_->Destroy(); }
+DownloadProgressWindow::~DownloadProgressWindow() { pimpl_->Destroy(); }
 
-void zen::DownloadProgressWindow::notifyNewFile(const Zstring& filePath) { pimpl_->notifyNewFile(filePath); }
-void zen::DownloadProgressWindow::notifyProgress(int64_t delta)          { pimpl_->notifyProgress(delta); }
-void zen::DownloadProgressWindow::requestUiRefresh()                     { pimpl_->requestUiRefresh(); } //throw CancelPressed
+void DownloadProgressWindow::notifyNewFile(const Zstring& filePath) { pimpl_->notifyNewFile(filePath); }
+void DownloadProgressWindow::notifyProgress(int64_t delta)          { pimpl_->notifyProgress(delta); }
+void DownloadProgressWindow::requestUiRefresh()                     { pimpl_->requestUiRefresh(); } //throw CancelPressed

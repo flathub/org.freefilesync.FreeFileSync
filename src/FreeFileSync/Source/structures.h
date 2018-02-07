@@ -11,7 +11,8 @@
 #include <memory>
 #include <zen/zstring.h>
 
-namespace zen
+
+namespace fff
 {
 enum class CompareVariant
 {
@@ -145,7 +146,8 @@ bool detectMovedFilesEnabled   (const DirectionConfig& cfg);
 
 DirectionSet extractDirections(const DirectionConfig& cfg); //get sync directions: DON'T call for DirectionConfig::TWO_WAY!
 
-std::wstring getVariantName(DirectionConfig::Variant var);
+std::wstring getVariantName      (DirectionConfig::Variant var);
+std::wstring getVariantNameForLog(DirectionConfig::Variant var);
 
 inline
 bool operator==(const DirectionConfig& lhs, const DirectionConfig& rhs)
@@ -179,6 +181,7 @@ bool operator==(const CompConfig& lhs, const CompConfig& rhs)
            lhs.handleSymlinks         == rhs.handleSymlinks &&
            lhs.ignoreTimeShiftMinutes == rhs.ignoreTimeShiftMinutes;
 }
+inline bool operator!=(const CompConfig& lhs, const CompConfig& rhs) { return !(lhs == rhs); }
 
 inline
 bool effectivelyEqual(const CompConfig& lhs, const CompConfig& rhs) { return lhs == rhs; } //no change in behavior
@@ -223,6 +226,7 @@ bool operator==(const SyncConfig& lhs, const SyncConfig& rhs)
            lhs.versioningFolderPhrase == rhs.versioningFolderPhrase;
     //adapt effectivelyEqual() on changes, too!
 }
+inline bool operator!=(const SyncConfig& lhs, const SyncConfig& rhs) { return !(lhs == rhs); }
 
 
 inline
@@ -310,11 +314,12 @@ bool operator==(const FilterConfig& lhs, const FilterConfig& rhs)
            lhs.sizeMax       == rhs.sizeMax       &&
            lhs.unitSizeMax   == rhs.unitSizeMax;
 }
+inline bool operator!=(const FilterConfig& lhs, const FilterConfig& rhs) { return !(lhs == rhs); }
 
 void resolveUnits(size_t timeSpan, UnitTime unitTimeSpan,
                   size_t sizeMin,  UnitSize unitSizeMin,
                   size_t sizeMax,  UnitSize unitSizeMax,
-                  int64_t&  timeFrom,   //unit: UTC time, seconds
+                  time_t&   timeFrom,   //unit: UTC time, seconds
                   uint64_t& sizeMinBy,  //unit: bytes
                   uint64_t& sizeMaxBy); //unit: bytes
 

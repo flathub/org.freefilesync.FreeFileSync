@@ -13,7 +13,7 @@
 #include <wx/textctrl.h>
 #include <wx+/file_drop.h>
 
-namespace zen
+namespace rts
 {
 //handle drag and drop, tooltip, label and manual input, coordinating a wxWindow, wxButton, and wxTextCtrl
 
@@ -32,7 +32,7 @@ public:
 
 private:
     void onMouseWheel    (wxMouseEvent& event);
-    void onFilesDropped  (FileDropEvent& event);
+    void onFilesDropped  (zen::FileDropEvent& event);
     void onEditFolderPath(wxCommandEvent& event);
     void onSelectDir     (wxCommandEvent& event);
 

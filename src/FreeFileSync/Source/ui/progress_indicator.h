@@ -15,6 +15,8 @@
 #include "../lib/process_xml.h"
 
 
+namespace fff
+{
 class CompareProgressDialog
 {
 public:
@@ -22,7 +24,7 @@ public:
 
     wxWindow* getAsWindow(); //convenience! don't abuse!
 
-    void init(const zen::Statistics& syncStat, bool ignoreErrors); //begin of sync: make visible, set pointer to "syncStat", initialize all status values
+    void init(const Statistics& syncStat, bool ignoreErrors); //begin of sync: make visible, set pointer to "syncStat", initialize all status values
     void teardown(); //end of sync: hide again, clear pointer to "syncStat"
 
     void initNewPhase(); //call after "StatusHandler::initNewPhase"
@@ -40,6 +42,14 @@ private:
 
 
 //StatusHandlerFloatingDialog will internally process Window messages => disable GUI controls to avoid unexpected callbacks!
+
+enum class PostSyncAction2
+{
+    NONE,
+    EXIT,
+    SLEEP,
+    SHUTDOWN
+};
 
 struct SyncProgressDialog
 {
@@ -66,36 +76,39 @@ struct SyncProgressDialog
     //allow changing a few options dynamically during sync
     virtual bool getOptionIgnoreErrors()           const = 0;
     virtual void setOptionIgnoreErrors(bool ignoreError) = 0;
-    virtual xmlAccess::PostSyncAction getOptionPostSyncAction() const = 0;
+    virtual PostSyncAction2 getOptionPostSyncAction() const = 0;
+    virtual bool getOptionAutoCloseDialog() const = 0;
 
-    virtual void stopTimer  () = 0; //halt all internal timers!
-    virtual void resumeTimer() = 0; //
+    virtual void timerSetStatus(bool active) = 0; //start/stop all internal timers!
+    virtual bool timerIsRunning() const = 0;
 
 protected:
     ~SyncProgressDialog() {}
 };
 
 
-SyncProgressDialog* createProgressDialog(zen::AbortCallback& abortCb,
+SyncProgressDialog* createProgressDialog(AbortCallback& abortCb,
                                          const std::function<void()>& notifyWindowTerminate, //note: user closing window cannot be prevented on OS X! (And neither on Windows during system shutdown!)
-                                         const zen::Statistics& syncStat,
+                                         const Statistics& syncStat,
                                          wxFrame* parentWindow, //may be nullptr
                                          bool showProgress,
+                                         bool autoCloseDialog,
                                          const wxString& jobName,
                                          const Zstring& soundFileSyncComplete,
                                          bool ignoreErrors,
-                                         xmlAccess::PostSyncAction postSyncAction);
+                                         PostSyncAction2 postSyncAction);
 //DON'T delete the pointer! it will be deleted by the user clicking "OK/Cancel"/wxWindow::Destroy() after showSummary() or closeDirectly()
 
 
 class PauseTimers
 {
 public:
-    PauseTimers(SyncProgressDialog& ss) : ss_(ss) { ss_.stopTimer(); }
-    ~PauseTimers() { ss_.resumeTimer(); }
+    PauseTimers(SyncProgressDialog& ss) : ss_(ss), timerWasRunning_(ss.timerIsRunning()) { ss_.timerSetStatus(false); }
+    ~PauseTimers() { ss_.timerSetStatus(timerWasRunning_); } //restore previous state: support recursive calls
 private:
     SyncProgressDialog& ss_;
+    const bool timerWasRunning_;
 };
-
+}
 
 #endif //PROGRESS_INDICATOR_H_8037493452348

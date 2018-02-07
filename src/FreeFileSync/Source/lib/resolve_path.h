@@ -11,7 +11,7 @@
 #include <zen/zstring.h>
 
 
-namespace zen
+namespace fff
 {
 /*
     - expand macros

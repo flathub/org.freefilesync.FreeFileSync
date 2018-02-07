@@ -16,6 +16,7 @@
 
 
 using namespace zen;
+using namespace rts;
 
 
 namespace
@@ -25,7 +26,7 @@ void setFolderPath(const Zstring& dirpath, wxTextCtrl* txtCtrl, wxWindow& toolti
     if (txtCtrl)
         txtCtrl->ChangeValue(utfTo<wxString>(dirpath));
 
-    const Zstring folderPathFmt = getResolvedFilePath(dirpath); //may block when resolving [<volume name>]
+    const Zstring folderPathFmt = fff::getResolvedFilePath(dirpath); //may block when resolving [<volume name>]
 
     tooltipWnd.SetToolTip(nullptr); //workaround wxComboBox bug http://trac.wxwidgets.org/ticket/10512 / http://trac.wxwidgets.org/ticket/12659
     tooltipWnd.SetToolTip(utfTo<wxString>(folderPathFmt)); //who knows when the real bugfix reaches mere mortals via an official release...
@@ -124,7 +125,7 @@ void FolderSelector2::onSelectDir(wxCommandEvent& event)
     //IFileDialog requirements for default path: 1. accepts native paths only!!! 2. path must exist!
     Zstring defaultFolderPath;
     {
-        const Zstring folderPath = getResolvedFilePath(getPath());
+        const Zstring folderPath = fff::getResolvedFilePath(getPath());
         if (!folderPath.empty())
         {
             auto ft = runAsync([folderPath] { return dirAvailable(folderPath); });

@@ -20,7 +20,7 @@ Define HAVE_UBUNTU_UNITY and set:
     Linker   flag: `pkg-config --libs unity`
 */
 
-namespace zen
+namespace fff
 {
 class TaskbarNotAvailable {};
 

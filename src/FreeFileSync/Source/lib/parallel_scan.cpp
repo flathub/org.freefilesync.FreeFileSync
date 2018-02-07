@@ -11,11 +11,11 @@
 #include <zen/thread.h>
 #include <zen/scope_guard.h>
 #include <zen/fixed_list.h>
-//#include <zen/tick_count.h>
 #include "db_file.h"
 #include "lock_holder.h"
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -159,7 +159,7 @@ using BasicWString = Zbase<wchar_t>; //thread-safe string class for UI texts
 class AsyncCallback //actor pattern
 {
 public:
-    AsyncCallback(size_t reportingIntervalMs) : reportingIntervalMs_(reportingIntervalMs) {}
+    AsyncCallback(std::chrono::milliseconds cbInterval) : cbInterval_(cbInterval) {}
 
     //blocking call: context of worker thread
     FillBufferCallback::HandleError reportError(const std::wstring& msg, size_t retryNumber) //throw ThreadInterruption
@@ -206,7 +206,8 @@ public:
 
         const auto now = std::chrono::steady_clock::now(); //0 on error
 
-        if (numeric::dist(now, lastReportTime) > std::chrono::milliseconds(reportingIntervalMs_)) //perform ui updates not more often than necessary + handle potential chrono wrap-around!
+        //perform ui updates not more often than necessary + handle potential chrono wrap-around!
+        if (numeric::dist(now, lastReportTime) > cbInterval_)
         {
             lastReportTime = now; //keep "lastReportTime" at worker thread level to avoid locking!
             return true;
@@ -235,7 +236,7 @@ public:
 
         const long activeCount = activeWorker_;
         if (activeCount >= 2)
-            statusText += L" [" + replaceCpy(_P("1 thread", "%x threads", activeCount), L"%x", numberTo<std::wstring>(activeCount)) + L"]";
+            statusText += L" [" + _P("1 thread", "%x threads", activeCount) + L"]";
 
         statusText += L" ";
         statusText += filepath;
@@ -262,7 +263,7 @@ private:
 
     std::mutex lockCurrentStatus_; //use a different lock for current file: continue traversing while some thread may process an error
     BasicWString currentFile_;
-    const int64_t reportingIntervalMs_;
+    const std::chrono::milliseconds cbInterval_;
 
     const BasicWString textScanning_ { copyStringTo<BasicWString>(_("Scanning:")) }; //this one is (currently) not shared and could be made a std::wstring, but we stay consistent and use thread-safe variables in this class only!
 
@@ -519,10 +520,10 @@ private:
 }
 
 
-void zen::fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
+void fff::fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
                      std::map<DirectoryKey, DirectoryValue>& buf, //out
                      FillBufferCallback& callback,
-                     size_t updateIntervalMs)
+                     std::chrono::milliseconds cbInterval)
 {
     buf.clear();
 
@@ -537,7 +538,7 @@ void zen::fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
                 wt.join();     //in this context it is possible a thread is *not* joinable anymore due to the thread::try_join_for() below!
             );
 
-    auto acb = std::make_shared<AsyncCallback>(updateIntervalMs / 2 /*reportingIntervalMs*/);
+    auto acb = std::make_shared<AsyncCallback>(cbInterval);
 
     //init worker threads
     for (const DirectoryKey& key : keysToRead)
@@ -548,9 +549,9 @@ void zen::fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
         const int threadId = static_cast<int>(worker.size());
         worker.emplace_back(WorkerThread(threadId,
                                          acb,
-                                         key.folderPath_, //AbstractPath is thread-safe like an int! :)
-                                         key.filter_,
-                                         key.handleSymlinks_,
+                                         key.folderPath, //AbstractPath is thread-safe like an int! :)
+                                         key.filter,
+                                         key.handleSymlinks,
                                          dirOutput));
     }
 
@@ -565,7 +566,7 @@ void zen::fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
             //process errors
             acb->processErrors(callback);
         }
-        while (!wt.tryJoinFor(std::chrono::milliseconds(updateIntervalMs)));
+        while (!wt.tryJoinFor(cbInterval));
 
         acb->incrementNotifyingThreadId(); //process info messages of one thread at a time only
     }

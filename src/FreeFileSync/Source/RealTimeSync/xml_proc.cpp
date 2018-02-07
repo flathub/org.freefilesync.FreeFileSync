@@ -11,7 +11,7 @@
 #include "../lib/ffs_paths.h"
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace rts;
 
 
 namespace
@@ -37,7 +37,7 @@ bool isXmlTypeRTS(const XmlDoc& doc) //throw()
 }
 
 
-void xmlAccess::readConfig(const Zstring& filepath, XmlRealConfig& config, std::wstring& warningMsg) //throw FileError
+void rts::readConfig(const Zstring& filepath, XmlRealConfig& config, std::wstring& warningMsg) //throw FileError
 {
     XmlDoc doc = loadXmlDocument(filepath); //throw FileError
 
@@ -69,7 +69,7 @@ void writeConfig(const XmlRealConfig& config, XmlOut& out)
 }
 
 
-void xmlAccess::writeConfig(const XmlRealConfig& config, const Zstring& filepath) //throw FileError
+void rts::writeConfig(const XmlRealConfig& config, const Zstring& filepath) //throw FileError
 {
     XmlDoc doc("FreeFileSync");
     doc.root().setAttribute("XmlType", "REAL");
@@ -83,7 +83,7 @@ void xmlAccess::writeConfig(const XmlRealConfig& config, const Zstring& filepath
 
 namespace
 {
-xmlAccess::XmlRealConfig convertBatchToReal(const xmlAccess::XmlBatchConfig& batchCfg, const Zstring& batchFilePath)
+XmlRealConfig convertBatchToReal(const fff::XmlBatchConfig& batchCfg, const Zstring& batchFilePath)
 {
     std::set<Zstring, LessFilePath> uniqueFolders;
 
@@ -92,7 +92,7 @@ xmlAccess::XmlRealConfig convertBatchToReal(const xmlAccess::XmlBatchConfig& bat
     uniqueFolders.insert(batchCfg.mainCfg.firstPair.folderPathPhraseRight_);
 
     //additional folders
-    for (const FolderPairEnh& fp : batchCfg.mainCfg.additionalPairs)
+    for (const fff::FolderPairEnh& fp : batchCfg.mainCfg.additionalPairs)
     {
         uniqueFolders.insert(fp.folderPathPhraseLeft_);
         uniqueFolders.insert(fp.folderPathPhraseRight_);
@@ -100,23 +100,21 @@ xmlAccess::XmlRealConfig convertBatchToReal(const xmlAccess::XmlBatchConfig& bat
 
     erase_if(uniqueFolders, [](const Zstring& str) { return trimCpy(str).empty(); });
 
-    xmlAccess::XmlRealConfig output;
+    XmlRealConfig output;
     output.directories.assign(uniqueFolders.begin(), uniqueFolders.end());
-    output.commandline = Zstr("\"") + zen::getFreeFileSyncLauncherPath() + Zstr("\" \"") + batchFilePath + Zstr("\"");
+    output.commandline = Zstr("\"") + fff::getFreeFileSyncLauncherPath() + Zstr("\" \"") + batchFilePath + Zstr("\"");
     return output;
 }
 }
 
 
-void xmlAccess::readRealOrBatchConfig(const Zstring& filepath, xmlAccess::XmlRealConfig& config, std::wstring& warningMsg) //throw FileError
+void rts::readRealOrBatchConfig(const Zstring& filepath, XmlRealConfig& config, std::wstring& warningMsg) //throw FileError
 {
-    using namespace xmlAccess;
-
-    if (getXmlType(filepath) != XML_TYPE_BATCH) //throw FileError
+    if (fff::getXmlType(filepath) != fff::XML_TYPE_BATCH) //throw FileError
         return readConfig(filepath, config, warningMsg); //throw FileError
 
     //convert batch config to RealTimeSync config
-    XmlBatchConfig batchCfg;
+    fff::XmlBatchConfig batchCfg;
     readConfig(filepath, batchCfg, warningMsg); //throw FileError
     //<- redirect batch config warnings
 
@@ -124,13 +122,13 @@ void xmlAccess::readRealOrBatchConfig(const Zstring& filepath, xmlAccess::XmlRea
 }
 
 
-wxLanguage xmlAccess::getProgramLanguage()
+wxLanguage rts::getProgramLanguage()
 {
-    xmlAccess::XmlGlobalSettings settings;
+    fff::XmlGlobalSettings settings;
     std::wstring warningMsg;
     try
     {
-        xmlAccess::readConfig(getGlobalConfigFile(), settings, warningMsg); //throw FileError
+        fff::readConfig(fff::getGlobalConfigFile(), settings, warningMsg); //throw FileError
     }
     catch (const FileError&) {} //use default language if error occurred
 

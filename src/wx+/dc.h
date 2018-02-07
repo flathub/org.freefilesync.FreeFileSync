@@ -11,6 +11,7 @@
 #include <zen/optional.h>
 #include <wx/dcbuffer.h> //for macro: wxALWAYS_NATIVE_DOUBLE_BUFFER
 
+
 namespace zen
 {
 /*

@@ -10,6 +10,7 @@
 #include <zen/file_error.h>
 
 using namespace zen;
+using namespace fff;
 
 
 
@@ -281,7 +282,7 @@ SyncOperation FilePair::getSyncOperation() const
 }
 
 
-std::wstring zen::getCategoryDescription(CompareFilesResult cmpRes)
+std::wstring fff::getCategoryDescription(CompareFilesResult cmpRes)
 {
     switch (cmpRes)
     {
@@ -314,7 +315,7 @@ const wchar_t arrowRight[] = L"->";
 }
 
 
-std::wstring zen::getCategoryDescription(const FileSystemObject& fsObj)
+std::wstring fff::getCategoryDescription(const FileSystemObject& fsObj)
 {
     const std::wstring footer = L"\n[" + utfTo<std::wstring>(fsObj. getPairItemName()) + L"]";
 
@@ -336,14 +337,14 @@ std::wstring zen::getCategoryDescription(const FileSystemObject& fsObj)
             [&](const FilePair& file)
             {
                 descr += std::wstring(L"\n") +
-                         arrowLeft  + L" " + zen::formatUtcToLocalTime(file.getLastWriteTime< LEFT_SIDE>()) + L"\n" +
-                         arrowRight + L" " + zen::formatUtcToLocalTime(file.getLastWriteTime<RIGHT_SIDE>());
+                         arrowLeft  + L" " + formatUtcToLocalTime(file.getLastWriteTime< LEFT_SIDE>()) + L"\n" +
+                         arrowRight + L" " + formatUtcToLocalTime(file.getLastWriteTime<RIGHT_SIDE>());
             },
             [&](const SymlinkPair& symlink)
             {
                 descr += std::wstring(L"\n") +
-                         arrowLeft  + L" " + zen::formatUtcToLocalTime(symlink.getLastWriteTime< LEFT_SIDE>()) + L"\n" +
-                         arrowRight + L" " + zen::formatUtcToLocalTime(symlink.getLastWriteTime<RIGHT_SIDE>());
+                         arrowLeft  + L" " + formatUtcToLocalTime(symlink.getLastWriteTime< LEFT_SIDE>()) + L"\n" +
+                         arrowRight + L" " + formatUtcToLocalTime(symlink.getLastWriteTime<RIGHT_SIDE>());
             });
             return descr + footer;
         }
@@ -357,7 +358,7 @@ std::wstring zen::getCategoryDescription(const FileSystemObject& fsObj)
 }
 
 
-std::wstring zen::getSyncOpDescription(SyncOperation op)
+std::wstring fff::getSyncOpDescription(SyncOperation op)
 {
     switch (op)
     {
@@ -395,7 +396,7 @@ std::wstring zen::getSyncOpDescription(SyncOperation op)
 }
 
 
-std::wstring zen::getSyncOpDescription(const FileSystemObject& fsObj)
+std::wstring fff::getSyncOpDescription(const FileSystemObject& fsObj)
 {
     const std::wstring footer = L"\n[" + utfTo<std::wstring>(fsObj. getPairItemName()) + L"]";
 

@@ -8,7 +8,7 @@
 #include "status_handler.h"
 
 
-namespace zen
+namespace fff
 {
 //intermediate locks created by DirLock use this extension, too:
 const Zchar LOCK_FILE_ENDING[] = Zstr(".ffs_lock"); //don't use Zstring as global constant: avoid static initialization order problem in global namespace!
@@ -18,27 +18,21 @@ const Zchar LOCK_FILE_ENDING[] = Zstr(".ffs_lock"); //don't use Zstring as globa
 class LockHolder
 {
 public:
-    LockHolder(const std::set<Zstring, LessFilePath>& dirpathsExisting, //resolved paths
+    LockHolder(const std::set<Zstring, LessFilePath>& dirPathsExisting, //resolved paths
                bool& warnDirectoryLockFailed,
                ProcessCallback& pcb)
     {
-        class WaitOnLockHandler : public DirLockCallback
-        {
-        public:
-            WaitOnLockHandler(ProcessCallback& pc) : pc_(pc) {}
-            void requestUiRefresh()                     override { pc_.requestUiRefresh(); }  //allowed to throw exceptions
-            void reportStatus(const std::wstring& text) override { pc_.reportStatus(text); }
-        private:
-            ProcessCallback& pc_;
-        } lcb(pcb);
+        using namespace zen;
 
         std::map<Zstring, FileError, LessFilePath> failedLocks;
 
-        for (const Zstring& dirpath : dirpathsExisting)
+        for (const Zstring& dirpath : dirPathsExisting)
             try
             {
                 //lock file creation is synchronous and may block noticeably for very slow devices (usb sticks, mapped cloud storages)
-                lockHolder_.emplace_back(appendSeparator(dirpath) + Zstr("sync") + LOCK_FILE_ENDING, &lcb); //throw FileError
+                lockHolder_.emplace_back(appendSeparator(dirpath) + Zstr("sync") + LOCK_FILE_ENDING,
+                [&](const std::wstring& msg) { pcb.reportStatus(msg); /*throw X*/ },
+                UI_UPDATE_INTERVAL / 2); //throw FileError
             }
             catch (const FileError& e) { failedLocks.emplace(dirpath, e); }
 

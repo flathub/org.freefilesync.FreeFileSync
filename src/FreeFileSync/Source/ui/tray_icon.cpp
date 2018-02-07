@@ -14,6 +14,7 @@
 #include <wx+/image_resources.h>
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -79,7 +80,7 @@ wxIcon FfsTrayIcon::ProgressIconGenerator::get(double fraction)
         return wxIcon();
 
     const int pixelCount = logo_.GetWidth() * logo_.GetHeight();
-    const int startFillPixel = numeric::clampCpy(numeric::round(fraction * pixelCount), 0, pixelCount);
+    const int startFillPixel = numeric::clampCpy<int>(numeric::round(fraction * pixelCount), 0, pixelCount);
 
     if (startPixBuf_ != startFillPixel)
     {
@@ -196,16 +197,16 @@ private:
 
 
 FfsTrayIcon::FfsTrayIcon(const std::function<void()>& onRequestResume) :
-    trayIcon(new TaskBarImpl(onRequestResume)),
-    iconGenerator(std::make_unique<ProgressIconGenerator>(getResourceImage(L"FFS_tray_24x24").ConvertToImage()))
+    trayIcon_(new TaskBarImpl(onRequestResume)),
+    iconGenerator_(std::make_unique<ProgressIconGenerator>(getResourceImage(L"FFS_tray_24x24").ConvertToImage()))
 {
-    trayIcon->SetIcon(iconGenerator->get(activeFraction), activeToolTip);
+    trayIcon_->SetIcon(iconGenerator_->get(activeFraction_), activeToolTip_);
 }
 
 
 FfsTrayIcon::~FfsTrayIcon()
 {
-    trayIcon->dontCallbackAnymore(); //TaskBarImpl has longer lifetime than FfsTrayIcon: avoid callback!
+    trayIcon_->dontCallbackAnymore(); //TaskBarImpl has longer lifetime than FfsTrayIcon: avoid callback!
 
     /*
     This is not working correctly on OS X! It seems both wxTaskBarIcon::RemoveIcon() and ~wxTaskBarIcon() are broken and do NOT immediately
@@ -219,21 +220,21 @@ FfsTrayIcon::~FfsTrayIcon()
     - if ~wxTaskBarIcon() ran from SyncProgressDialog::closeDirectly() => leaves the icon dangling until user closes this dialog and outter event loop runs!
     */
 
-    trayIcon->RemoveIcon(); //required on Windows: unlike on OS X, wxPendingDelete does not kick in before main event loop!
+    trayIcon_->RemoveIcon(); //required on Windows: unlike on OS X, wxPendingDelete does not kick in before main event loop!
     //use wxWidgets delayed destruction: delete during next idle loop iteration (handle late window messages, e.g. when double-clicking)
-    wxPendingDelete.Append(trayIcon); //identical to wxTaskBarIconBase::Destroy() in wxWidgets 2.9.5
+    wxPendingDelete.Append(trayIcon_); //identical to wxTaskBarIconBase::Destroy() in wxWidgets 2.9.5
 }
 
 
 void FfsTrayIcon::setToolTip(const wxString& toolTip)
 {
-    activeToolTip = toolTip;
-    trayIcon->SetIcon(iconGenerator->get(activeFraction), activeToolTip); //another wxWidgets design bug: non-orthogonal method!
+    activeToolTip_ = toolTip;
+    trayIcon_->SetIcon(iconGenerator_->get(activeFraction_), activeToolTip_); //another wxWidgets design bug: non-orthogonal method!
 }
 
 
 void FfsTrayIcon::setProgress(double fraction)
 {
-    activeFraction = fraction;
-    trayIcon->SetIcon(iconGenerator->get(activeFraction), activeToolTip);
+    activeFraction_ = fraction;
+    trayIcon_->SetIcon(iconGenerator_->get(activeFraction_), activeToolTip_);
 }

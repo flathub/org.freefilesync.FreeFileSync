@@ -18,7 +18,7 @@ void zen::shutdownSystem() //throw FileError
     //https://linux.die.net/man/2/reboot => needs admin rights!
 
     //"systemctl" should work without admin rights:
-    shellExecute("sleep 1; systemctl poweroff", EXEC_TYPE_ASYNC); //throw FileError
+    shellExecute("sleep 1; systemctl poweroff", ExecutionType::ASYNC); //throw FileError
     //sleep 1: give FFS some time to properly shut down!
 
 }
@@ -27,7 +27,7 @@ void zen::shutdownSystem() //throw FileError
 void zen::suspendSystem() //throw FileError
 {
     //"systemctl" should work without admin rights:
-    shellExecute("systemctl suspend", EXEC_TYPE_ASYNC); //throw FileError
+    shellExecute("systemctl suspend", ExecutionType::ASYNC); //throw FileError
 
 }
 

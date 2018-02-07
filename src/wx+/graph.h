@@ -16,8 +16,8 @@
 #include <zen/string_tools.h>
 #include <zen/optional.h>
 
-//elegant 2D graph as wxPanel specialization
 
+//elegant 2D graph as wxPanel specialization
 namespace zen
 {
 /*

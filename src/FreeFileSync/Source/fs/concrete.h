@@ -9,7 +9,7 @@
 
 #include "abstract.h"
 
-namespace zen
+namespace fff
 {
 AbstractPath createAbstractPath(const Zstring& itemPathPhrase); //noexcept
 }

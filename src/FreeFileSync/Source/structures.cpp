@@ -13,9 +13,10 @@
 #include "lib/hard_filter.h"
 
 using namespace zen;
+using namespace fff;
 
 
-std::vector<unsigned int> zen::fromTimeShiftPhrase(const std::wstring& timeShiftPhrase)
+std::vector<unsigned int> fff::fromTimeShiftPhrase(const std::wstring& timeShiftPhrase)
 {
     std::wstring tmp = replaceCpy(timeShiftPhrase, L';', L','); //harmonize , and ;
     replace(tmp, L'-', L""); //there is no negative shift => treat as positive!
@@ -35,7 +36,7 @@ std::vector<unsigned int> zen::fromTimeShiftPhrase(const std::wstring& timeShift
 }
 
 
-std::wstring zen::toTimeShiftPhrase(const std::vector<unsigned int>& ignoreTimeShiftMinutes)
+std::wstring fff::toTimeShiftPhrase(const std::vector<unsigned int>& ignoreTimeShiftMinutes)
 {
     std::wstring phrase;
     for (auto it = ignoreTimeShiftMinutes.begin(); it != ignoreTimeShiftMinutes.end(); ++it)
@@ -51,7 +52,7 @@ std::wstring zen::toTimeShiftPhrase(const std::vector<unsigned int>& ignoreTimeS
 }
 
 
-std::wstring zen::getVariantName(CompareVariant var)
+std::wstring fff::getVariantName(CompareVariant var)
 {
     switch (var)
     {
@@ -67,40 +68,56 @@ std::wstring zen::getVariantName(CompareVariant var)
 }
 
 
-std::wstring zen::getVariantName(DirectionConfig::Variant var)
+namespace
 {
-    const wchar_t arrowLeft [] = L"<-";
-    const wchar_t arrowRight[] = L"->";
-    const wchar_t angleRight[] = L">";
-#if 0
-    //const wchar_t arrowLeft [] = L"\u2190"; unicode arrows -> too small
-    //const wchar_t arrowRight[] = L"\u2192";
-    const wchar_t arrowLeft [] = L"\uFF1C\u2013"; //fullwidth less-than + en dash
-    const wchar_t arrowRight[] = L"\u2013\uFF1E"; //en dash + fullwidth greater-than
-    const wchar_t angleRight[] = L"\uFF1E";
-    => drawbacks:
-        - not drawn correctly before Vista
-        - used in sync log files where users expect ANSI: https://www.freefilesync.org/forum/viewtopic.php?t=4647
-        - RTL: the full width less-than does not swap automatically
-#endif
-
-        switch (var)
+std::wstring getVariantNameImpl(DirectionConfig::Variant var, const wchar_t* arrowLeft, const wchar_t* arrowRight, const wchar_t* angleRight)
+{
+    switch (var)
     {
         case DirectionConfig::TWO_WAY:
-            return std::wstring(arrowLeft) + L" " + _("Two way") + L" " + arrowRight;
+            return arrowLeft + _("Two way") + arrowRight;
         case DirectionConfig::MIRROR:
-            return _("Mirror") + L" " + arrowRight;
+            return _("Mirror") + arrowRight;
         case DirectionConfig::UPDATE:
-            return _("Update") + L" " + angleRight;
+            return _("Update") + angleRight;
         case DirectionConfig::CUSTOM:
             return _("Custom");
     }
     assert(false);
     return _("Error");
 }
+}
 
 
-DirectionSet zen::extractDirections(const DirectionConfig& cfg)
+std::wstring fff::getVariantName(DirectionConfig::Variant var)
+{
+#if 1
+    const wchar_t arrowLeft [] = L"<\u2013 ";
+    const wchar_t arrowRight[] = L" \u2013>";
+    const wchar_t angleRight[] = L" >";
+#else
+    //const wchar_t arrowLeft [] = L"\u2190 "; //unicode arrows -> too small
+    //const wchar_t arrowRight[] = L" \u2192"; //
+    //const wchar_t arrowLeft [] = L"\u25C4\u2013 "; //black triangle pointer
+    //const wchar_t arrowRight[] = L" \u2013\u25BA"; //
+    const wchar_t arrowLeft [] = L"\uFF1C\u2013 "; //fullwidth less-than + en dash
+    const wchar_t arrowRight[] = L" \u2013\uFF1E"; //en dash + fullwidth greater-than
+    const wchar_t angleRight[] = L" \uFF1E";
+    //=> drawback: - not drawn correctly before Vista
+    //             - RTL: the full width less-than is not mirrored automatically (=> Windows Unicode bug!?)
+#endif
+    return getVariantNameImpl(var, arrowLeft, arrowRight, angleRight);
+}
+
+
+//use in sync log files where users expect ANSI: https://www.freefilesync.org/forum/viewtopic.php?t=4647
+std::wstring fff::getVariantNameForLog(DirectionConfig::Variant var)
+{
+    return getVariantNameImpl(var, L"<-", L"->", L">");
+}
+
+
+DirectionSet fff::extractDirections(const DirectionConfig& cfg)
 {
     DirectionSet output;
     switch (cfg.var)
@@ -134,12 +151,12 @@ DirectionSet zen::extractDirections(const DirectionConfig& cfg)
 }
 
 
-bool zen::detectMovedFilesSelectable(const DirectionConfig& cfg)
+bool fff::detectMovedFilesSelectable(const DirectionConfig& cfg)
 {
     if (cfg.var == DirectionConfig::TWO_WAY)
         return false; //moved files are always detected since we have the database file anyway
 
-    const DirectionSet tmp = zen::extractDirections(cfg);
+    const DirectionSet tmp = fff::extractDirections(cfg);
     return (tmp.exLeftSideOnly  == SyncDirection::RIGHT &&
             tmp.exRightSideOnly == SyncDirection::RIGHT) ||
            (tmp.exLeftSideOnly  == SyncDirection::LEFT &&
@@ -147,13 +164,13 @@ bool zen::detectMovedFilesSelectable(const DirectionConfig& cfg)
 }
 
 
-bool zen::detectMovedFilesEnabled(const DirectionConfig& cfg)
+bool fff::detectMovedFilesEnabled(const DirectionConfig& cfg)
 {
     return detectMovedFilesSelectable(cfg) ? cfg.detectMovedFiles : cfg.var == DirectionConfig::TWO_WAY;
 }
 
 
-DirectionSet zen::getTwoWayUpdateSet()
+DirectionSet fff::getTwoWayUpdateSet()
 {
     DirectionSet output;
     output.exLeftSideOnly  = SyncDirection::RIGHT;
@@ -208,7 +225,7 @@ std::wstring MainConfiguration::getSyncVariantName() const
 }
 
 
-std::wstring zen::getSymbol(CompareFilesResult cmpRes)
+std::wstring fff::getSymbol(CompareFilesResult cmpRes)
 {
     switch (cmpRes)
     {
@@ -233,7 +250,7 @@ std::wstring zen::getSymbol(CompareFilesResult cmpRes)
 }
 
 
-std::wstring zen::getSymbol(SyncOperation op)
+std::wstring fff::getSymbol(SyncOperation op)
 {
     switch (op)
     {
@@ -295,9 +312,14 @@ int daysSinceBeginOfWeek(int dayOfWeek) //0-6, 0=Monday, 6=Sunday
 */
 
 
-int64_t resolve(size_t value, UnitTime unit, int64_t defaultVal)
+time_t resolve(size_t value, UnitTime unit, time_t defaultVal)
 {
-    TimeComp locTimeStruc = zen::getLocalTime();
+    TimeComp tcLocal = getLocalTime();
+    if (tcLocal == TimeComp())
+    {
+        assert(false);
+        return defaultVal;
+    }
 
     switch (unit)
     {
@@ -305,10 +327,10 @@ int64_t resolve(size_t value, UnitTime unit, int64_t defaultVal)
             return defaultVal;
 
         case UnitTime::TODAY:
-            locTimeStruc.second = 0; //0-61
-            locTimeStruc.minute = 0; //0-59
-            locTimeStruc.hour   = 0; //0-23
-            return localToTimeT(locTimeStruc); //convert local time back to UTC
+            tcLocal.second = 0; //0-61
+            tcLocal.minute = 0; //0-59
+            tcLocal.hour   = 0; //0-23
+            return localToTimeT(tcLocal); //convert local time back to UTC
 
         //case UnitTime::THIS_WEEK:
         //{
@@ -324,29 +346,29 @@ int64_t resolve(size_t value, UnitTime unit, int64_t defaultVal)
         //}
 
         case UnitTime::THIS_MONTH:
-            locTimeStruc.second = 0; //0-61
-            locTimeStruc.minute = 0; //0-59
-            locTimeStruc.hour   = 0; //0-23
-            locTimeStruc.day    = 1; //1-31
-            return localToTimeT(locTimeStruc);
+            tcLocal.second = 0; //0-61
+            tcLocal.minute = 0; //0-59
+            tcLocal.hour   = 0; //0-23
+            tcLocal.day    = 1; //1-31
+            return localToTimeT(tcLocal);
 
         case UnitTime::THIS_YEAR:
-            locTimeStruc.second = 0; //0-61
-            locTimeStruc.minute = 0; //0-59
-            locTimeStruc.hour   = 0; //0-23
-            locTimeStruc.day    = 1; //1-31
-            locTimeStruc.month  = 1; //1-12
-            return localToTimeT(locTimeStruc);
+            tcLocal.second = 0; //0-61
+            tcLocal.minute = 0; //0-59
+            tcLocal.hour   = 0; //0-23
+            tcLocal.day    = 1; //1-31
+            tcLocal.month  = 1; //1-12
+            return localToTimeT(tcLocal);
 
         case UnitTime::LAST_X_DAYS:
-            locTimeStruc.second = 0; //0-61
-            locTimeStruc.minute = 0; //0-59
-            locTimeStruc.hour   = 0; //0-23
-            return localToTimeT(locTimeStruc) - static_cast<int64_t>(value) * 24 * 3600;
+            tcLocal.second = 0; //0-61
+            tcLocal.minute = 0; //0-59
+            tcLocal.hour   = 0; //0-23
+            return localToTimeT(tcLocal) - value * 24 * 3600;
     }
 
     assert(false);
-    return localToTimeT(locTimeStruc);
+    return localToTimeT(tcLocal);
 }
 
 
@@ -372,14 +394,14 @@ uint64_t resolve(size_t value, UnitSize unit, uint64_t defaultVal)
 }
 }
 
-void zen::resolveUnits(size_t timeSpan, UnitTime unitTimeSpan,
+void fff::resolveUnits(size_t timeSpan, UnitTime unitTimeSpan,
                        size_t sizeMin,  UnitSize unitSizeMin,
                        size_t sizeMax,  UnitSize unitSizeMax,
-                       int64_t&  timeFrom,  //unit: UTC time, seconds
+                       time_t&   timeFrom,  //unit: UTC time, seconds
                        uint64_t& sizeMinBy, //unit: bytes
                        uint64_t& sizeMaxBy) //unit: bytes
 {
-    timeFrom  = resolve(timeSpan, unitTimeSpan, std::numeric_limits<int64_t>::min());
+    timeFrom  = resolve(timeSpan, unitTimeSpan, std::numeric_limits<time_t>::min());
     sizeMinBy = resolve(sizeMin,  unitSizeMin, 0U);
     sizeMaxBy = resolve(sizeMax,  unitSizeMax, std::numeric_limits<uint64_t>::max());
 }
@@ -401,7 +423,7 @@ FilterConfig mergeFilterConfig(const FilterConfig& global, const FilterConfig& l
     trim(out.excludeFilter, true, false);
 
     //soft filter
-    int64_t  loctimeFrom  = 0;
+    time_t   loctimeFrom  = 0;
     uint64_t locSizeMinBy = 0;
     uint64_t locSizeMaxBy = 0;
     resolveUnits(out.timeSpan, out.unitTimeSpan,
@@ -412,7 +434,7 @@ FilterConfig mergeFilterConfig(const FilterConfig& global, const FilterConfig& l
                  locSizeMaxBy); //unit: bytes
 
     //soft filter
-    int64_t  glotimeFrom  = 0;
+    time_t   glotimeFrom  = 0;
     uint64_t gloSizeMinBy = 0;
     uint64_t gloSizeMaxBy = 0;
     resolveUnits(global.timeSpan, global.unitTimeSpan,
@@ -450,7 +472,7 @@ bool effectivelyEmpty(const FolderPairEnh& fp)
 }
 
 
-MainConfiguration zen::merge(const std::vector<MainConfiguration>& mainCfgs)
+MainConfiguration fff::merge(const std::vector<MainConfiguration>& mainCfgs)
 {
     assert(!mainCfgs.empty());
     if (mainCfgs.empty())

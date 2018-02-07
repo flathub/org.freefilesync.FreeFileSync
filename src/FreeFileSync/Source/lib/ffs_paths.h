@@ -9,7 +9,8 @@
 
 #include <zen/zstring.h>
 
-namespace zen
+
+namespace fff
 {
 //------------------------------------------------------------------------------
 //global program directories

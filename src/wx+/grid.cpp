@@ -462,8 +462,8 @@ public:
         const int yFrom = refParent().CalcUnscrolledPosition(clientRect.GetTopLeft    ()).y;
         const int yTo   = refParent().CalcUnscrolledPosition(clientRect.GetBottomRight()).y;
 
-        return std::make_pair(std::max(yFrom / rowHeight_, 0),
-                              std::min<ptrdiff_t>((yTo  / rowHeight_) + 1, refParent().getRowCount()));
+        return { std::max(yFrom / rowHeight_, 0),
+                 std::min<ptrdiff_t>((yTo  / rowHeight_) + 1, refParent().getRowCount()) };
     }
 
 private:
@@ -1269,7 +1269,7 @@ private:
     ColLabelWin& colLabelWin_;
 
     std::unique_ptr<MouseSelection> activeSelection_; //bound while user is selecting with mouse
-    MouseHighlight highlight_; //current mouse highlight_ (superseeded by activeSelection_ if available)
+    MouseHighlight highlight_; //current mouse highlight_ (superseded by activeSelection_ if available)
 
     ptrdiff_t cursorRow_ = 0;
     size_t selectionAnchor_ = 0;

@@ -10,7 +10,8 @@
 #include <wx+/grid.h>
 #include <zen/zstring.h>
 
-namespace zen
+
+namespace fff
 {
 enum class ColumnTypeCfg
 {
@@ -86,7 +87,7 @@ public:
     size_t getRowCount() const { assert(cfgList_.size() == cfgListView_.size()); return cfgListView_.size(); }
 
     void setSortDirection(ColumnTypeCfg colType, bool ascending);
-    std::pair<ColumnTypeCfg, bool> getSortDirection() { return std::make_pair(sortColumn_, sortAscending_); }
+    std::pair<ColumnTypeCfg, bool> getSortDirection() { return { sortColumn_, sortAscending_ }; }
 
 private:
     ConfigView           (const ConfigView&) = delete;
@@ -109,13 +110,13 @@ private:
 
 namespace cfggrid
 {
-void init(Grid& grid);
-ConfigView& getDataView(Grid& grid); //grid.Refresh() after making changes!
+void init(zen::Grid& grid);
+ConfigView& getDataView(zen::Grid& grid); //grid.Refresh() after making changes!
 
-void addAndSelect(Grid& grid, const std::vector<Zstring>& filePaths, bool scrollToSelection);
+void addAndSelect(zen::Grid& grid, const std::vector<Zstring>& filePaths, bool scrollToSelection);
 
-int  getSyncOverdueDays(Grid& grid);
-void setSyncOverdueDays(Grid& grid, int syncOverdueDays);
+int  getSyncOverdueDays(zen::Grid& grid);
+void setSyncOverdueDays(zen::Grid& grid, int syncOverdueDays);
 }
 }
 

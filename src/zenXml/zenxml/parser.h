@@ -73,7 +73,7 @@ XmlDoc parse(const std::string& stream); //throw XmlParsingError
 //---------------------------- implementation ----------------------------
 //see: http://www.w3.org/TR/xml/
 
-namespace implementation
+namespace impl
 {
 template <class Predicate> inline
 std::string normalize(const std::string& str, Predicate pred) //pred: unary function taking a char, return true if value shall be encoded as hex
@@ -111,7 +111,9 @@ std::string normalize(const std::string& str, Predicate pred) //pred: unary func
 inline
 std::string normalizeName(const std::string& str)
 {
-    return normalize(str, [](char c) { return isWhiteSpace(c) || c == '=' || c == '/' || c == '\'' || c == '\"'; });
+    const std::string nameFmt = normalize(str, [](char c) { return isWhiteSpace(c) || c == '=' || c == '/' || c == '\'' || c == '\"'; });
+    assert(!nameFmt.empty());
+    return nameFmt;
 }
 
 inline
@@ -201,12 +203,12 @@ void serialize(const XmlElement& element, std::string& stream,
 
     auto attr = element.getAttributes();
     for (auto it = attr.first; it != attr.second; ++it)
-        stream += ' ' + normalizeName(it->first) + "=\"" + normalizeAttribValue(it->second) + '\"';
+        stream += ' ' + normalizeName(it->name) + "=\"" + normalizeAttribValue(it->value) + '\"';
 
-    //no support for mixed-mode content
     auto iterPair = element.getChildren();
     if (iterPair.first != iterPair.second) //structured element
     {
+        //no support for mixed-mode content
         stream += '>' + lineBreak;
 
         std::for_each(iterPair.first, iterPair.second,
@@ -254,7 +256,7 @@ std::string serialize(const XmlDoc& doc,
 inline
 std::string serialize(const XmlDoc& doc,
                       const std::string& lineBreak,
-                      const std::string& indent) { return implementation::serialize(doc, lineBreak, indent); }
+                      const std::string& indent) { return impl::serialize(doc, lineBreak, indent); }
 
 /*
 Grammar for XML parser
@@ -280,7 +282,7 @@ pm-expression:
     element-list-expression
 */
 
-namespace implementation
+namespace impl
 {
 struct Token
 {
@@ -355,7 +357,7 @@ public:
         {
             std::string name(&*pos, nameEnd - pos);
             pos = nameEnd;
-            return implementation::denormalize(name);
+            return denormalize(name);
         }
 
         //unknown token
@@ -371,7 +373,7 @@ public:
         });
         std::string output(pos, it);
         pos = it;
-        return implementation::denormalize(output);
+        return denormalize(output);
     }
 
     std::string extractAttributeValue()
@@ -385,7 +387,7 @@ public:
         });
         std::string output(pos, it);
         pos = it;
-        return implementation::denormalize(output);
+        return denormalize(output);
     }
 
     size_t posRow() const //current row beginning with 0
@@ -575,7 +577,7 @@ private:
 inline
 XmlDoc parse(const std::string& stream) //throw XmlParsingError
 {
-    return implementation::XmlParser(stream).parse();  //throw XmlParsingError
+    return impl::XmlParser(stream).parse();  //throw XmlParsingError
 }
 }
 

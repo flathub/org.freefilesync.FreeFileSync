@@ -63,7 +63,7 @@ private:
 
 
 //---------------------- implementation ----------------------
-namespace implementation
+namespace impl
 {
 template<class S, class Char> //test if result of S::c_str() can convert to const Char*
 class HasConversion
@@ -137,13 +137,13 @@ public:
 }
 
 template <class T>
-struct IsStringLike : StaticBool<implementation::StringTraits<T>::isStringLike> {};
+struct IsStringLike : StaticBool<impl::StringTraits<T>::isStringLike> {};
 
 template <class T>
-struct GetCharType : ResultType<typename implementation::StringTraits<T>::CharType> {};
+struct GetCharType : ResultType<typename impl::StringTraits<T>::CharType> {};
 
 
-namespace implementation
+namespace impl
 {
 //strlen/wcslen are vectorized since VS14 CTP3
 inline size_t cStringLength(const char*    str) { return std::strlen(str); }
@@ -162,7 +162,7 @@ size_t cStringLength(const C* str)
 }
 #endif
 
-template <class S, typename = typename EnableIf<implementation::StringTraits<S>::isStringClass>::Type> inline
+template <class S, typename = typename EnableIf<StringTraits<S>::isStringClass>::Type> inline
 const typename GetCharType<S>::Type* strBegin(const S& str) //SFINAE: T must be a "string"
 {
     return str.c_str();
@@ -179,7 +179,7 @@ inline const char*    strBegin(const StringRef<const char   >& ref) { return ref
 inline const wchar_t* strBegin(const StringRef<const wchar_t>& ref) { return ref.data(); }
 
 
-template <class S, typename = typename EnableIf<implementation::StringTraits<S>::isStringClass>::Type> inline
+template <class S, typename = typename EnableIf<StringTraits<S>::isStringClass>::Type> inline
 size_t strLength(const S& str) //SFINAE: T must be a "string"
 {
     return str.length();
@@ -201,7 +201,7 @@ template <class S> inline
 auto strBegin(S&& str) -> const typename GetCharType<S>::Type*
 {
     static_assert(IsStringLike<S>::value, "");
-    return implementation::strBegin(std::forward<S>(str));
+    return impl::strBegin(std::forward<S>(str));
 }
 
 
@@ -209,7 +209,7 @@ template <class S> inline
 size_t strLength(S&& str)
 {
     static_assert(IsStringLike<S>::value, "");
-    return implementation::strLength(std::forward<S>(str));
+    return impl::strLength(std::forward<S>(str));
 }
 }
 

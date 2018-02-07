@@ -9,11 +9,14 @@
 
 #include "../process_callback.h"
 #include <vector>
+#include <chrono>
+#include <thread>
 #include <string>
 #include <zen/i18n.h>
+#include <zen/basic_math.h>
 
 
-namespace zen
+namespace fff
 {
 bool updateUiIsAllowed(); //test if a specific amount of time is over
 
@@ -55,6 +58,7 @@ struct Statistics
     virtual int64_t getBytesCurrent(ProcessCallback::Phase phaseId) const = 0;
     virtual int64_t getBytesTotal  (ProcessCallback::Phase phaseId) const = 0;
 
+    virtual zen::Opt<AbortTrigger> getAbortStatus() const  = 0;
     virtual const std::wstring& currentStatusText() const = 0;
 };
 
@@ -63,8 +67,7 @@ struct Statistics
 class StatusHandler : public ProcessCallback, public AbortCallback, public Statistics
 {
 public:
-    StatusHandler() :
-        numbersCurrent_(4),   //init with phase count
+    StatusHandler() : numbersCurrent_(4),   //init with phase count
         numbersTotal_  (4) {} //
 
     //implement parts of ProcessCallback
@@ -75,29 +78,45 @@ public:
     }
 
     void updateProcessedData(int itemsDelta, int64_t bytesDelta) override { updateData(numbersCurrent_, itemsDelta, bytesDelta); } //note: these methods MUST NOT throw in order
-    void updateTotalData    (int itemsDelta, int64_t bytesDelta) override { updateData(numbersTotal_,   itemsDelta, bytesDelta); } //to properly allow undoing setting of statistics!
+    void updateTotalData    (int itemsDelta, int64_t bytesDelta) override { updateData(numbersTotal_,   itemsDelta, bytesDelta); } //to allow usage within destructors!
 
-    void requestUiRefresh() override //throw X
+    void requestUiRefresh() override final //throw X
     {
-        if (abortRequested_) //triggered by requestAbortion()
+        if (updateUiIsAllowed())
+            forceUiRefresh(); //throw X
+    }
+
+    void forceUiRefresh() override final //throw X
+    {
+        const bool abortRequestedBefore = static_cast<bool>(abortRequested_);
+
+        forceUiRefreshNoThrow();
+
+        //triggered by userRequestAbort()
+        // => sufficient to evaluate occasionally when updateUiIsAllowed()!
+        // => refresh *before* throwing: support requestUiRefresh() during destruction
+        if (abortRequested_)
         {
-            forceUiRefresh();
+            if (!abortRequestedBefore)
+                forceUiRefreshNoThrow(); //just once to immediately show the "Stop requested..." status after user clicks cancel
             throw AbortProcess();
         }
-        if (updateUiIsAllowed())
-            forceUiRefresh();
     }
 
-    void reportStatus(const std::wstring& text) override //throw X
+    virtual void forceUiRefreshNoThrow() = 0; //noexcept
+
+    void reportStatus(const std::wstring& text) override final //throw X
     {
         //assert(!text.empty()); -> possible: start of parallel scan
-        if (!abortRequested_) statusText_ = text;
+
+        statusText_ = text; //update text *before* running operations that can throw
         requestUiRefresh(); //throw X
     }
+
     void reportInfo(const std::wstring& text) override //throw X
     {
         assert(!text.empty());
-        if (!abortRequested_) statusText_ = text;
+        statusText_ = text;
         requestUiRefresh(); //throw X
         //log text in derived class
     }
@@ -105,24 +124,25 @@ public:
     void abortProcessNow() override
     {
         if (!abortRequested_) abortRequested_ = AbortTrigger::PROGRAM;
+        forceUiRefreshNoThrow();
         throw AbortProcess();
     }
 
     void userAbortProcessNow()
     {
-        if (!abortRequested_) abortRequested_ = AbortTrigger::USER;
+        abortRequested_ = AbortTrigger::USER; //may overwrite AbortTrigger::PROGRAM
+        forceUiRefreshNoThrow();
         throw AbortProcess();
     }
 
     //implement AbortCallback
-    void userRequestAbort() override
+    void userRequestAbort() override final
     {
-        if (!abortRequested_) abortRequested_ = AbortTrigger::USER;
-        statusText_ = _("Stop requested: Waiting for current operation to finish...");
+        abortRequested_ = AbortTrigger::USER; //may overwrite AbortTrigger::PROGRAM
     } //called from GUI code: this does NOT call abortProcessNow() immediately, but later when we're out of the C GUI call stack
 
     //implement Statistics
-    Phase currentPhase() const override { return currentPhase_; }
+    Phase currentPhase() const override final { return currentPhase_; }
 
     int getItemsCurrent(Phase phaseId) const override {                                    return refNumbers(numbersCurrent_, phaseId).items; }
     int getItemsTotal  (Phase phaseId) const override { assert(phaseId != PHASE_SCANNING); return refNumbers(numbersTotal_,   phaseId).items; }
@@ -132,8 +152,7 @@ public:
 
     const std::wstring& currentStatusText() const override { return statusText_; }
 
-protected:
-    Opt<AbortTrigger> getAbortStatus() const { return abortRequested_; }
+    zen::Opt<AbortTrigger> getAbortStatus() const override { return abortRequested_; }
 
 private:
     struct StatNumber
@@ -174,8 +193,26 @@ private:
     StatNumbers numbersTotal_;
     std::wstring statusText_;
 
-    Opt<AbortTrigger> abortRequested_;
+    zen::Opt<AbortTrigger> abortRequested_;
 };
+
+//------------------------------------------------------------------------------------------
+
+inline
+void delayAndCountDown(const std::wstring& operationName, size_t delayInSec, const std::function<void(const std::wstring& msg)>& notifyStatus)
+{
+    assert(notifyStatus && !zen::endsWith(operationName, L"."));
+
+    const auto delayUntil = std::chrono::steady_clock::now() + std::chrono::seconds(delayInSec);
+    for (auto now = std::chrono::steady_clock::now(); now < delayUntil; now = std::chrono::steady_clock::now())
+    {
+        const auto timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(delayUntil - now).count();
+        if (notifyStatus)
+            notifyStatus(operationName + L"... " + _P("1 sec", "%x sec", numeric::integerDivideRoundUp(timeMs, 1000)));
+
+        std::this_thread::sleep_for(UI_UPDATE_INTERVAL / 2);
+    }
+}
 }
 
 #endif //STATUS_HANDLER_H_81704805908341534

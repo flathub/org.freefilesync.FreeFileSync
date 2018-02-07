@@ -7,41 +7,41 @@
 #ifndef PERF_CHECK_H_87804217589312454
 #define PERF_CHECK_H_87804217589312454
 
-#include <cstdint>
 #include <map>
+#include <chrono>
 #include <string>
 #include <zen/optional.h>
 
 
+namespace fff
+{
 class PerfCheck
 {
 public:
-    PerfCheck(unsigned int windowSizeRemainingTime, //unit: [ms]
-              unsigned int windowSizeSpeed);        //
-    ~PerfCheck();
+    PerfCheck(std::chrono::milliseconds windowSizeRemTime,
+              std::chrono::milliseconds windowSizeSpeed);
 
-    void addSample(int itemsCurrent, double dataCurrent, int64_t timeMs); //timeMs must be ascending!
+    void addSample(std::chrono::nanoseconds timeElapsed, int itemsCurrent, double dataCurrent);
 
     zen::Opt<double> getRemainingTimeSec(double dataRemaining) const;
     zen::Opt<std::wstring> getBytesPerSecond() const; //for window
-    zen::Opt<std::wstring> getItemsPerSecond() const; //for window
+    zen::Opt<std::wstring> getItemsPerSecond() const; //
 
 private:
     struct Record
     {
-        Record(int items, double bytes) : items_(items), bytes_(bytes) {}
-        const int items_;
-        const double bytes_;
+        int    items = 0;
+        double bytes = 0;
     };
 
-    std::pair<const std::multimap<int64_t, Record>::value_type*,
-        const std::multimap<int64_t, Record>::value_type*> getBlockFromEnd(int64_t windowSize) const;
+    std::tuple<double, int, double> getBlockDeltas(std::chrono::milliseconds windowSize) const;
 
-    const int64_t windowSizeRemTime; //unit: [ms]
-    const int64_t windowSizeSpeed_;  //
-    const int64_t windowMax;
+    const std::chrono::milliseconds windowSizeRemTime_;
+    const std::chrono::milliseconds windowSizeSpeed_;
+    const std::chrono::milliseconds windowMax_;
 
-    std::map<int64_t, Record> samples; //time, unit: [ms]
+    std::map<std::chrono::nanoseconds, Record> samples_;
 };
+}
 
 #endif //PERF_CHECK_H_87804217589312454

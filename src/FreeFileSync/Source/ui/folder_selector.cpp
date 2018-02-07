@@ -20,6 +20,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
     using AFS = AbstractFileSystem;
 
@@ -49,8 +50,8 @@ void setFolderPathPhrase(const Zstring& folderPathPhrase, FolderHistoryBox* comb
 
 //##############################################################################################################
 
-const wxEventType zen::EVENT_ON_FOLDER_SELECTED    = wxNewEventType();
-const wxEventType zen::EVENT_ON_FOLDER_MANUAL_EDIT = wxNewEventType();
+const wxEventType fff::EVENT_ON_FOLDER_SELECTED    = wxNewEventType();
+const wxEventType fff::EVENT_ON_FOLDER_MANUAL_EDIT = wxNewEventType();
 
 
 FolderSelector::FolderSelector(wxWindow&         dropWindow,

@@ -12,6 +12,7 @@
 #include "string_tools.h" //copyStringTo
 #include "optional.h"
 
+
 namespace zen
 {
 //convert all(!) char- and wchar_t-based "string-like" objects applying a UTF8 conversions (but only if necessary!)
@@ -39,7 +40,7 @@ UtfString getUnicodeSubstring(const UtfString& str, size_t uniPosFirst, size_t u
 
 
 //----------------------- implementation ----------------------------------
-namespace implementation
+namespace impl
 {
 using CodePoint = uint32_t;
 using Char16    = uint16_t;
@@ -308,7 +309,7 @@ using UtfDecoder = UtfDecoderImpl<CharType, sizeof(CharType)>;
 template <class UtfString> inline
 bool isValidUtf(const UtfString& str)
 {
-    using namespace implementation;
+    using namespace impl;
 
     UtfDecoder<typename GetCharType<UtfString>::Type> decoder(strBegin(str), strLength(str));
     while (Opt<CodePoint> cp = decoder.getNext())
@@ -323,7 +324,7 @@ template <class UtfString> inline
 size_t unicodeLength(const UtfString& str) //return number of code points (+ correctly handle broken UTF encoding)
 {
     size_t uniLen = 0;
-    implementation::UtfDecoder<typename GetCharType<UtfString>::Type> decoder(strBegin(str), strLength(str));
+    impl::UtfDecoder<typename GetCharType<UtfString>::Type> decoder(strBegin(str), strLength(str));
     while (decoder.getNext())
         ++uniLen;
     return uniLen;
@@ -334,7 +335,7 @@ template <class UtfString> inline
 UtfString getUnicodeSubstring(const UtfString& str, size_t uniPosFirst, size_t uniPosLast) //return position of unicode char in UTF-encoded string
 {
     assert(uniPosFirst <= uniPosLast && uniPosLast <= unicodeLength(str));
-    using namespace implementation;
+    using namespace impl;
     using CharType = typename GetCharType<UtfString>::Type;
     UtfString output;
     if (uniPosFirst >= uniPosLast) //optimize for empty range
@@ -353,7 +354,7 @@ UtfString getUnicodeSubstring(const UtfString& str, size_t uniPosFirst, size_t u
 
 //-------------------------------------------------------------------------------------------
 
-namespace implementation
+namespace impl
 {
 template <class TargetString, class SourceString> inline
 TargetString utfTo(const SourceString& str, FalseType)
@@ -380,7 +381,7 @@ TargetString utfTo(const SourceString& str, TrueType) { return copyStringTo<Targ
 template <class TargetString, class SourceString> inline
 TargetString utfTo(const SourceString& str)
 {
-    return implementation::utfTo<TargetString>(str, StaticBool<sizeof(typename GetCharType<SourceString>::Type) == sizeof(typename GetCharType<TargetString>::Type)>());
+    return impl::utfTo<TargetString>(str, StaticBool<sizeof(typename GetCharType<SourceString>::Type) == sizeof(typename GetCharType<TargetString>::Type)>());
 }
 }
 

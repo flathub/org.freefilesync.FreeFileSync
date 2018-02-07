@@ -10,6 +10,7 @@
 #include <wx/window.h>
 #include <wx/app.h>
 
+
 namespace zen
 {
 //just some wrapper around a global variable representing the (logical) main application window
@@ -22,12 +23,16 @@ bool mainWindowWasSet();
 
 
 //######################## implementation ########################
+namespace impl
+{
 inline
 bool& refMainWndStatus()
 {
     static bool status = false; //external linkage!
     return status;
 }
+}
+
 
 inline
 void setMainWindow(wxWindow* window)
@@ -35,10 +40,10 @@ void setMainWindow(wxWindow* window)
     wxTheApp->SetTopWindow(window);
     wxTheApp->SetExitOnFrameDelete(true);
 
-    refMainWndStatus() = true;
+    impl::refMainWndStatus() = true;
 }
 
-inline bool mainWindowWasSet() { return refMainWndStatus(); }
+inline bool mainWindowWasSet() { return impl::refMainWndStatus(); }
 }
 
 #endif //APP_MAIN_H_08215601837818347575856

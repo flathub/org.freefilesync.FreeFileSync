@@ -22,7 +22,6 @@ Usage:
     ...
     menu.popup(wnd);
 */
-
 namespace zen
 {
 class ContextMenu : private wxEvtHandler

@@ -11,6 +11,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -23,7 +24,7 @@ const int DB_FORMAT_STREAM    =  3; //
 
 struct SessionData
 {
-    bool isLeadStream;
+    bool isLeadStream = false;
     ByteArray rawStream;
 };
 bool operator==(const SessionData& lhs, const SessionData& rhs) { return lhs.isLeadStream == rhs.isLeadStream && lhs.rawStream == rhs.rawStream; }
@@ -42,7 +43,6 @@ AbstractPath getDatabaseFilePath(const BaseFolderPair& baseFolder, bool tempfile
     //precomposed/decomposed UTF? are UTC file times really compatible? what about endianess!?
     //however 32 and 64-bit FreeFileSync are designed to produce binary-identical db files!
     //Give db files different names.
-    //make sure they end with ".ffs_db". These files will be excluded from comparison
     const Zstring dbName = Zstr(".sync"); //files beginning with dots are hidden e.g. in Nautilus
     Zstring dbFileName;
     if (tempfile) //generate (hopefully) unique file name to avoid clashing with some remnant ffs_tmp file
@@ -790,13 +790,13 @@ std::pair<DbStreams::const_iterator,
         throw FileErrorDatabaseNotExisting(_("Initial synchronization:") + L" \n" +
                                            _("The database files do not yet contain information about the last synchronization."));
 
-    return std::make_pair(itCommonL, itCommonR);
+    return { itCommonL, itCommonR };
 }
 }
 
 //#######################################################################################################################################
 
-std::shared_ptr<InSyncFolder> zen::loadLastSynchronousState(const BaseFolderPair& baseFolder, //throw FileError, FileErrorDatabaseNotExisting -> return value always bound!
+std::shared_ptr<InSyncFolder> fff::loadLastSynchronousState(const BaseFolderPair& baseFolder, //throw FileError, FileErrorDatabaseNotExisting -> return value always bound!
                                                             const std::function<void(const std::wstring& statusMsg)>& notifyStatus)
 {
     const AbstractPath dbPathLeft  = getDatabaseFilePath< LEFT_SIDE>(baseFolder);
@@ -836,7 +836,7 @@ std::shared_ptr<InSyncFolder> zen::loadLastSynchronousState(const BaseFolderPair
 }
 
 
-void zen::saveLastSynchronousState(const BaseFolderPair& baseFolder, const std::function<void(const std::wstring& statusMsg)>& notifyStatus) //throw FileError
+void fff::saveLastSynchronousState(const BaseFolderPair& baseFolder, const std::function<void(const std::wstring& statusMsg)>& notifyStatus) //throw FileError
 {
     //transactional behaviour! write to tmp files first
     const AbstractPath dbPathLeft  = getDatabaseFilePath< LEFT_SIDE>(baseFolder);
@@ -861,19 +861,16 @@ void zen::saveLastSynchronousState(const BaseFolderPair& baseFolder, const std::
     catch (FileError&) {}
     //if error occurs: just overwrite old file! User is already informed about issues right after comparing!
 
-    std::shared_ptr<InSyncFolder> lastSyncState = std::make_shared<InSyncFolder>(InSyncFolder::DIR_STATUS_IN_SYNC);
+    auto lastSyncState = std::make_shared<InSyncFolder>(InSyncFolder::DIR_STATUS_IN_SYNC);
     auto itStreamOldL = streamsLeft .cend();
     auto itStreamOldR = streamsRight.cend();
     try
     {
         //find associated session: there can be at most one session within intersection of left and right ids
-        std::pair<DbStreams::const_iterator,
-            DbStreams::const_iterator> session = getCommonSession(streamsLeft, streamsRight, //throw FileError, FileErrorDatabaseNotExisting
-                                                                  AFS::getDisplayPath(dbPathLeft),
-                                                                  AFS::getDisplayPath(dbPathRight));
+        std::tie(itStreamOldL, itStreamOldR) = getCommonSession(streamsLeft, streamsRight, //throw FileError, FileErrorDatabaseNotExisting
+                                                                AFS::getDisplayPath(dbPathLeft),
+                                                                AFS::getDisplayPath(dbPathRight));
 
-        itStreamOldL = session.first;
-        itStreamOldR = session.second;
         const bool leadStreamLeft = itStreamOldL->second.isLeadStream;
 
         //load last synchrounous state
@@ -925,8 +922,8 @@ void zen::saveLastSynchronousState(const BaseFolderPair& baseFolder, const std::
 
     //operation finished: rename temp files -> this should work (almost) transactionally:
     //if there were no write access, creation of temp files would have failed
-    AFS::removeFileIfExists(dbPathLeft);          //throw FileError
-    AFS::renameItem(dbPathLeftTmp, dbPathLeft);   //throw FileError, (ErrorDifferentVolume)
+    AFS::removeFileIfExists(dbPathLeft);        //throw FileError
+    AFS::renameItem(dbPathLeftTmp, dbPathLeft); //throw FileError, (ErrorDifferentVolume)
     guardTmpL.dismiss();
 
     AFS::removeFileIfExists(dbPathRight);         //

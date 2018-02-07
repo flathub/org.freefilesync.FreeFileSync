@@ -10,6 +10,9 @@
 #include <wx/bmpbuttn.h>
 #include <wx+/bitmap_button.h>
 
+
+namespace zen
+{
 class ToggleButton : public wxBitmapButton
 {
 public:
@@ -29,12 +32,11 @@ public:
               const wxBitmap& inactiveBmp);
 
     void setActive(bool value);
-    bool isActive() const { return active; }
-    void toggle()         { setActive(!active); }
+    bool isActive() const { return active_; }
+    void toggle()         { setActive(!active_); }
 
 private:
-    bool active = false;
-
+    bool active_ = false;
     wxBitmap activeBmp_;
     wxBitmap inactiveBmp_;
 };
@@ -53,15 +55,16 @@ void ToggleButton::init(const wxBitmap& activeBmp,
     activeBmp_   = activeBmp;
     inactiveBmp_ = inactiveBmp;
 
-    setActive(active);
+    setActive(active_);
 }
 
 
 inline
 void ToggleButton::setActive(bool value)
 {
-    active = value;
-    zen::setImage(*this, active ? activeBmp_ : inactiveBmp_);
+    active_ = value;
+    setImage(*this, active_ ? activeBmp_ : inactiveBmp_);
+}
 }
 
 #endif //TOGGLE_BUTTON_H_8173024810574556

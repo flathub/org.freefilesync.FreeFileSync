@@ -24,6 +24,7 @@
     #include <gtk/gtk.h>
 
 using namespace zen;
+using namespace rts;
 
 
 IMPLEMENT_APP(Application);
@@ -40,7 +41,7 @@ bool Application::OnInit()
 {
     //do not call wxApp::OnInit() to avoid using wxWidgets command line parser
 
-    ::gtk_rc_parse((zen::getResourceDirPf() + "styles.gtk_rc").c_str()); //remove inner border from bitmap buttons
+    ::gtk_rc_parse((fff::getResourceDirPf() + "styles.gtk_rc").c_str()); //remove inner border from bitmap buttons
 
     //Windows User Experience Interaction Guidelines: tool tips should have 5s timeout, info tips no timeout => compromise:
     wxToolTip::Enable(true); //yawn, a wxWidgets screw-up: wxToolTip::SetAutoPop is no-op if global tooltip window is not yet constructed: wxToolTip::Enable creates it
@@ -48,11 +49,11 @@ bool Application::OnInit()
 
     SetAppName(L"RealTimeSync");
 
-    initResourceImages(getResourceDirPf() + Zstr("Resources.zip"));
+    initResourceImages(fff::getResourceDirPf() + Zstr("Resources.zip"));
 
     try
     {
-        setLanguage(xmlAccess::getProgramLanguage()); //throw FileError
+        fff::setLanguage(getProgramLanguage()); //throw FileError
     }
     catch (const FileError& e)
     {
@@ -75,8 +76,8 @@ bool Application::OnInit()
 
 int Application::OnExit()
 {
-    uninitializeHelp();
-    releaseWxLocale();
+    fff::uninitializeHelp();
+    fff::releaseWxLocale();
     cleanupResourceImages();
     return wxApp::OnExit();
 }
@@ -90,7 +91,7 @@ void Application::onEnterEventLoop(wxEvent& event)
     std::vector<Zstring> commandArgs;
     for (int i = 1; i < argc; ++i)
     {
-        Zstring filePath = getResolvedFilePath(utfTo<Zstring>(argv[i]));
+        Zstring filePath = fff::getResolvedFilePath(utfTo<Zstring>(argv[i]));
 
         if (!fileAvailable(filePath)) //be a little tolerant
         {
@@ -123,15 +124,15 @@ int Application::OnRun()
     }
     catch (const std::bad_alloc& e) //the only kind of exception we don't want crash dumps for
     {
-        logFatalError(e.what()); //it's not always possible to display a message box, e.g. corrupted stack, however low-level file output works!
+        fff::logFatalError(e.what()); //it's not always possible to display a message box, e.g. corrupted stack, however low-level file output works!
 
         const auto title = copyStringTo<std::wstring>(wxTheApp->GetAppDisplayName()) + SPACED_DASH + _("An exception occurred");
         wxSafeShowMessage(title, e.what());
-        return FFS_RC_EXCEPTION;
+        return fff::FFS_RC_EXCEPTION;
     }
     //catch (...) -> let it crash and create mini dump!!!
 
-    return FFS_RC_SUCCESS; //program's return code
+    return fff::FFS_RC_SUCCESS; //program's return code
 }
 
 

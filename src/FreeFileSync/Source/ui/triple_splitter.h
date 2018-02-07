@@ -12,7 +12,6 @@
 #include <wx/window.h>
 #include <wx/dcclient.h>
 
-//a not-so-crappy splitter window
 
 /* manage three contained windows:
     1. left and right window are stretched
@@ -24,8 +23,7 @@
     |      | |      |
     -----------------
 */
-
-namespace zen
+namespace fff
 {
 class TripleSplitter : public wxWindow
 {
@@ -41,14 +39,14 @@ public:
     void setupWindows(wxWindow* winL, wxWindow* winC, wxWindow* winR)
     {
         assert(winL->GetParent() == this && winC->GetParent() == this && winR->GetParent() == this && !GetSizer());
-        windowL = winL;
-        windowC = winC;
-        windowR = winR;
+        windowL_ = winL;
+        windowC_ = winC;
+        windowR_ = winR;
         updateWindowSizes();
     }
 
-    int getSashOffset() const { return centerOffset; }
-    void setSashOffset(int off) { centerOffset = off; updateWindowSizes(); }
+    int getSashOffset() const { return centerOffset_; }
+    void setSashOffset(int off) { centerOffset_ = off; updateWindowSizes(); }
 
 private:
     void onEraseBackGround(wxEraseEvent& event) {}
@@ -76,13 +74,13 @@ private:
     void onMouseLeftDouble(wxMouseEvent& event);
 
     class SashMove;
-    std::unique_ptr<SashMove> activeMove;
+    std::unique_ptr<SashMove> activeMove_;
 
-    int centerOffset = 0; //offset to add after "gravity" stretching
+    int centerOffset_ = 0; //offset to add after "gravity" stretching
 
-    wxWindow* windowL = nullptr;
-    wxWindow* windowC = nullptr;
-    wxWindow* windowR = nullptr;
+    wxWindow* windowL_ = nullptr;
+    wxWindow* windowC_ = nullptr;
+    wxWindow* windowR_ = nullptr;
 };
 }
 

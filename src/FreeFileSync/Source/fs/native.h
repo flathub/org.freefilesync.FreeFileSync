@@ -9,7 +9,7 @@
 
 #include "abstract.h"
 
-namespace zen
+namespace fff
 {
 bool acceptsItemPathPhraseNative (const Zstring& itemPathPhrase); //noexcept
 AbstractPath createItemPathNative(const Zstring& itemPathPhrase); //noexcept

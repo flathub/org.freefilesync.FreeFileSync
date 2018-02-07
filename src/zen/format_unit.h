@@ -37,7 +37,7 @@ std::wstring formatNumber(NumberType number); //format integer number including 
 
 
 //--------------- inline impelementation -------------------------------------------
-namespace ffs_Impl
+namespace impl
 {
 std::wstring includeNumberSeparator(const std::wstring& number);
 }
@@ -46,7 +46,7 @@ template <class NumberType> inline
 std::wstring formatNumber(NumberType number)
 {
     static_assert(IsInteger<NumberType>::value, "");
-    return ffs_Impl::includeNumberSeparator(zen::numberTo<std::wstring>(number));
+    return impl::includeNumberSeparator(zen::numberTo<std::wstring>(number));
 }
 }
 

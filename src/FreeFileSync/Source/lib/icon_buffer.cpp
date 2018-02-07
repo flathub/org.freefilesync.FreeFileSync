@@ -14,6 +14,7 @@
 
 
 using namespace zen;
+using namespace fff;
 using AFS = AbstractFileSystem;
 
 
@@ -330,7 +331,7 @@ struct IconBuffer::Impl
 };
 
 
-IconBuffer::IconBuffer(IconSize sz) : pimpl_(std::make_unique<Impl>()), iconSizeType(sz)
+IconBuffer::IconBuffer(IconSize sz) : pimpl_(std::make_unique<Impl>()), iconSizeType_(sz)
 {
     pimpl_->worker = InterruptibleThread(WorkerThread(pimpl_->workload, pimpl_->buffer, sz));
 }
@@ -400,7 +401,7 @@ wxBitmap IconBuffer::getIconByExtension(const Zstring& filePath)
         const Zstring& templateName(ext.empty() ? Zstr("file") : Zstr("file.") + ext);
         //don't pass actual file name to getIconByTemplatePath(), e.g. "AUTHORS" has own mime type on Linux!!!
         //=> we want to buffer by extension only to minimize buffer-misses!
-        it = pimpl_->extensionIcons.emplace(ext, extractWxBitmap(getIconByTemplatePath(templateName, IconBuffer::getSize(iconSizeType)))).first;
+        it = pimpl_->extensionIcons.emplace(ext, extractWxBitmap(getIconByTemplatePath(templateName, IconBuffer::getSize(iconSizeType_)))).first;
     }
     //need buffer size limit???
     return it->second;
@@ -409,13 +410,13 @@ wxBitmap IconBuffer::getIconByExtension(const Zstring& filePath)
 
 wxBitmap IconBuffer::genericFileIcon(IconSize sz)
 {
-    return extractWxBitmap(zen::genericFileIcon(IconBuffer::getSize(sz)));
+    return extractWxBitmap(fff::genericFileIcon(IconBuffer::getSize(sz)));
 }
 
 
 wxBitmap IconBuffer::genericDirIcon(IconSize sz)
 {
-    return extractWxBitmap(zen::genericDirIcon(IconBuffer::getSize(sz)));
+    return extractWxBitmap(fff::genericDirIcon(IconBuffer::getSize(sz)));
 }
 
 
@@ -434,7 +435,7 @@ wxBitmap IconBuffer::linkOverlayIcon(IconSize sz)
 }
 
 
-bool zen::hasLinkExtension(const Zstring& filepath)
+bool fff::hasLinkExtension(const Zstring& filepath)
 {
     const Zstring& ext = getFileExtension(filepath);
     return ext == "desktop";

@@ -11,6 +11,7 @@
 #include <memory>
 #include "scope_guard.h"
 
+
 namespace zen
 {
 //solve static destruction order fiasco by providing shared ownership and serialized access to global variables

@@ -23,6 +23,7 @@
     #include <fcntl.h>  //open
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -244,7 +245,7 @@ void SyncStatistics::processFolder(const FolderPair& folder)
 
 //-----------------------------------------------------------------------------------------------------------
 
-std::vector<zen::FolderPairSyncCfg> zen::extractSyncCfg(const MainConfiguration& mainCfg)
+std::vector<FolderPairSyncCfg> fff::extractSyncCfg(const MainConfiguration& mainCfg)
 {
     //merge first and additional pairs
     std::vector<FolderPairEnh> allPairs = { mainCfg.firstPair };
@@ -336,10 +337,10 @@ public:
         //always (try to) clean up, even if synchronization is aborted!
         try
         {
-            tryCleanup(false); //throw FileError, (throw X)
+            tryCleanup(false /*allowCallbackException*/); //throw FileError, (throw X)
         }
         catch (FileError&) {}
-        catch (...) { assert(false); }  //what is this?
+        catch (...) { assert(false); } //what is this?
         /*
         may block heavily, but still do not allow user callback:
         -> avoid throwing user cancel exception again, leading to incomplete clean-up!
@@ -347,7 +348,7 @@ public:
     }
 
     //clean-up temporary directory (recycle bin optimization)
-    void tryCleanup(bool allowUserCallback); //throw FileError; throw X -> call this in non-exceptional coding, i.e. somewhere after sync!
+    void tryCleanup(bool allowCallbackException); //throw FileError; throw X -> call this in non-exceptional coding, i.e. somewhere after sync!
 
     template <class Function> void removeFileWithCallback (const FileDescriptor& fileDescr, const Zstring& relativePath, Function onNotifyItemDeletion, const IOCallback& notifyUnbufferedIO); //
     template <class Function> void removeDirWithCallback  (const AbstractPath& dirPath,     const Zstring& relativePath, Function onNotifyItemDeletion, const IOCallback& notifyUnbufferedIO); //throw FileError
@@ -438,7 +439,7 @@ DeletionHandling::DeletionHandling(const AbstractPath& baseFolderPath,
 }
 
 
-void DeletionHandling::tryCleanup(bool allowUserCallback) //throw FileError; throw X
+void DeletionHandling::tryCleanup(bool allowCallbackException) //throw FileError; throw X
 {
     switch (deletionPolicy_)
     {
@@ -450,17 +451,22 @@ void DeletionHandling::tryCleanup(bool allowUserCallback) //throw FileError; thr
             {
                 auto notifyDeletionStatus = [&](const std::wstring& displayPath)
                 {
-                    if (!displayPath.empty())
-                        procCallback_.reportStatus(replaceCpy(txtRemovingFile_, L"%x", fmtPath(displayPath))); //throw ?
-                    else
-                        procCallback_.requestUiRefresh(); //throw ?
+                    try
+                    {
+                        if (!displayPath.empty())
+                            procCallback_.reportStatus(replaceCpy(txtRemovingFile_, L"%x", fmtPath(displayPath))); //throw X
+                        else
+                            procCallback_.requestUiRefresh(); //throw X
+                    }
+                    catch (...)
+                    {
+                        if (allowCallbackException)
+                            throw;
+                    }
                 };
 
                 //move content of temporary directory to recycle bin in a single call
-                if (allowUserCallback)
-                    getOrCreateRecyclerSession().tryCleanup(notifyDeletionStatus); //throw FileError
-                else
-                    getOrCreateRecyclerSession().tryCleanup(nullptr); //throw FileError
+                getOrCreateRecyclerSession().tryCleanup(notifyDeletionStatus); //throw FileError
             }
             break;
 
@@ -591,7 +597,7 @@ public:
     {
         MinimumDiskSpaceNeeded inst;
         inst.recurse(baseFolder);
-        return std::make_pair(inst.spaceNeededLeft_, inst.spaceNeededRight_);
+        return { inst.spaceNeededLeft_, inst.spaceNeededRight_ };
     }
 
 private:
@@ -838,7 +844,7 @@ void SynchronizeFolderPair::prepare2StepMove(FilePair& sourceObj,
     tempFile .setMoveRef(targetObj.getId());
 
     //NO statistics update!
-    procCallback_.requestUiRefresh(); //may throw
+    procCallback_.requestUiRefresh(); //throw ?
 }
 
 
@@ -955,8 +961,7 @@ void SynchronizeFolderPair::runZeroPass(ContainerObject& hierObj)
                         {
                             SyncStatistics statSrc(*sourceObj);
                             SyncStatistics statTrg(*targetObj);
-                            return std::make_pair(getCUD(statSrc) + getCUD(statTrg),
-                                                  statSrc.getBytesToProcess() + statTrg.getBytesToProcess());
+                            return { getCUD(statSrc) + getCUD(statTrg), statSrc.getBytesToProcess() + statTrg.getBytesToProcess() };
                         };
 
                         const auto statBefore = getStats();
@@ -1346,7 +1351,7 @@ void SynchronizeFolderPair::synchronizeFileInt(FilePair& file, SyncOperation syn
             return; //no update on processed data!
     }
 
-    procCallback_.requestUiRefresh(); //may throw
+    procCallback_.requestUiRefresh(); //throw ?
 }
 
 
@@ -1485,7 +1490,7 @@ void SynchronizeFolderPair::synchronizeLinkInt(SymlinkPair& symlink, SyncOperati
             return; //no update on processed data!
     }
 
-    procCallback_.requestUiRefresh(); //may throw
+    procCallback_.requestUiRefresh(); //throw ?
 }
 
 
@@ -1613,7 +1618,7 @@ void SynchronizeFolderPair::synchronizeFolderInt(FolderPair& folder, SyncOperati
             return; //no update on processed data!
     }
 
-    procCallback_.requestUiRefresh(); //may throw
+    procCallback_.requestUiRefresh(); //throw ?
 }
 
 //###########################################################################################
@@ -1760,7 +1765,7 @@ enum class FolderPairJobType
 }
 
 
-void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime,
+void fff::synchronize(const std::chrono::system_clock::time_point& syncStartTime,
                       bool verifyCopiedFiles,
                       bool copyLockedFiles,
                       bool copyFilePermissions,
@@ -1769,7 +1774,7 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
                       int folderAccessTimeout,
                       const std::vector<FolderPairSyncCfg>& syncConfig,
                       FolderComparison& folderCmp,
-                      xmlAccess::OptionalDialogs& warnings,
+                      WarningDialogs& warnings,
                       ProcessCallback& callback)
 {
     //PERF_START;
@@ -1960,7 +1965,7 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
 
                     if (0 < freeSpace && //zero means "request not supported" (e.g. see WebDav)
                         freeSpace < minSpaceNeeded)
-                        diskSpaceMissing.emplace_back(baseFolderPath, std::make_pair(minSpaceNeeded, freeSpace));
+                        diskSpaceMissing.push_back({ baseFolderPath, { minSpaceNeeded, freeSpace } });
                 }
                 catch (FileError&) {} //for warning only => no need for tryReportingError()
         };
@@ -2104,6 +2109,10 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
 
     try
     {
+        const TimeComp timeStamp = getLocalTime(std::chrono::system_clock::to_time_t(syncStartTime));
+        if (timeStamp == TimeComp())
+            throw std::runtime_error("Failed to determine current time: " + numberTo<std::string>(syncStartTime.time_since_epoch().count()));
+
         //loop through all directory pairs
         for (auto itBase = begin(folderCmp); itBase != end(folderCmp); ++itBase)
         {
@@ -2116,7 +2125,7 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
                 continue;
 
             //------------------------------------------------------------------------------------------
-            callback.reportInfo(_("Synchronizing folder pair:") + L" [" + getVariantName(folderPairCfg.syncVariant_) + L"]\n" +
+            callback.reportInfo(_("Synchronizing folder pair:") + L" " + getVariantNameForLog(folderPairCfg.syncVariant_) + L"\n" +
                                 L"    " + AFS::getDisplayPath(baseFolder.getAbstractPath< LEFT_SIDE>()) + L"\n" +
                                 L"    " + AFS::getDisplayPath(baseFolder.getAbstractPath<RIGHT_SIDE>()));
             //------------------------------------------------------------------------------------------
@@ -2136,15 +2145,16 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
             //execute synchronization recursively
 
             //update synchronization database in case of errors:
-            ZEN_ON_SCOPE_FAIL
-            (
-                try
+            auto guardDbSave = makeGuard<ScopeGuardRunMode::ON_FAIL>([&]
             {
-                if (folderPairCfg.saveSyncDB_)
-                    zen::saveLastSynchronousState(baseFolder, nullptr);
-            } //throw FileError
-            catch (FileError&) {}
-            );
+                try
+                {
+                    if (folderPairCfg.saveSyncDB_)
+                        saveLastSynchronousState(baseFolder, //throw FileError
+                        [&](const std::wstring& statusMsg) { try { callback.reportStatus(statusMsg); /*throw X*/} catch (...) {}});
+                }
+                catch (FileError&) {}
+            });
 
             if (jobType[folderIndex] == FolderPairJobType::PROCESS)
             {
@@ -2174,8 +2184,6 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
                     return folderPairCfg.handleDeletion;
                 };
 
-                const TimeComp timeStamp = getLocalTime(std::chrono::system_clock::to_time_t(syncStartTime));
-
                 DeletionHandling delHandlerL(baseFolder.getAbstractPath<LEFT_SIDE>(),
                                              getEffectiveDeletionPolicy(baseFolder.getAbstractPath<LEFT_SIDE>()),
                                              folderPairCfg.versioningFolderPhrase,
@@ -2197,21 +2205,23 @@ void zen::synchronize(const std::chrono::system_clock::time_point& syncStartTime
                 syncFP.startSync(baseFolder);
 
                 //(try to gracefully) cleanup temporary Recycle bin folders and versioning -> will be done in ~DeletionHandling anyway...
-                tryReportingError([&] { delHandlerL.tryCleanup(true /*allowUserCallback*/); /*throw FileError*/}, callback); //throw X?
-                tryReportingError([&] { delHandlerR.tryCleanup(true                      ); /*throw FileError*/}, callback); //throw X?
+                tryReportingError([&] { delHandlerL.tryCleanup(true /*allowCallbackException*/); /*throw FileError*/}, callback); //throw X?
+                tryReportingError([&] { delHandlerR.tryCleanup(true                           ); /*throw FileError*/}, callback); //throw X?
             }
 
             //(try to gracefully) write database file
             if (folderPairCfg.saveSyncDB_)
             {
                 callback.reportStatus(_("Generating database..."));
-                callback.forceUiRefresh();
+                callback.forceUiRefresh(); //throw X
 
                 tryReportingError([&]
                 {
-                    zen::saveLastSynchronousState(baseFolder, //throw FileError
+                    saveLastSynchronousState(baseFolder, //throw FileError
                     [&](const std::wstring& statusMsg) { callback.reportStatus(statusMsg); /*throw X*/});
                 }, callback); //throw X
+
+                guardDbSave.dismiss(); //[!] after "graceful" try: user might have cancelled during DB write: ensure DB is still written
             }
         }
 

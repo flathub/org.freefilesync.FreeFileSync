@@ -12,7 +12,7 @@
 #include "../process_callback.h"
 
 
-namespace zen
+namespace fff
 {
 template <typename Function> inline
 zen::Opt<std::wstring> tryReportingError(Function cmd, ProcessCallback& handler /*throw X*/) //return ignored error message if available
@@ -21,9 +21,9 @@ zen::Opt<std::wstring> tryReportingError(Function cmd, ProcessCallback& handler 
         try
         {
             cmd(); //throw FileError
-            return NoValue();
+            return zen::NoValue();
         }
-        catch (FileError& error)
+        catch (zen::FileError& error)
         {
             switch (handler.reportError(error.toString(), retryNumber)) //throw X
             {
@@ -60,7 +60,7 @@ public:
     {
         cb_.updateProcessedData(itemsDelta, bytesDelta); //nothrow! -> ensure client and service provider are in sync!
         itemsReported_ += itemsDelta;
-        bytesReported_ += bytesDelta;                      //
+        bytesReported_ += bytesDelta;                    //
 
         //special rule: avoid temporary statistics mess up, even though they are corrected anyway below:
         if (itemsReported_ > itemsExpected_)

@@ -13,6 +13,8 @@
 #include "lib/return_codes.h"
 
 
+namespace fff //avoid name clash with "int ffs()" for fuck's sake! (maxOS, Linux issue only: <string> internally includes <strings.h>, WTF!)
+{
 class Application : public wxApp
 {
 private:
@@ -26,7 +28,8 @@ private:
     void onQueryEndSession(wxEvent& event);
     void launch(const std::vector<Zstring>& commandArgs);
 
-    zen::FfsReturnCode returnCode_ = zen::FFS_RC_SUCCESS;
+    FfsReturnCode returnCode_ = FFS_RC_SUCCESS;
 };
+}
 
 #endif //APPLICATION_H_081568741942010985702395

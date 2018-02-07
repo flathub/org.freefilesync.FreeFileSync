@@ -7,14 +7,13 @@
 #ifndef SYNCHRONIZATION_H_8913470815943295
 #define SYNCHRONIZATION_H_8913470815943295
 
-//#include <zen/time.h>
 #include <chrono>
 #include "file_hierarchy.h"
 #include "lib/process_xml.h"
 #include "process_callback.h"
 
 
-namespace zen
+namespace fff
 {
 class SyncStatistics //this class counts *logical* operations, (create, update, delete + bytes), *not* disk accesses!
 {
@@ -104,7 +103,7 @@ void synchronize(const std::chrono::system_clock::time_point& syncStartTime,
                  int folderAccessTimeout,
                  const std::vector<FolderPairSyncCfg>& syncConfig, //CONTRACT: syncConfig and folderCmp correspond row-wise!
                  FolderComparison& folderCmp,                      //
-                 xmlAccess::OptionalDialogs& warnings,
+                 WarningDialogs& warnings,
                  ProcessCallback& callback);
 }
 

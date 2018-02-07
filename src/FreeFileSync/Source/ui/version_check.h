@@ -11,7 +11,8 @@
 #include <memory>
 #include <wx/window.h>
 
-namespace zen
+
+namespace fff
 {
 bool updateCheckActive (time_t  lastUpdateCheck);
 void disableUpdateCheck(time_t& lastUpdateCheck);

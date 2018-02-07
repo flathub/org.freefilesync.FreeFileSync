@@ -12,6 +12,7 @@
 #include "utf.h"
 #include "sys_error.h" //we'll need this later anyway!
 
+
 namespace zen
 {
 class FileError //A high-level exception class giving detailed context information for end users

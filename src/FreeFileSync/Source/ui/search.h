@@ -9,9 +9,10 @@
 
 #include <wx+/grid.h>
 
-namespace zen
+
+namespace fff
 {
-std::pair<const Grid*, ptrdiff_t> findGridMatch(const Grid& grid1, const Grid& grid2, const std::wstring& searchString, bool respectCase, bool searchAscending);
+std::pair<const zen::Grid*, ptrdiff_t> findGridMatch(const zen::Grid& grid1, const zen::Grid& grid2, const std::wstring& searchString, bool respectCase, bool searchAscending);
 //returns (grid/row) where the value was found, (nullptr, -1) if not found
 }
 

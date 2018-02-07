@@ -6,12 +6,10 @@
 #include "dir_lock.h"
 #include <map>
 #include <memory>
-//#include <chrono>
 #include <zen/sys_error.h>
 #include <zen/thread.h>
 #include <zen/scope_guard.h>
 #include <zen/guid.h>
-//#include <zen/tick_count.h>
 #include <zen/file_access.h>
 #include <zen/file_io.h>
 #include <zen/optional.h>
@@ -25,13 +23,14 @@
     #include <pwd.h> //getpwuid_r()
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
 {
-const int EMIT_LIFE_SIGN_INTERVAL   =  5; //show life sign;        unit: [s]
-const int POLL_LIFE_SIGN_INTERVAL   =  4; //poll for life sign;    unit: [s]
-const int DETECT_ABANDONED_INTERVAL = 30; //assume abandoned lock; unit: [s]
+const std::chrono::seconds EMIT_LIFE_SIGN_INTERVAL   (5); //show life sign;
+const std::chrono::seconds POLL_LIFE_SIGN_INTERVAL   (4); //poll for life sign;
+const std::chrono::seconds DETECT_ABANDONED_INTERVAL(30); //assume abandoned lock;
 
 const char LOCK_FORMAT_DESCR[] = "FreeFileSync";
 const int LOCK_FORMAT_VER = 2; //lock file format version
@@ -52,7 +51,7 @@ public:
         {
             for (;;)
             {
-                interruptibleSleep(std::chrono::seconds(EMIT_LIFE_SIGN_INTERVAL)); //throw ThreadInterruption
+                interruptibleSleep(EMIT_LIFE_SIGN_INTERVAL); //throw ThreadInterruption
 
                 //actual work
                 emitLifeSign(); //throw ()
@@ -91,6 +90,8 @@ Zstring abandonedLockDeletionName(const Zstring& lockFilePath) //make sure to NO
 }
 
 
+#if 0
+#endif
 
 
     using ProcessId = pid_t;
@@ -249,63 +250,63 @@ ProcessStatus getProcessStatus(const LockInformation& lockInfo) //throw FileErro
 }
 
 
-void waitOnDirLock(const Zstring& lockFilePath, DirLockCallback* callback) //throw FileError
+void waitOnDirLock(const Zstring& lockFilePath, const DirLockCallback& notifyStatus /*throw X*/, std::chrono::milliseconds cbInterval) //throw FileError
 {
-    using namespace std::chrono;
     std::wstring infoMsg = _("Waiting while directory is locked:") + L' ' + fmtPath(lockFilePath);
 
-    if (callback)
-        callback->reportStatus(infoMsg);
-    //---------------------------------------------------------------
+    if (notifyStatus) notifyStatus(infoMsg); //throw X
+
+    //convenience optimization only: if we know the owning process crashed, we needn't wait DETECT_ABANDONED_INTERVAL sec
+    bool lockOwnderDead = false;
+    std::string originalLockId; //empty if it cannot be retrieved
     try
     {
-        //convenience optimization only: if we know the owning process crashed, we needn't wait DETECT_ABANDONED_INTERVAL sec
-        bool lockOwnderDead = false;
-        std::string originalLockId; //empty if it cannot be retrieved
-        try
+        const LockInformation& lockInfo = retrieveLockInfo(lockFilePath); //throw FileError
+
+        infoMsg += L" | " + _("Lock owner:") +  L' ' + utfTo<std::wstring>(lockInfo.userId);
+
+        originalLockId = lockInfo.lockId;
+        switch (getProcessStatus(lockInfo)) //throw FileError
         {
-            const LockInformation& lockInfo = retrieveLockInfo(lockFilePath); //throw FileError
-            //enhance status message and show which user is holding the lock:
-            infoMsg += L" | " + _("Lock owner:") +  L' ' + utfTo<std::wstring>(lockInfo.userId);
-
-            originalLockId = lockInfo.lockId;
-            switch (getProcessStatus(lockInfo)) //throw FileError
-            {
-                case ProcessStatus::ITS_US: //since we've already passed LockAdmin, the lock file seems abandoned ("stolen"?) although it's from this process
-                case ProcessStatus::NOT_RUNNING:
-                    lockOwnderDead = true;
-                    break;
-                case ProcessStatus::RUNNING:
-                case ProcessStatus::CANT_TELL:
-                    break;
-            }
+            case ProcessStatus::ITS_US: //since we've already passed LockAdmin, the lock file seems abandoned ("stolen"?) although it's from this process
+            case ProcessStatus::NOT_RUNNING:
+                lockOwnderDead = true;
+                break;
+            case ProcessStatus::RUNNING:
+            case ProcessStatus::CANT_TELL:
+                break;
         }
-        catch (FileError&) {} //logfile may be only partly written -> this is no error!
-
+    }
+    catch (FileError&) {} //logfile may be only partly written -> this is no error!
+    //------------------------------------------------------------------------------
+    try
+    {
         uint64_t fileSizeOld = 0;
-        auto lastLifeSign = steady_clock::now();
+        auto lastLifeSign = std::chrono::steady_clock::now();
 
         for (;;)
         {
-            const auto now = steady_clock::now();
             const uint64_t fileSizeNew = getFileSize(lockFilePath); //throw FileError
+            const auto lastCheckTime = std::chrono::steady_clock::now();
 
             if (fileSizeNew != fileSizeOld) //received life sign from lock
             {
                 fileSizeOld  = fileSizeNew;
-                lastLifeSign = now;
+                lastLifeSign = lastCheckTime;
             }
 
             if (lockOwnderDead || //no need to wait any longer...
-                now >= lastLifeSign + seconds(DETECT_ABANDONED_INTERVAL))
+                lastCheckTime >= lastLifeSign + DETECT_ABANDONED_INTERVAL)
             {
-                DirLock dummy(abandonedLockDeletionName(lockFilePath), callback); //throw FileError
+                DirLock guardDeletion(abandonedLockDeletionName(lockFilePath), notifyStatus, cbInterval); //throw FileError
 
                 //now that the lock is in place check existence again: meanwhile another process may have deleted and created a new lock!
+                std::string currentLockId;
+                try { currentLockId = retrieveLockId(lockFilePath); /*throw FileError*/ }
+                catch (FileError&) {}
 
-                if (!originalLockId.empty())
-                    if (retrieveLockId(lockFilePath) != originalLockId) //throw FileError -> since originalLockId is filled, we are not expecting errors!
-                        return; //another process has placed a new lock, leave scope: the wait for the old lock is technically over...
+                if (currentLockId != originalLockId) //throw FileError
+                    return; //another process has placed a new lock, leave scope: the wait for the old lock is technically over...
 
                 if (getFileSize(lockFilePath) != fileSizeOld) //throw FileError
                     continue; //late life sign
@@ -315,29 +316,28 @@ void waitOnDirLock(const Zstring& lockFilePath, DirLockCallback* callback) //thr
             }
 
             //wait some time...
-            static_assert(1000 * POLL_LIFE_SIGN_INTERVAL % GUI_CALLBACK_INTERVAL == 0, "");
-            for (size_t i = 0; i < 1000 * POLL_LIFE_SIGN_INTERVAL / GUI_CALLBACK_INTERVAL; ++i)
+            const auto delayUntil = std::chrono::steady_clock::now() + POLL_LIFE_SIGN_INTERVAL;
+            for (auto now = std::chrono::steady_clock::now(); now < delayUntil; now = std::chrono::steady_clock::now())
             {
-                if (callback) callback->requestUiRefresh();
-                std::this_thread::sleep_for(milliseconds(GUI_CALLBACK_INTERVAL));
-
-                if (callback)
+                if (notifyStatus)
                 {
                     //one signal missed: it's likely this is an abandoned lock => show countdown
-                    if (now >= lastLifeSign + seconds(EMIT_LIFE_SIGN_INTERVAL + 1))
+                    if (lastCheckTime >= lastLifeSign + EMIT_LIFE_SIGN_INTERVAL + std::chrono::seconds(1))
                     {
-                        const int remainingSeconds = std::max<int>(0, DETECT_ABANDONED_INTERVAL - duration_cast<seconds>(steady_clock::now() - lastLifeSign).count());
-                        const std::wstring remSecMsg = replaceCpy(_P("1 sec", "%x sec", remainingSeconds), L"%x", formatNumber(remainingSeconds));
-                        callback->reportStatus(infoMsg + L" | " + _("Detecting abandoned lock...") + L' ' + remSecMsg);
+                        const int remainingSeconds = std::max<int>(0, std::chrono::duration_cast<std::chrono::seconds>(DETECT_ABANDONED_INTERVAL - (now - lastLifeSign)).count());
+                        notifyStatus(infoMsg + L" | " + _("Detecting abandoned lock...") + L' ' + _P("1 sec", "%x sec", remainingSeconds)); //throw X
                     }
                     else
-                        callback->reportStatus(infoMsg); //emit a message in any case (might clear other one)
+                        notifyStatus(infoMsg); //throw X; emit a message in any case (might clear other one)
                 }
+                std::this_thread::sleep_for(cbInterval);
             }
         }
     }
     catch (FileError&)
     {
+        warn_static("race condition: above calls, e.g. getFileSize() might fail for not existing file, but another one might have been created at this point")
+
         if (itemNotExisting(lockFilePath))
             return; //what we are waiting for...
         throw;
@@ -388,11 +388,13 @@ bool tryLock(const Zstring& lockFilePath) //throw FileError
 class DirLock::SharedDirLock
 {
 public:
-    SharedDirLock(const Zstring& lockFilePath, DirLockCallback* callback) : //throw FileError
+    SharedDirLock(const Zstring& lockFilePath, const DirLockCallback& notifyStatus, std::chrono::milliseconds cbInterval) : //throw FileError
         lockFilePath_(lockFilePath)
     {
-        while (!::tryLock(lockFilePath))             //throw FileError
-            ::waitOnDirLock(lockFilePath, callback); //
+        if (notifyStatus) notifyStatus(replaceCpy(_("Creating file %x"), L"%x", fmtPath(lockFilePath))); //throw X
+
+        while (!::tryLock(lockFilePath))                               //throw FileError
+            ::waitOnDirLock(lockFilePath, notifyStatus, cbInterval); //
 
         lifeSignthread_ = InterruptibleThread(LifeSigns(lockFilePath));
     }
@@ -424,7 +426,7 @@ public:
     }
 
     //create or retrieve a SharedDirLock
-    std::shared_ptr<SharedDirLock> retrieve(const Zstring& lockFilePath, DirLockCallback* callback) //throw FileError
+    std::shared_ptr<SharedDirLock> retrieve(const Zstring& lockFilePath, const DirLockCallback& notifyStatus, std::chrono::milliseconds cbInterval) //throw FileError
     {
         assert(std::this_thread::get_id() == mainThreadId); //function is not thread-safe!
 
@@ -448,7 +450,7 @@ public:
         catch (FileError&) {} //catch everything, let SharedDirLock constructor deal with errors, e.g. 0-sized/corrupted lock files
 
         //lock not owned by us => create a new one
-        auto newLock = std::make_shared<SharedDirLock>(lockFilePath, callback); //throw FileError
+        auto newLock = std::make_shared<SharedDirLock>(lockFilePath, notifyStatus, cbInterval); //throw FileError
         const std::string& newLockGuid = retrieveLockId(lockFilePath); //throw FileError
 
         //update registry
@@ -484,11 +486,20 @@ private:
 };
 
 
-DirLock::DirLock(const Zstring& lockFilePath, DirLockCallback* callback) //throw FileError
+DirLock::DirLock(const Zstring& lockFilePath, const DirLockCallback& notifyStatus, std::chrono::milliseconds cbInterval) //throw FileError
 {
-    if (callback)
-        callback->reportStatus(replaceCpy(_("Creating file %x"), L"%x", fmtPath(lockFilePath)));
+    //#ifdef ZEN_WIN
+    //    const DWORD bufferSize = 10000;
+    //    std::vector<wchar_t> volName(bufferSize);
+    //    if (::GetVolumePathName(lockFilePath.c_str(), //__in  LPCTSTR lpszFileName,
+    //                            &volName[0],          //__out LPTSTR lpszVolumePathName,
+    //                            bufferSize))          //__in  DWORD cchBufferLength
+    //    {
+    //        const DWORD dt = ::GetDriveType(&volName[0]);
+    //        if (dt == DRIVE_CDROM)
+    //            return; //we don't need a lock for a CD ROM
+    //    }
+    //#endif -> still relevant? better save the file I/O for the network scenario
 
-
-    sharedLock_ = LockAdmin::instance().retrieve(lockFilePath, callback); //throw FileError
+    sharedLock_ = LockAdmin::instance().retrieve(lockFilePath, notifyStatus, cbInterval); //throw FileError
 }

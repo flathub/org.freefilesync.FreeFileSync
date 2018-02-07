@@ -9,40 +9,34 @@
 
 #include <map>
 #include <set>
+#include <chrono>
 #include "hard_filter.h"
 #include "../structures.h"
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
 struct DirectoryKey
 {
-    DirectoryKey(const AbstractPath& folderPath,
-                 const HardFilter::FilterRef& filter,
-                 SymLinkHandling handleSymlinks) :
-        folderPath_(folderPath),
-        filter_(filter),
-        handleSymlinks_(handleSymlinks) {}
-
-    const AbstractPath folderPath_; //always bound!
-    HardFilter::FilterRef filter_; //filter interface: always bound by design!
-    SymLinkHandling handleSymlinks_;
+    AbstractPath folderPath;
+    HardFilter::FilterRef filter; //always bound by design!
+    SymLinkHandling handleSymlinks = SymLinkHandling::EXCLUDE;
 };
 
 
 inline
 bool operator<(const DirectoryKey& lhs, const DirectoryKey& rhs)
 {
-    if (lhs.handleSymlinks_ != rhs.handleSymlinks_)
-        return lhs.handleSymlinks_ < rhs.handleSymlinks_;
+    if (lhs.handleSymlinks != rhs.handleSymlinks)
+        return lhs.handleSymlinks < rhs.handleSymlinks;
 
-    if (AFS::LessAbstractPath()(lhs.folderPath_, rhs.folderPath_))
+    if (AFS::LessAbstractPath()(lhs.folderPath, rhs.folderPath))
         return true;
-    if (AFS::LessAbstractPath()(rhs.folderPath_, lhs.folderPath_))
+    if (AFS::LessAbstractPath()(rhs.folderPath, lhs.folderPath))
         return false;
 
-    return *lhs.filter_ < *rhs.filter_;
+    return *lhs.filter < *rhs.filter;
 }
 
 
@@ -75,7 +69,7 @@ struct FillBufferCallback
 void fillBuffer(const std::set<DirectoryKey>& keysToRead, //in
                 std::map<DirectoryKey, DirectoryValue>& buf, //out
                 FillBufferCallback& callback,
-                size_t updateIntervalMs); //unit: [ms]
+                std::chrono::milliseconds cbInterval);
 }
 
 #endif //PARALLEL_SCAN_H_924588904275284572857

@@ -24,6 +24,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -31,7 +32,7 @@ namespace
 class FFSTranslation : public TranslationHandler
 {
 public:
-    FFSTranslation(const Zstring& lngFilePath, wxLanguage langId); //throw lngfile::ParsingError, parse_plural::ParsingError
+    FFSTranslation(const Zstring& lngFilePath, wxLanguage langId); //throw lng::ParsingError, plural::ParsingError
 
     wxLanguage getLangId() const { return langId_; }
 
@@ -46,7 +47,7 @@ public:
 
     std::wstring translate(const std::wstring& singular, const std::wstring& plural, int64_t n) const override
     {
-        auto it = transMappingPl.find(std::make_pair(singular, plural));
+        auto it = transMappingPl.find({ singular, plural });
         if (it != transMappingPl.end())
         {
             const size_t formNo = pluralParser->getForm(n);
@@ -62,12 +63,12 @@ private:
 
     Translation       transMapping; //map original text |-> translation
     TranslationPlural transMappingPl;
-    std::unique_ptr<parse_plural::PluralForm> pluralParser; //bound!
+    std::unique_ptr<plural::PluralForm> pluralParser; //bound!
     const wxLanguage langId_;
 };
 
 
-FFSTranslation::FFSTranslation(const Zstring& lngFilePath, wxLanguage langId) : langId_(langId) //throw lngfile::ParsingError, parse_plural::ParsingError
+FFSTranslation::FFSTranslation(const Zstring& lngFilePath, wxLanguage langId) : langId_(langId) //throw lng::ParsingError, plural::ParsingError
 {
     std::string inputStream;
     try
@@ -76,14 +77,14 @@ FFSTranslation::FFSTranslation(const Zstring& lngFilePath, wxLanguage langId) : 
     }
     catch (const FileError& e)
     {
-        throw lngfile::ParsingError(e.toString(), 0, 0);
+        throw lng::ParsingError({ e.toString(), 0, 0 });
         //passing FileError is too high a level for Parsing error, OTOH user is unlikely to see this since file I/O issues are sorted out by getExistingTranslations()!
     }
 
-    lngfile::TransHeader          header;
-    lngfile::TranslationMap       transInput;
-    lngfile::TranslationPluralMap transPluralInput;
-    lngfile::parseLng(inputStream, header, transInput, transPluralInput); //throw ParsingError
+    lng::TransHeader          header;
+    lng::TranslationMap       transInput;
+    lng::TranslationPluralMap transPluralInput;
+    lng::parseLng(inputStream, header, transInput, transPluralInput); //throw ParsingError
 
     for (const auto& item : transInput)
     {
@@ -101,10 +102,10 @@ FFSTranslation::FFSTranslation(const Zstring& lngFilePath, wxLanguage langId) : 
         for (const std::string& pf : item.second)
             plFormsWide.push_back(utfTo<std::wstring>(pf));
 
-        transMappingPl.emplace(std::make_pair(engSingular, engPlural), plFormsWide);
+        transMappingPl.insert({ { engSingular, engPlural }, plFormsWide });
     }
 
-    pluralParser = std::make_unique<parse_plural::PluralForm>(header.pluralDefinition); //throw parse_plural::ParsingError
+    pluralParser = std::make_unique<plural::PluralForm>(header.pluralDefinition); //throw plural::ParsingError
 }
 
 
@@ -125,7 +126,7 @@ std::vector<TranslationInfo> loadTranslations()
     //search language files available
     std::vector<Zstring> lngFilePaths;
 
-    traverseFolder(zen::getResourceDirPf() + Zstr("Languages"), [&](const zen::FileInfo& fi) //FileInfo is ambiguous on OS X
+    traverseFolder(fff::getResourceDirPf() + Zstr("Languages"), [&](const FileInfo& fi) //FileInfo is ambiguous on OS X
     {
         if (endsWith(fi.fullPath, Zstr(".lng")))
             lngFilePaths.push_back(fi.fullPath);
@@ -137,8 +138,8 @@ std::vector<TranslationInfo> loadTranslations()
         {
             const std::string stream = loadBinContainer<std::string>(filePath, nullptr /*notifyUnbufferedIO*/); //throw FileError
 
-            lngfile::TransHeader lngHeader;
-            lngfile::parseHeader(stream, lngHeader); //throw ParsingError
+            lng::TransHeader lngHeader;
+            lng::parseHeader(stream, lngHeader); //throw ParsingError
 
             assert(!lngHeader.languageName  .empty());
             assert(!lngHeader.translatorName.empty());
@@ -165,7 +166,7 @@ std::vector<TranslationInfo> loadTranslations()
             else assert(false);
         }
         catch (FileError&) { assert(false); }
-        catch (lngfile::ParsingError&) { assert(false); } //better not show an error message here; scenario: batch jobs
+        catch (lng::ParsingError&) { assert(false); } //better not show an error message here; scenario: batch jobs
     }
 
     std::sort(locMapping.begin(), locMapping.end(), [](const TranslationInfo& lhs, const TranslationInfo& rhs)
@@ -372,21 +373,21 @@ private:
 }
 
 
-const std::vector<TranslationInfo>& zen::getExistingTranslations()
+const std::vector<TranslationInfo>& fff::getExistingTranslations()
 {
     static const std::vector<TranslationInfo> translations = loadTranslations();
     return translations;
 }
 
 
-void zen::releaseWxLocale()
+void fff::releaseWxLocale()
 {
     wxWidgetsLocale::getInstance().tearDown();
-    zen::setTranslator(nullptr); //good place for clean up rather than some time during static destruction: is this an actual benefit???
+    setTranslator(nullptr); //good place for clean up rather than some time during static destruction: is this an actual benefit???
 }
 
 
-void zen::setLanguage(wxLanguage lng) //throw FileError
+void fff::setLanguage(wxLanguage lng) //throw FileError
 {
     if (getLanguage() == lng && wxWidgetsLocale::getInstance().getLanguage() == lng)
         return; //support polling
@@ -403,21 +404,21 @@ void zen::setLanguage(wxLanguage lng) //throw FileError
 
     //load language file into buffer
     if (langFilePath.empty()) //if languageFile is empty, texts will be english by default
-        zen::setTranslator(nullptr);
+        setTranslator(nullptr);
     else
         try
         {
-            zen::setTranslator(std::make_unique<FFSTranslation>(langFilePath, lng)); //throw lngfile::ParsingError, parse_plural::ParsingError
+            setTranslator(std::make_unique<FFSTranslation>(langFilePath, lng)); //throw lng::ParsingError, plural::ParsingError
         }
-        catch (lngfile::ParsingError& e)
+        catch (lng::ParsingError& e)
         {
             throw FileError(replaceCpy(replaceCpy(replaceCpy(_("Error parsing file %x, row %y, column %z."),
                                                              L"%x", fmtPath(langFilePath)),
-                                                  L"%y", numberTo<std::wstring>(e.row_ + 1)),
-                                       L"%z", numberTo<std::wstring>(e.col_ + 1))
-                            + L"\n\n" + e.msg_);
+                                                  L"%y", numberTo<std::wstring>(e.row + 1)),
+                                       L"%z", numberTo<std::wstring>(e.col + 1))
+                            + L"\n\n" + e.msg);
         }
-        catch (parse_plural::ParsingError&)
+        catch (plural::ParsingError&)
         {
             throw FileError(replaceCpy<std::wstring>(L"%x: Invalid plural form definition", L"%x", fmtPath(langFilePath))); //user should never see this!
         }
@@ -427,15 +428,15 @@ void zen::setLanguage(wxLanguage lng) //throw FileError
 }
 
 
-wxLanguage zen::getLanguage()
+wxLanguage fff::getLanguage()
 {
-    std::shared_ptr<const TranslationHandler> t = zen::getTranslator();
+    std::shared_ptr<const TranslationHandler> t = getTranslator();
     const FFSTranslation* loc = dynamic_cast<const FFSTranslation*>(t.get());
     return loc ? loc->getLangId() : wxLANGUAGE_ENGLISH_US;
 }
 
 
-wxLanguage zen::getSystemLanguage()
+wxLanguage fff::getSystemLanguage()
 {
     return mapLanguageDialect(static_cast<wxLanguage>(wxLocale::GetSystemLanguage()));
 }

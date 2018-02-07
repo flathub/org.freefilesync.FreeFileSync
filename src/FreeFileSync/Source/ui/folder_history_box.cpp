@@ -11,6 +11,7 @@
     #include <gtk/gtk.h>
 
 using namespace zen;
+using namespace fff;
 
 
 FolderHistoryBox::FolderHistoryBox(wxWindow* parent,

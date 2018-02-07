@@ -22,19 +22,19 @@ struct TimeComp //replaces std::tm and SYSTEMTIME
     int minute = 0; //0-59
     int second = 0; //0-60 (including leap second)
 };
-
 inline bool operator==(const TimeComp& lhs, const TimeComp& rhs)
 {
     return lhs.year == rhs.year && lhs.month == rhs.month  && lhs.day == rhs.day && lhs.hour == rhs.hour && lhs.minute == rhs.minute && lhs.second == rhs.second;
 }
+inline bool operator!=(const TimeComp& lhs, const TimeComp& rhs) { return !(lhs == rhs); }
 
-TimeComp getLocalTime(time_t utc = std::time(nullptr)); //convert time_t (UTC) to local time components
-time_t   localToTimeT(const TimeComp& comp);            //convert local time components to time_t (UTC), returns -1 on error
+TimeComp getLocalTime(time_t utc = std::time(nullptr)); //convert time_t (UTC) to local time components, returns TimeComp() on error
+time_t   localToTimeT(const TimeComp& tc);              //convert local time components to time_t (UTC), returns -1 on error
 
-TimeComp getUtcTime(time_t utc = std::time(nullptr)); //convert time_t (UTC) to UTC time components
-time_t   utcToTimeT(const TimeComp& comp);            //convert UTC time components to time_t (UTC), returns -1 on error
+TimeComp getUtcTime(time_t utc = std::time(nullptr)); //convert time_t (UTC) to UTC time components, returns TimeComp() on error
+time_t   utcToTimeT(const TimeComp& tc);              //convert UTC time components to time_t (UTC), returns -1 on error
 
-TimeComp getCompileTime();
+TimeComp getCompileTime(); //returns TimeComp() on error
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ format (current) date and time; example:
         formatTime<std::wstring>(FORMAT_TIME); -> "17:55:34"
 */
 template <class String, class String2>
-String formatTime(const String2& format, const TimeComp& comp = getLocalTime()); //format as specified by "std::strftime", returns empty string on failure
+String formatTime(const String2& format, const TimeComp& tc = getLocalTime()); //format as specified by "std::strftime", returns empty string on failure
 
 //the "format" parameter of formatTime() is partially specialized with the following type tags:
 const struct FormatDateTag     {} FORMAT_DATE      = {}; //%x - locale dependent date representation: e.g. 08/23/01
@@ -58,13 +58,14 @@ const struct FormatIsoDateTimeTag {} FORMAT_ISO_DATE_TIME = {}; //%Y-%m-%d %H:%M
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
+/*
+example: parseTime("%Y-%m-%d %H:%M:%S",  "2001-08-23 14:55:02");
+         parseTime(FORMAT_ISO_DATE_TIME, "2001-08-23 14:55:02");
+*/
 template <class String, class String2>
-bool parseTime(const String& format, const String2& str, TimeComp& comp); //similar to ::strptime(), return true on success
+TimeComp parseTime(const String& format, const String2& str); //similar to ::strptime()
 
 //----------------------------------------------------------------------------------------------------------------------------------
-
-
-
 
 
 
@@ -79,25 +80,25 @@ bool parseTime(const String& format, const String2& str, TimeComp& comp); //simi
 
 
 //############################ implementation ##############################
-namespace implementation
+namespace impl
 {
 inline
-std::tm toClibTimeComponents(const TimeComp& comp)
+std::tm toClibTimeComponents(const TimeComp& tc)
 {
-    assert(1 <= comp.month  && comp.month  <= 12 &&
-           1 <= comp.day    && comp.day    <= 31 &&
-           0 <= comp.hour   && comp.hour   <= 23 &&
-           0 <= comp.minute && comp.minute <= 59 &&
-           0 <= comp.second && comp.second <= 61);
+    assert(1 <= tc.month  && tc.month  <= 12 &&
+           1 <= tc.day    && tc.day    <= 31 &&
+           0 <= tc.hour   && tc.hour   <= 23 &&
+           0 <= tc.minute && tc.minute <= 59 &&
+           0 <= tc.second && tc.second <= 61);
 
     std::tm ctc = {};
-    ctc.tm_year  = comp.year - 1900; //years since 1900
-    ctc.tm_mon   = comp.month - 1;   //0-11
-    ctc.tm_mday  = comp.day;         //1-31
-    ctc.tm_hour  = comp.hour;        //0-23
-    ctc.tm_min   = comp.minute;      //0-59
-    ctc.tm_sec   = comp.second;      //0-60 (including leap second)
-    ctc.tm_isdst = -1;               //> 0 if DST is active, == 0 if DST is not active, < 0 if the information is not available
+    ctc.tm_year  = tc.year - 1900; //years since 1900
+    ctc.tm_mon   = tc.month - 1;   //0-11
+    ctc.tm_mday  = tc.day;         //1-31
+    ctc.tm_hour  = tc.hour;        //0-23
+    ctc.tm_min   = tc.minute;      //0-59
+    ctc.tm_sec   = tc.second;      //0-60 (including leap second)
+    ctc.tm_isdst = -1;             //> 0 if DST is active, == 0 if DST is not active, < 0 if the information is not available
     //ctc.tm_wday
     //ctc.tm_yday
     return ctc;
@@ -106,14 +107,14 @@ std::tm toClibTimeComponents(const TimeComp& comp)
 inline
 TimeComp toZenTimeComponents(const std::tm& ctc)
 {
-    TimeComp comp;
-    comp.year   = ctc.tm_year + 1900;
-    comp.month  = ctc.tm_mon + 1;
-    comp.day    = ctc.tm_mday;
-    comp.hour   = ctc.tm_hour;
-    comp.minute = ctc.tm_min;
-    comp.second = ctc.tm_sec;
-    return comp;
+    TimeComp tc;
+    tc.year   = ctc.tm_year + 1900;
+    tc.month  = ctc.tm_mon + 1;
+    tc.day    = ctc.tm_mday;
+    tc.hour   = ctc.tm_hour;
+    tc.minute = ctc.tm_min;
+    tc.second = ctc.tm_sec;
+    return tc;
 }
 
 
@@ -206,7 +207,6 @@ bool isValid(const std::tm& t)
 template <class CharType> inline
 size_t strftimeWrap(CharType* buffer, size_t bufferSize, const CharType* format, const std::tm* timeptr)
 {
-
     return strftimeWrap_impl(buffer, bufferSize, format, timeptr);
 }
 
@@ -215,10 +215,10 @@ struct UserDefinedFormatTag {};
 struct PredefinedFormatTag  {};
 
 template <class String, class String2> inline
-String formatTime(const String2& format, const TimeComp& comp, UserDefinedFormatTag) //format as specified by "std::strftime", returns empty string on failure
+String formatTime(const String2& format, const TimeComp& tc, UserDefinedFormatTag) //format as specified by "std::strftime", returns empty string on failure
 {
     using CharType = typename GetCharType<String>::Type;
-    std::tm ctc = toClibTimeComponents(comp);
+    std::tm ctc = toClibTimeComponents(tc);
     std::mktime(&ctc); // unfortunately std::strftime() needs all elements of "struct tm" filled, e.g. tm_wday, tm_yday
     //note: although std::mktime() explicitly expects "local time", calculating weekday and day of year *should* be time-zone and DST independent
 
@@ -227,11 +227,12 @@ String formatTime(const String2& format, const TimeComp& comp, UserDefinedFormat
     return String(buffer, charsWritten);
 }
 
+
 template <class String, class FormatType> inline
-String formatTime(FormatType, const TimeComp& comp, PredefinedFormatTag)
+String formatTime(FormatType, const TimeComp& tc, PredefinedFormatTag)
 {
     using CharType = typename GetCharType<String>::Type;
-    return formatTime<String>(GetFormat<FormatType>().format(CharType()), comp, UserDefinedFormatTag());
+    return formatTime<String>(GetFormat<FormatType>().format(CharType()), tc, UserDefinedFormatTag());
 }
 }
 
@@ -239,37 +240,49 @@ String formatTime(FormatType, const TimeComp& comp, PredefinedFormatTag)
 inline
 TimeComp getLocalTime(time_t utc)
 {
-    std::tm comp = {};
-    if (::localtime_r(&utc, &comp) == nullptr)
+    if (utc == -1) //failure code from std::time(nullptr)
         return TimeComp();
 
-    return implementation::toZenTimeComponents(comp);
+    std::tm ctc = {};
+    if (::localtime_r(&utc, &ctc) == nullptr)
+        return TimeComp();
+
+    return impl::toZenTimeComponents(ctc);
 }
 
 
 inline
 TimeComp getUtcTime(time_t utc)
 {
-    std::tm comp = {};
-    if (::gmtime_r(&utc, &comp) == nullptr)
+    if (utc == -1) //failure code from std::time(nullptr)
         return TimeComp();
 
-    return implementation::toZenTimeComponents(comp);
+    std::tm ctc = {};
+    if (::gmtime_r(&utc, &ctc) == nullptr)
+        return TimeComp();
+
+    return impl::toZenTimeComponents(ctc);
 }
 
 
 inline
-time_t localToTimeT(const TimeComp& comp) //returns -1 on error
+time_t localToTimeT(const TimeComp& tc) //returns -1 on error
 {
-    std::tm ctc = implementation::toClibTimeComponents(comp);
+    if (tc == TimeComp())
+        return -1;
+
+    std::tm ctc = impl::toClibTimeComponents(tc);
     return std::mktime(&ctc);
 }
 
 
 inline
-time_t utcToTimeT(const TimeComp& comp) //returns -1 on error
+time_t utcToTimeT(const TimeComp& tc) //returns -1 on error
 {
-    std::tm ctc = implementation::toClibTimeComponents(comp);
+    if (tc == TimeComp())
+        return -1;
+
+    std::tm ctc = impl::toClibTimeComponents(tc);
     ctc.tm_isdst = 0; //"Zero (0) to indicate that standard time is in effect" => unused by _mkgmtime, but take no chances
     return ::timegm(&ctc);
 }
@@ -283,38 +296,35 @@ TimeComp getCompileTime()
     if (compileTime[4] == ' ') //day is space-padded, but %d expects zero-padding
         compileTime[4] = '0';
 
-    TimeComp tc = {};
-    if (parseTime("%b %d %Y %H:%M:%S", compileTime, tc))
-        return tc;
-
-    assert(false);
-    return TimeComp();
+    return parseTime("%b %d %Y %H:%M:%S", compileTime);
 }
 
 
 template <class String, class String2> inline
-String formatTime(const String2& format, const TimeComp& comp)
+String formatTime(const String2& format, const TimeComp& tc)
 {
+    if (tc == TimeComp()) //failure code from getLocalTime()
+        return String();
+
     using FormatTag = typename SelectIf<
                       IsSameType<String2, FormatDateTag       >::value ||
                       IsSameType<String2, FormatTimeTag       >::value ||
                       IsSameType<String2, FormatDateTimeTag   >::value ||
                       IsSameType<String2, FormatIsoDateTag    >::value ||
                       IsSameType<String2, FormatIsoTimeTag    >::value ||
-                      IsSameType<String2, FormatIsoDateTimeTag>::value, implementation::PredefinedFormatTag, implementation::UserDefinedFormatTag>::Type;
+                      IsSameType<String2, FormatIsoDateTimeTag>::value, impl::PredefinedFormatTag, impl::UserDefinedFormatTag>::Type;
 
-    return implementation::formatTime<String>(format, comp, FormatTag());
+    return impl::formatTime<String>(format, tc, FormatTag());
 }
 
 
+namespace impl
+{
 template <class String, class String2>
-bool parseTime(const String& format, const String2& str, TimeComp& comp) //return true on success
+TimeComp parseTime(const String& format, const String2& str, UserDefinedFormatTag)
 {
     using CharType = typename GetCharType<String>::Type;
     static_assert(IsSameType<CharType, typename GetCharType<String2>::Type>::value, "");
-
-    const CharType*       itFmt = strBegin(format);
-    const CharType* const fmtLast = itFmt + strLength(format);
 
     const CharType*       itStr = strBegin(str);
     const CharType* const strLast = itStr + strLength(str);
@@ -332,6 +342,11 @@ bool parseTime(const String& format, const String2& str, TimeComp& comp) //retur
         return true;
     };
 
+    TimeComp output;
+
+    const CharType*       itFmt = strBegin(format);
+    const CharType* const fmtLast = itFmt + strLength(format);
+
     for (; itFmt != fmtLast; ++itFmt)
     {
         const CharType fmt = *itFmt;
@@ -340,22 +355,22 @@ bool parseTime(const String& format, const String2& str, TimeComp& comp) //retur
         {
             ++itFmt;
             if (itFmt == fmtLast)
-                return false;
+                return TimeComp();
 
             switch (*itFmt)
             {
                 case 'Y':
-                    if (!extractNumber(comp.year, 4))
-                        return false;
+                    if (!extractNumber(output.year, 4))
+                        return TimeComp();
                     break;
                 case 'm':
-                    if (!extractNumber(comp.month, 2))
-                        return false;
+                    if (!extractNumber(output.month, 2))
+                        return TimeComp();
                     break;
                 case 'b': //abbreviated month name: Jan-Dec
                 {
                     if (strLast - itStr < 3)
-                        return false;
+                        return TimeComp();
 
                     const char* months[] = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
                     auto itMonth = std::find_if(std::begin(months), std::end(months), [&](const char* name)
@@ -365,30 +380,30 @@ bool parseTime(const String& format, const String2& str, TimeComp& comp) //retur
                                asciiToLower(itStr[2]) == name[2];
                     });
                     if (itMonth == std::end(months))
-                        return false;
+                        return TimeComp();
 
-                    comp.month = 1 + static_cast<int>(itMonth - std::begin(months));
+                    output.month = 1 + static_cast<int>(itMonth - std::begin(months));
                     itStr += 3;
                 }
                 break;
                 case 'd':
-                    if (!extractNumber(comp.day, 2))
-                        return false;
+                    if (!extractNumber(output.day, 2))
+                        return TimeComp();
                     break;
                 case 'H':
-                    if (!extractNumber(comp.hour, 2))
-                        return false;
+                    if (!extractNumber(output.hour, 2))
+                        return TimeComp();
                     break;
                 case 'M':
-                    if (!extractNumber(comp.minute, 2))
-                        return false;
+                    if (!extractNumber(output.minute, 2))
+                        return TimeComp();
                     break;
                 case 'S':
-                    if (!extractNumber(comp.second, 2))
-                        return false;
+                    if (!extractNumber(output.second, 2))
+                        return TimeComp();
                     break;
                 default:
-                    return false;
+                    return TimeComp();
             }
         }
         else if (isWhiteSpace(fmt)) //single whitespace in format => skip 0..n whitespace chars
@@ -399,12 +414,36 @@ bool parseTime(const String& format, const String2& str, TimeComp& comp) //retur
         else
         {
             if (itStr == strLast || *itStr != fmt)
-                return false;
+                return TimeComp();
             ++itStr;
         }
     }
 
-    return itStr == strLast;
+    if (itStr != strLast)
+        return TimeComp();
+
+    return output;
+}
+
+
+template <class FormatType, class String>  inline
+TimeComp parseTime(FormatType, const String& str, PredefinedFormatTag)
+{
+    using CharType = typename GetCharType<String>::Type;
+    return parseTime(GetFormat<FormatType>().format(CharType()), str, UserDefinedFormatTag());
+}
+}
+
+
+template <class String, class String2> inline
+TimeComp parseTime(const String& format, const String2& str)
+{
+    using FormatTag = typename SelectIf<
+                      IsSameType<String, FormatIsoDateTag    >::value ||
+                      IsSameType<String, FormatIsoTimeTag    >::value ||
+                      IsSameType<String, FormatIsoDateTimeTag>::value, impl::PredefinedFormatTag, impl::UserDefinedFormatTag>::Type;
+
+    return impl::parseTime(format, str, FormatTag());
 }
 }
 

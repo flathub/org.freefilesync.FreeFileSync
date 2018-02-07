@@ -5,7 +5,6 @@
 // *****************************************************************************
 
 #include "format_unit.h"
-//#include <cwchar> //swprintf
 #include <ctime>
 #include <cstdio>
 #include "basic_math.h"
@@ -112,7 +111,7 @@ std::wstring roundToBlock(double timeInHigh,
     const int blockSizeLow = granularity * timeInHigh < 1 ?
                              numeric::nearMatch(granularity * timeInLow,  std::begin(stepsLow),  std::end(stepsLow)):
                              numeric::nearMatch(granularity * timeInHigh, std::begin(stepsHigh), std::end(stepsHigh)) * unitLowPerHigh;
-    const int roundedtimeInLow = numeric::round(timeInLow / blockSizeLow) * blockSizeLow;
+    const int roundedtimeInLow = static_cast<int>(numeric::round(timeInLow / blockSizeLow) * blockSizeLow);
 
     std::wstring output = formatUnitTime(roundedtimeInLow / unitLowPerHigh, unitHigh);
     if (unitLowPerHigh > blockSizeLow)
@@ -162,13 +161,13 @@ std::wstring zen::formatFraction(double fraction)
 
 
 
-std::wstring zen::ffs_Impl::includeNumberSeparator(const std::wstring& number)
+std::wstring zen::impl::includeNumberSeparator(const std::wstring& number)
 {
     //we have to include thousands separator ourselves; this doesn't work for all countries (e.g india), but is better than nothing
 
     //::setlocale (LC_ALL, ""); -> implicitly called by wxLocale
     const lconv* localInfo = ::localeconv(); //always bound according to doc
-    const std::wstring& thousandSep = utfTo<std::wstring>(localInfo->thousands_sep);
+    const std::wstring& thousandSep = zen::utfTo<std::wstring>(localInfo->thousands_sep);
 
     // THOUSANDS_SEPARATOR = std::use_facet<std::numpunct<wchar_t>>(std::locale("")).thousands_sep(); - why not working?
     // DECIMAL_POINT       = std::use_facet<std::numpunct<wchar_t>>(std::locale("")).decimal_point();

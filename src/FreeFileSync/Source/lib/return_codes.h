@@ -7,7 +7,7 @@
 #ifndef RETURN_CODES_H_81307482137054156
 #define RETURN_CODES_H_81307482137054156
 
-namespace zen
+namespace fff
 {
 enum FfsReturnCode
 {

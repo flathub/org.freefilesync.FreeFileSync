@@ -7,10 +7,10 @@
 #include "concrete.h"
 #include "native.h"
 
-using namespace zen;
+using namespace fff;
 
 
-AbstractPath zen::createAbstractPath(const Zstring& itemPathPhrase) //noexcept
+AbstractPath fff::createAbstractPath(const Zstring& itemPathPhrase) //noexcept
 {
     //greedy: try native evaluation first
     if (acceptsItemPathPhraseNative(itemPathPhrase)) //noexcept

@@ -13,6 +13,7 @@
 #include "file_id_def.h"
 #include "serialize.h"
 
+
 namespace zen
 {
 //note: certain functions require COM initialization! (vista_file_op.h)

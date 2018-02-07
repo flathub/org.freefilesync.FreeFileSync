@@ -12,6 +12,7 @@
 #include <wx/image.h>
 #include <wx/app.h>
 
+
 namespace zen
 {
 //functions supporting right-to-left GUI layout

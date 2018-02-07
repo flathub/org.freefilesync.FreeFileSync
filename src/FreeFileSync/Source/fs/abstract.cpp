@@ -10,12 +10,14 @@
 #include <zen/crc.h>
 
 using namespace zen;
+using namespace fff;
 using AFS = AbstractFileSystem;
+
 
 const Zchar* AFS::TEMP_FILE_ENDING = Zstr(".ffs_tmp");
 
 
-bool zen::isValidRelPath(const Zstring& relPath)
+bool fff::isValidRelPath(const Zstring& relPath)
 {
     const bool check1 = !contains(relPath, '\\');
     const bool check2 = !startsWith(relPath, FILE_NAME_SEPARATOR) && !endsWith(relPath, FILE_NAME_SEPARATOR);
@@ -88,7 +90,7 @@ AFS::FileCopyResult AFS::copyFileAsStream(const AfsPath& afsPathSource, const St
 
     bufferedStreamCopy(*streamIn, *streamOut); //throw FileError, ErrorFileLocked, X
 
-    const FileId targetFileId = streamOut->finalize(); //throw FileError, X
+    const AFS::FileId targetFileId = streamOut->finalize(); //throw FileError, X
 
     //check if "expected == actual number of bytes written"
     //-> extra check: bytes reported via notifyUnbufferedIO() should match actual number of bytes written

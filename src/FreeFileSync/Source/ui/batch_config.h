@@ -11,7 +11,7 @@
 #include "../lib/process_xml.h"
 
 
-namespace zen
+namespace fff
 {
 struct ReturnBatchConfig
 {
@@ -25,8 +25,7 @@ struct ReturnBatchConfig
 
 //show and let user customize batch settings (without saving)
 ReturnBatchConfig::ButtonPressed showBatchConfigDialog(wxWindow* parent,
-
-                                                       xmlAccess::BatchExclusiveConfig& batchExCfg,
+                                                       BatchExclusiveConfig& batchExCfg,
                                                        bool& ignoreErrors);
 }
 

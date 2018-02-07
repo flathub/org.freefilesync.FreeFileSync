@@ -9,6 +9,7 @@
 #include <chrono>
 
 using namespace zen;
+using namespace fff;
 using AFS = AbstractFileSystem;
 
 namespace
@@ -62,9 +63,9 @@ struct StreamReader
         }
 
         size_t proposedBlockSize = 0;
-        const auto loopTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+        const auto loopTime = stopTime - startTime;
 
-        if (loopTimeMs >= 100)
+        if (loopTime >= std::chrono::milliseconds(100))
             lastDelayViolation_ = stopTime;
 
         //avoid "flipping back": e.g. DVD-ROMs read 32MB at once, so first read may be > 500 ms, but second one will be 0ms!
@@ -73,7 +74,7 @@ struct StreamReader
             lastDelayViolation_ = stopTime;
             proposedBlockSize = dynamicBlockSize_ * 2;
         }
-        if (loopTimeMs > 500)
+        if (loopTime > std::chrono::milliseconds(500))
             proposedBlockSize = dynamicBlockSize_ / 2;
 
         if (defaultBlockSize_ <= proposedBlockSize && proposedBlockSize <= BLOCK_SIZE_MAX)
@@ -92,7 +93,7 @@ private:
 }
 
 
-bool zen::filesHaveSameContent(const AbstractPath& filePath1, const AbstractPath& filePath2, const IOCallback& notifyUnbufferedIO) //throw FileError
+bool fff::filesHaveSameContent(const AbstractPath& filePath1, const AbstractPath& filePath2, const IOCallback& notifyUnbufferedIO) //throw FileError
 {
     int64_t totalUnbufferedIO = 0;
 

@@ -8,7 +8,7 @@
 #define HELP_PROVIDER_H_85930427583421563126
 
 #if 1
-namespace zen
+namespace fff
 {
 inline void displayHelpEntry(const wxString& topic, wxWindow* parent) { wxLaunchDefaultBrowser(L"https://www.freefilesync.org/manual.php?topic=" + topic); }
 inline void uninitializeHelp() {}
@@ -22,7 +22,7 @@ inline void uninitializeHelp() {}
     #include <wx/html/helpctrl.h>
 
 
-namespace zen
+namespace fff
 {
 void displayHelpEntry(const wxString& topic, wxWindow* parent);
 void uninitializeHelp(); //clean up gracefully during app shutdown: leaving this up to static destruction crashes on Win 8.1!

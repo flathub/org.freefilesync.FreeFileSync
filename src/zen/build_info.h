@@ -7,8 +7,6 @@
 #ifndef BUILD_INFO_H_5928539285603428657
 #define BUILD_INFO_H_5928539285603428657
 
-namespace zen
-{
 //determine build info: defines ZEN_BUILD_32BIT or ZEN_BUILD_64BIT
 
     #ifdef __LP64__
@@ -24,6 +22,5 @@ namespace zen
 #ifdef ZEN_BUILD_64BIT
     static_assert(sizeof(void*) == 8, "");
 #endif
-}
 
 #endif //BUILD_INFO_H_5928539285603428657

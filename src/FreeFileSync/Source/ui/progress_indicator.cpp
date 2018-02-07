@@ -38,14 +38,14 @@
 
 
 using namespace zen;
-using namespace xmlAccess;
+using namespace fff;
 
 
 namespace
 {
-//window size used for statistics in milliseconds
-const int WINDOW_REMAINING_TIME_MS = 60000; //USB memory stick scenario can have drop outs of 40 seconds => 60 sec. window size handles it
-const int WINDOW_BYTES_PER_SEC     =  5000; //
+//window size used for statistics
+const std::chrono::seconds WINDOW_REMAINING_TIME(60); //USB memory stick scenario can have drop outs of 40 seconds => 60 sec. window size handles it
+const std::chrono::seconds WINDOW_BYTES_PER_SEC  (5); //
 
 inline wxColor getColorGridLine() { return { 192, 192, 192 }; } //light grey
 
@@ -63,12 +63,15 @@ inline wxColor getColorItemsBackgroundRim() { return { 53,  25, 255 }; } //dark 
 
 
 //don't use wxStopWatch for long-running measurements: internally it uses ::QueryPerformanceCounter() which can overflow after only a few days:
-// std::chrono::system_clock is not a steady clock, but at least doesn't overflow!
 //https://www.freefilesync.org/forum/viewtopic.php?t=1426
+//    std::chrono::system_clock is not a steady clock, but at least doesn't overflow! (wraps ::GetSystemTimePreciseAsFileTime())
+//    std::chrono::steady_clock also wraps ::QueryPerformanceCounter() => same flaw like wxStopWatch???
 
 class StopWatch
 {
 public:
+    bool isPaused() const { return paused_; }
+
     void pause()
     {
         if (!paused_)
@@ -94,18 +97,17 @@ public:
         elapsedUntilPause_ = std::chrono::nanoseconds::zero();
     }
 
-    int64_t timeMs() const
+    std::chrono::nanoseconds elapsed() const
     {
         auto elapsedTotal = elapsedUntilPause_;
         if (!paused_)
             elapsedTotal += std::chrono::system_clock::now() - startTime_;
-
-        return std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTotal).count();
+        return elapsedTotal;
     }
 
 private:
     bool paused_ = false;
-    std::chrono::system_clock::time_point startTime_ = std::chrono::system_clock::now(); //uses ::GetSystemTimePreciseAsFileTime()
+    std::chrono::system_clock::time_point startTime_ = std::chrono::system_clock::now();
     std::chrono::nanoseconds elapsedUntilPause_{}; //std::chrono::duration is uninitialized by default! WTF! When will this stupidity end???
 };
 
@@ -116,6 +118,9 @@ std::wstring getDialogPhaseText(const Statistics* syncStat, bool paused, SyncPro
     {
         if (paused)
             return _("Paused");
+
+        if (syncStat->getAbortStatus())
+            return _("Stop requested...");
         else
             switch (syncStat->currentPhase())
             {
@@ -135,7 +140,9 @@ std::wstring getDialogPhaseText(const Statistics* syncStat, bool paused, SyncPro
             case SyncProgressDialog::RESULT_ABORTED:
                 return _("Stopped");
             case SyncProgressDialog::RESULT_FINISHED_WITH_ERROR:
+                return _("Completed with errors");
             case SyncProgressDialog::RESULT_FINISHED_WITH_WARNINGS:
+                return _("Completed with warnings");
             case SyncProgressDialog::RESULT_FINISHED_WITH_SUCCESS:
                 return _("Completed");
         }
@@ -209,15 +216,15 @@ private:
     wxFrame& parentWindow_;
     wxString parentTitleBackup_;
 
-    StopWatch timeElapsed_;
-    int64_t binCompStartMs_ = 0; //begin of binary comparison phase in [ms]
+    StopWatch stopWatch_;
+    std::chrono::nanoseconds binCompStart_{}; //begin of binary comparison phase
 
     const Statistics* syncStat_ = nullptr; //only bound while sync is running
 
     std::unique_ptr<Taskbar> taskbar_;
     std::unique_ptr<PerfCheck> perf_; //estimate remaining time
 
-    int64_t timeLastSpeedEstimateMs_ = -1000000; //used for calculating intervals between showing and collecting perf samples
+    std::chrono::nanoseconds timeLastSpeedEstimate_ = std::chrono::seconds(-100); //used for calculating intervals between showing and collecting perf samples
     //initial value: just some big number
 
     std::shared_ptr<CurveDataProgressBar> curveDataBytes_{ std::make_shared<CurveDataProgressBar>(true  /*drawTop*/) };
@@ -268,7 +275,7 @@ void CompareProgressDialog::Impl::init(const Statistics& syncStat, bool ignoreEr
     bSizerProgressGraph->Show(false);
 
     perf_.reset();
-    timeElapsed_.restart(); //measure total time
+    stopWatch_.restart(); //measure total time
 
     //initially hide status that's relevant for comparing bytewise only
     m_staticTextItemsFoundLabel->Show();
@@ -311,10 +318,10 @@ void CompareProgressDialog::Impl::initNewPhase()
         case ProcessCallback::PHASE_COMPARING_CONTENT:
         case ProcessCallback::PHASE_SYNCHRONIZING:
             //start to measure perf
-            perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME_MS, WINDOW_BYTES_PER_SEC);
-            timeLastSpeedEstimateMs_ = -1000000; //some big number
+            perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
+            timeLastSpeedEstimate_ = std::chrono::seconds(-100); //make sure estimate is updated upon next check
 
-            binCompStartMs_ = timeElapsed_.timeMs();
+            binCompStart_ = stopWatch_.elapsed();
 
             bSizerProgressGraph->Show(true);
 
@@ -355,7 +362,7 @@ void CompareProgressDialog::Impl::updateProgressGui()
     };
 
     bool layoutChanged = false; //avoid screen flicker by calling layout() only if necessary
-    const int64_t timeNowMs = timeElapsed_.timeMs();
+    const std::chrono::nanoseconds timeElapsed = stopWatch_.elapsed();
 
     //status texts
     setText(*m_staticTextStatus, replaceCpy(syncStat_->currentStatusText(), L'\n', L' ')); //no layout update for status texts!
@@ -410,12 +417,12 @@ void CompareProgressDialog::Impl::updateProgressGui()
             //remaining time and speed: only visible during binary comparison
             assert(perf_);
             if (perf_)
-                if (numeric::dist(timeLastSpeedEstimateMs_, timeNowMs) >= 500)
+                if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= std::chrono::milliseconds(500))
                 {
-                    timeLastSpeedEstimateMs_ = timeNowMs;
+                    timeLastSpeedEstimate_ = timeElapsed;
 
-                    if (numeric::dist(binCompStartMs_, timeNowMs) >= 1000) //discard stats for first second: probably messy
-                        perf_->addSample(itemsCurrent, bytesCurrent, timeNowMs);
+                    if (numeric::dist(binCompStart_, timeElapsed) >= std::chrono::seconds(1)) //discard stats for first second: probably messy
+                        perf_->addSample(timeElapsed, itemsCurrent, bytesCurrent);
 
                     //current speed -> Win 7 copy uses 1 sec update interval instead
                     Opt<std::wstring> bps = perf_->getBytesPerSecond();
@@ -434,8 +441,8 @@ void CompareProgressDialog::Impl::updateProgressGui()
         break;
     }
 
-    //time elapsed
-    const int64_t timeElapSec = timeNowMs / 1000;
+    const int64_t timeElapSec = std::chrono::duration_cast<std::chrono::seconds>(timeElapsed).count();
+
     setText(*m_staticTextTimeElapsed,
             timeElapSec < 3600 ?
             wxTimeSpan::Seconds(timeElapSec).Format(   L"%M:%S") :
@@ -508,7 +515,7 @@ public:
     struct LogEntryView
     {
         time_t      time = 0;
-        MessageType type = TYPE_INFO;
+        MessageType type = MSG_TYPE_INFO;
         MsgString   messageLine;
         bool firstLine = false; //if LogEntry::message spans multiple rows
     };
@@ -529,7 +536,7 @@ public:
         return NoValue();
     }
 
-    void updateView(int includedTypes) //TYPE_INFO | TYPE_WARNING, ect. see error_log.h
+    void updateView(int includedTypes) //MSG_TYPE_INFO | MSG_TYPE_WARNING, ect. see error_log.h
     {
         viewRef_.clear();
 
@@ -626,13 +633,13 @@ public:
                     if (entry->firstLine)
                         switch (entry->type)
                         {
-                            case TYPE_INFO:
+                            case MSG_TYPE_INFO:
                                 return _("Info");
-                            case TYPE_WARNING:
+                            case MSG_TYPE_WARNING:
                                 return _("Warning");
-                            case TYPE_ERROR:
+                            case MSG_TYPE_ERROR:
                                 return _("Error");
-                            case TYPE_FATAL_ERROR:
+                            case MSG_TYPE_FATAL_ERROR:
                                 return _("Serious Error");
                         }
                     break;
@@ -676,14 +683,14 @@ public:
                     if (entry->firstLine)
                         switch (entry->type)
                         {
-                            case TYPE_INFO:
+                            case MSG_TYPE_INFO:
                                 drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_info_small"), rectTmp, wxALIGN_CENTER);
                                 break;
-                            case TYPE_WARNING:
+                            case MSG_TYPE_WARNING:
                                 drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_warning_small"), rectTmp, wxALIGN_CENTER);
                                 break;
-                            case TYPE_ERROR:
-                            case TYPE_FATAL_ERROR:
+                            case MSG_TYPE_ERROR:
+                            case MSG_TYPE_FATAL_ERROR:
                                 drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_error_small"), rectTmp, wxALIGN_CENTER);
                                 break;
                         }
@@ -760,9 +767,9 @@ class LogPanel : public LogPanelGenerated
 public:
     LogPanel(wxWindow* parent, const ErrorLog& log) : LogPanelGenerated(parent)
     {
-        const int errorCount   = log.getItemCount(TYPE_ERROR | TYPE_FATAL_ERROR);
-        const int warningCount = log.getItemCount(TYPE_WARNING);
-        const int infoCount    = log.getItemCount(TYPE_INFO);
+        const int errorCount   = log.getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR);
+        const int warningCount = log.getItemCount(MSG_TYPE_WARNING);
+        const int infoCount    = log.getItemCount(MSG_TYPE_INFO);
 
         auto initButton = [](ToggleButton& btn, const wchar_t* imgName, const wxString& tooltip)
         {
@@ -840,13 +847,13 @@ private:
     {
         int includedTypes = 0;
         if (m_bpButtonErrors->isActive())
-            includedTypes |= TYPE_ERROR | TYPE_FATAL_ERROR;
+            includedTypes |= MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR;
 
         if (m_bpButtonWarnings->isActive())
-            includedTypes |= TYPE_WARNING;
+            includedTypes |= MSG_TYPE_WARNING;
 
         if (m_bpButtonInfo->isActive())
-            includedTypes |= TYPE_INFO;
+            includedTypes |= MSG_TYPE_INFO;
 
         getDataView().updateView(includedTypes); //update MVC "model"
         m_gridMessages->Refresh();          //update MVC "view"
@@ -1009,27 +1016,20 @@ class CurveDataStatistics : public SparseCurveData
 public:
     CurveDataStatistics() : SparseCurveData(true /*addSteps*/) {}
 
-    void clear() { samples_.clear(); lastSample_ = std::make_pair(0, 0); }
+    void clear() { samples_.clear(); lastSample_ = {}; }
 
-    void addRecord(int64_t timeNowMs, double value)
+    void addRecord(std::chrono::nanoseconds timeElapsed, double value)
     {
-        assert((!samples_.empty() || lastSample_ == std::pair<int64_t, double>(0, 0)));
+        assert(!samples_.empty() || (lastSample_ == std::pair<std::chrono::nanoseconds, double>()));
 
-        //samples.clear();
-        //samples.emplace(-1000, 0);
-        //samples.emplace(0, 0);
-        //samples.emplace(1, 1);
-        //samples.emplace(1000, 0);
-        //return;
+        lastSample_ = { timeElapsed, value };
 
-        lastSample_ = std::make_pair(timeNowMs, value);
-
-        //allow for at most one sample per 100ms (handles duplicate inserts, too!) => this is unrelated to UI_UPDATE_INTERVAL_MS!
+        //allow for at most one sample per 100ms (handles duplicate inserts, too!) => this is unrelated to UI_UPDATE_INTERVAL!
         if (!samples_.empty()) //always unconditionally insert first sample!
-            if (timeNowMs / 100 == samples_.rbegin()->first / 100)
+            if (numeric::dist(timeElapsed, samples_.rbegin()->first) < std::chrono::milliseconds(100))
                 return;
 
-        samples_.insert(samples_.end(), std::make_pair(timeNowMs, value)); //time is "expected" to be monotonously ascending
+        samples_.insert(samples_.end(), { timeElapsed, value }); //time is "expected" to be monotonously ascending
         //documentation differs about whether "hint" should be before or after the to be inserted element!
         //however "std::map<>::end()" is interpreted correctly by GCC and VS2010
 
@@ -1041,9 +1041,9 @@ private:
     std::pair<double, double> getRangeX() const override
     {
         if (samples_.empty())
-            return std::make_pair(0.0, 0.0);
+            return {};
 
-        const double upperEndMs = std::max(samples_.rbegin()->first, lastSample_.first);
+        const std::chrono::nanoseconds upperEnd = std::max(samples_.rbegin()->first, lastSample_.first);
 
         /*
         //report some additional width by 5% elapsed time to make graph recalibrate before hitting the right border
@@ -1052,47 +1052,49 @@ private:
         upperEndMs += 0.05 *(upperEndMs - samples.begin()->first);
         */
 
-        return { samples_.begin()->first / 1000.0, //need not start with 0, e.g. "binary comparison, graph reset, followed by sync"
-                 upperEndMs / 1000.0};
+        return { std::chrono::duration<double>(samples_.begin()->first).count(), //need not start with 0, e.g. "binary comparison, graph reset, followed by sync"
+                 std::chrono::duration<double>(upperEnd).count() };
     }
 
     Opt<CurvePoint> getLessEq(double x) const override //x: seconds since begin
     {
-        const int64_t timex = std::floor(x * 1000);
+        const auto timeX = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(x)); //round down
+
         //------ add artifical last sample value -------
         if (!samples_.empty() && samples_.rbegin()->first < lastSample_.first)
-            if (lastSample_.first <= timex)
-                return CurvePoint(lastSample_.first / 1000.0, lastSample_.second);
+            if (lastSample_.first <= timeX)
+                return CurvePoint(std::chrono::duration<double>(lastSample_.first).count(), lastSample_.second);
         //--------------------------------------------------
 
         //find first key > x, then go one step back: => samples must be a std::map, NOT std::multimap!!!
-        auto it = samples_.upper_bound(timex);
+        auto it = samples_.upper_bound(timeX);
         if (it == samples_.begin())
             return NoValue();
         //=> samples not empty in this context
         --it;
-        return CurvePoint(it->first / 1000.0, it->second);
+        return CurvePoint(std::chrono::duration<double>(it->first).count(), it->second);
     }
 
     Opt<CurvePoint> getGreaterEq(double x) const override
     {
-        const int64_t timex = std::ceil(x * 1000);
+        const std::chrono::nanoseconds timeX(static_cast<std::chrono::nanoseconds::rep>(std::ceil(x * (1000 * 1000 * 1000)))); //round up!
+
         //------ add artifical last sample value -------
         if (!samples_.empty() && samples_.rbegin()->first < lastSample_.first)
-            if (samples_.rbegin()->first < timex && timex <= lastSample_.first)
-                return CurvePoint(lastSample_.first / 1000.0, lastSample_.second);
+            if (samples_.rbegin()->first < timeX && timeX <= lastSample_.first)
+                return CurvePoint(std::chrono::duration<double>(lastSample_.first).count(), lastSample_.second);
         //--------------------------------------------------
 
-        auto it = samples_.lower_bound(timex);
+        auto it = samples_.lower_bound(timeX);
         if (it == samples_.end())
             return NoValue();
-        return CurvePoint(it->first / 1000.0, it->second);
+        return CurvePoint(std::chrono::duration<double>(it->first).count(), it->second);
     }
 
     static const size_t MAX_BUFFER_SIZE = 2500000; //sizeof(single node) worst case ~ 3 * 8 byte ptr + 16 byte key/value = 40 byte
 
-    std::map <int64_t, double> samples_; //time, unit: [ms]  !don't use std::multimap, see getLessEq()
-    std::pair<int64_t, double> lastSample_; //artificial most current record at the end of samples to visualize current time!
+    std::map <std::chrono::nanoseconds, double> samples_;    //[!] don't use std::multimap, see getLessEq()
+    std::pair<std::chrono::nanoseconds, double> lastSample_; //artificial most current record at the end of samples to visualize current time!
 };
 
 
@@ -1247,10 +1249,11 @@ public:
                            const Statistics& syncStat,
                            wxFrame* parentFrame,
                            bool showProgress,
+                           bool autoCloseDialog,
                            const wxString& jobName,
                            const Zstring& soundFileSyncComplete,
                            bool ignoreErrors,
-                           PostSyncAction postSyncAction);
+                           PostSyncAction2 postSyncAction);
     ~SyncProgressDialogImpl() override;
 
     //call this in StatusUpdater derived class destructor at the LATEST(!) to prevent access to currentStatusUpdater
@@ -1266,17 +1269,20 @@ public:
 
     bool getOptionIgnoreErrors()                 const override { return pnl_.m_checkBoxIgnoreErrors->GetValue(); }
     void    setOptionIgnoreErrors(bool ignoreErrors)   override { pnl_.m_checkBoxIgnoreErrors->SetValue(ignoreErrors); updateStaticGui(); }
-    PostSyncAction getOptionPostSyncAction()     const override { return getEnumVal(enumPostSyncAction_, *pnl_.m_choicePostSyncAction); }
+    PostSyncAction2 getOptionPostSyncAction()    const override { return getEnumVal(enumPostSyncAction_, *pnl_.m_choicePostSyncAction); }
+    bool getOptionAutoCloseDialog()              const override { return pnl_.m_checkBoxAutoClose->GetValue(); }
 
-    void stopTimer() override //halt all internal counters!
+    void timerSetStatus(bool active) override
     {
-        //pnl.m_animCtrlSyncing->Stop();
-        timeElapsed_.pause();
+        if (active)
+            stopWatch_.resume();
+        else
+            stopWatch_.pause();
     }
-    void resumeTimer() override
+
+    bool timerIsRunning() const override
     {
-        //pnl.m_animCtrlSyncing->Play();
-        timeElapsed_.resume();
+        return !stopWatch_.isPaused();
     }
 
 private:
@@ -1302,7 +1308,7 @@ private:
 
     const wxString jobName_;
     const Zstring soundFileSyncComplete_;
-    StopWatch timeElapsed_;
+    StopWatch stopWatch_;
 
     wxFrame* parentFrame_; //optional
 
@@ -1318,10 +1324,10 @@ private:
 
     //remaining time
     std::unique_ptr<PerfCheck> perf_;
-    int64_t timeLastSpeedEstimateMs_ = -1000000; //used for calculating intervals between collecting perf samples
+    std::chrono::nanoseconds timeLastSpeedEstimate_ = std::chrono::seconds(-100); //used for calculating intervals between collecting perf samples
 
     //help calculate total speed
-    int64_t phaseStartMs_ = 0; //begin of current phase in [ms]
+    std::chrono::nanoseconds phaseStart_{}; //begin of current phase
 
     std::shared_ptr<CurveDataStatistics    > curveDataBytes_       { std::make_shared<CurveDataStatistics>() };
     std::shared_ptr<CurveDataStatistics    > curveDataItems_       { std::make_shared<CurveDataStatistics>() };
@@ -1334,7 +1340,7 @@ private:
     std::unique_ptr<FfsTrayIcon> trayIcon_; //optional: if filled all other windows should be hidden and conversely
     std::unique_ptr<Taskbar> taskbar_;
 
-    EnumDescrList<PostSyncAction> enumPostSyncAction_;
+    EnumDescrList<PostSyncAction2> enumPostSyncAction_;
 };
 
 
@@ -1346,10 +1352,11 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
                                                                const Statistics& syncStat,
                                                                wxFrame* parentFrame,
                                                                bool showProgress,
+                                                               bool autoCloseDialog,
                                                                const wxString& jobName,
                                                                const Zstring& soundFileSyncComplete,
                                                                bool ignoreErrors,
-                                                               PostSyncAction postSyncAction) :
+                                                               PostSyncAction2 postSyncAction) :
     TopLevelDialog(parentFrame, wxID_ANY, wxString(), wxDefaultPosition, wxDefaultSize, style), //title is overwritten anyway in setExternalStatus()
     pnl_(*new SyncProgressPanelGenerated(this)), //ownership passed to "this"
     jobName_  (jobName),
@@ -1395,7 +1402,7 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
 
     //this->EnableCloseButton(false); //this is NOT honored on OS X or with ALT+F4 on Windows! -> why disable button at all??
 
-    timeElapsed_.restart(); //measure total time
+    stopWatch_.restart(); //measure total time
 
     if (wxFrame* frame = getTaskbarFrame(*this))
         try //try to get access to Windows 7/Ubuntu taskbar
@@ -1455,13 +1462,15 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
     //allow changing a few options dynamically during sync
     pnl_.m_checkBoxIgnoreErrors->SetValue(ignoreErrors);
 
-    enumPostSyncAction_.
-    add(PostSyncAction::SUMMARY,  _("Show summary")).
-    add(PostSyncAction::EXIT,     replaceCpy(_("E&xit"), L"&", L"")). //reuse translation
-    add(PostSyncAction::SLEEP,    _("Sleep")).
-    add(PostSyncAction::SHUTDOWN, _("Shut down"));
+    enumPostSyncAction_.add(PostSyncAction2::NONE, L"");
+    if (parentFrame_) //enable EXIT option for gui mode sync
+        enumPostSyncAction_.add(PostSyncAction2::EXIT, replaceCpy(_("E&xit"), L"&", L"")); //reuse translation
+    enumPostSyncAction_.add(PostSyncAction2::SLEEP,    _("System: Sleep"));
+    enumPostSyncAction_.add(PostSyncAction2::SHUTDOWN, _("System: Shut down"));
 
     setEnumVal(enumPostSyncAction_, *pnl_.m_choicePostSyncAction, postSyncAction);
+
+    pnl_.m_checkBoxAutoClose->SetValue(autoCloseDialog);
 
     updateStaticGui(); //null-status will be shown while waiting for dir locks
 
@@ -1553,10 +1562,10 @@ void SyncProgressDialogImpl<TopLevelDialog>::initNewPhase()
     notifyProgressChange(); //make sure graphs get initial values
 
     //start new measurement
-    perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME_MS, WINDOW_BYTES_PER_SEC);
-    timeLastSpeedEstimateMs_ = -1000000; //some big number
+    perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
+    timeLastSpeedEstimate_ = std::chrono::seconds(-100); //make sure estimate is updated upon next check
 
-    phaseStartMs_ = timeElapsed_.timeMs();
+    phaseStart_ = stopWatch_.elapsed();
 
     updateProgressGui(false /*allowYield*/);
 }
@@ -1578,8 +1587,8 @@ void SyncProgressDialogImpl<TopLevelDialog>::notifyProgressChange() //noexcept!
                 const int64_t bytesCurrent = syncStat_->getBytesCurrent(syncStat_->currentPhase());
                 const int     itemsCurrent = syncStat_->getItemsCurrent(syncStat_->currentPhase());
 
-                curveDataBytes_->addRecord(timeElapsed_.timeMs(), bytesCurrent);
-                curveDataItems_->addRecord(timeElapsed_.timeMs(), itemsCurrent);
+                curveDataBytes_->addRecord(stopWatch_.elapsed(), bytesCurrent);
+                curveDataItems_->addRecord(stopWatch_.elapsed(), itemsCurrent);
             }
             break;
         }
@@ -1625,8 +1634,15 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
     if (!syncStat_) //sync not running
         return;
 
+    //normally we don't update the "static" GUI components here, but we have to make an exception
+    //if sync is cancelled (by user or error handling option)
+    if (syncStat_->getAbortStatus())
+        updateStaticGui(); //called more than once after cancel... ok
+
+
     bool layoutChanged = false; //avoid screen flicker by calling layout() only if necessary
-    const int64_t timeNowMs = timeElapsed_.timeMs();
+    const std::chrono::nanoseconds timeElapsed = stopWatch_.elapsed();
+    const double timeElapsedDouble = std::chrono::duration<double>(timeElapsed).count();
 
     //sync status text
     setText(*pnl_.m_staticTextStatus, replaceCpy(syncStat_->currentStatusText(), L'\n', L' ')); //no layout update for status texts!
@@ -1670,13 +1686,13 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 
             //progress indicators
             if (trayIcon_.get()) trayIcon_->setProgress(fractionTotal);
-            if (taskbar_.get()) taskbar_->setProgress(fractionTotal);
+            if (taskbar_ .get()) taskbar_ ->setProgress(fractionTotal);
 
-            const double timeTotalSecTentative = bytesTotal == bytesCurrent ? timeNowMs / 1000.0 : std::max(curveDataBytesTotal_->getValueX(), timeNowMs / 1000.0);
+            const double timeTotalSecTentative = bytesTotal == bytesCurrent ? timeElapsedDouble : std::max(curveDataBytesTotal_->getValueX(), timeElapsedDouble);
 
             //constant line graph
-            curveDataBytesCurrent_->setValue(timeNowMs / 1000.0, timeTotalSecTentative, bytesCurrent);
-            curveDataItemsCurrent_->setValue(timeNowMs / 1000.0, timeTotalSecTentative, itemsCurrent);
+            curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, bytesCurrent);
+            curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, itemsCurrent);
 
             //tentatively update total time, may be improved on below:
             curveDataBytesTotal_->setValue(timeTotalSecTentative, bytesTotal);
@@ -1684,8 +1700,8 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 
             //even though notifyProgressChange() already set the latest data, let's add another sample to have all curves consider "timeNowMs"
             //no problem with adding too many records: CurveDataStatistics will remove duplicate entries!
-            curveDataBytes_->addRecord(timeNowMs, bytesCurrent);
-            curveDataItems_->addRecord(timeNowMs, itemsCurrent);
+            curveDataBytes_->addRecord(timeElapsed, bytesCurrent);
+            curveDataItems_->addRecord(timeElapsed, itemsCurrent);
 
             //remaining item and byte count
             setText(*pnl_.m_staticTextItemsRemaining, formatNumber(itemsTotal - itemsCurrent), &layoutChanged);
@@ -1695,12 +1711,12 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
             //remaining time and speed
             assert(perf_);
             if (perf_)
-                if (numeric::dist(timeLastSpeedEstimateMs_, timeNowMs) >= 500)
+                if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= std::chrono::milliseconds(500))
                 {
-                    timeLastSpeedEstimateMs_ = timeNowMs;
+                    timeLastSpeedEstimate_ = timeElapsed;
 
-                    if (numeric::dist(phaseStartMs_, timeNowMs) >= 1000) //discard stats for first second: probably messy
-                        perf_->addSample(itemsCurrent, bytesCurrent, timeNowMs);
+                    if (numeric::dist(phaseStart_, timeElapsed) >= std::chrono::seconds(1)) //discard stats for first second: probably messy
+                        perf_->addSample(timeElapsed, itemsCurrent, bytesCurrent);
 
                     //current speed -> Win 7 copy uses 1 sec update interval instead
                     Opt<std::wstring> bps = perf_->getBytesPerSecond();
@@ -1715,17 +1731,16 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 
                     //update estimated total time marker with precision of "10% remaining time" only to avoid needless jumping around:
                     const double timeRemainingSec = remTimeSec ? *remTimeSec : 0;
-                    const double timeTotalSec = timeNowMs / 1000.0 + timeRemainingSec;
+                    const double timeTotalSec = timeElapsedDouble + timeRemainingSec;
                     if (numeric::dist(curveDataBytesTotal_->getValueX(), timeTotalSec) > 0.1 * timeRemainingSec)
                     {
                         curveDataBytesTotal_->setValueX(timeTotalSec);
                         curveDataItemsTotal_->setValueX(timeTotalSec);
                         //don't forget to update these, too:
-                        curveDataBytesCurrent_->setValue(timeNowMs / 1000.0, timeTotalSec, bytesCurrent);
-                        curveDataItemsCurrent_->setValue(timeNowMs / 1000.0, timeTotalSec, itemsCurrent);
+                        curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSec, bytesCurrent);
+                        curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSec, itemsCurrent);
                     }
                 }
-
             break;
         }
     }
@@ -1733,8 +1748,8 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
     pnl_.m_panelGraphBytes->Refresh();
     pnl_.m_panelGraphItems->Refresh();
 
-    //time elapsed
-    const int64_t timeElapSec = timeNowMs / 1000;
+    const int64_t timeElapSec = std::chrono::duration_cast<std::chrono::seconds>(timeElapsed).count();
+
     setText(*pnl_.m_staticTextTimeElapsed,
             timeElapSec < 3600 ?
             wxTimeSpan::Seconds(timeElapSec).Format(   L"%M:%S") :
@@ -1765,20 +1780,19 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
                2. no crash on Ubuntu GCC
                3. following makes GCC crash already during compilation: auto dfd = zen::makeGuard([this]{ resumeTimer(); });
             */
-
-            stopTimer();
+            timerSetStatus(false /*active*/);
 
             while (paused_)
             {
                 wxTheApp->Yield(); //receive UI message that end pause OR forceful termination!
                 //*first* refresh GUI (removing flicker) before sleeping!
-                std::this_thread::sleep_for(std::chrono::milliseconds(UI_UPDATE_INTERVAL_MS));
+                std::this_thread::sleep_for(UI_UPDATE_INTERVAL);
             }
             //after SyncProgressDialogImpl::OnClose() called wxWindow::Destroy() on OS X this instance is instantly toast!
             if (wereDead_)
-                return; //GTFO and don't call this->resumeTimer()
+                return; //GTFO and don't call this->timerSetStatus()
 
-            resumeTimer();
+            timerSetStatus(true /*active*/);
         }
         else
             /*
@@ -1796,65 +1810,64 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 template <class TopLevelDialog>
 void SyncProgressDialogImpl<TopLevelDialog>::updateStaticGui() //depends on "syncStat_, paused_, finalResult"
 {
-    auto setStatusBitmap = [&](const wchar_t* bmpName, const wxString& tooltip)
+    const wxString dlgPhaseTxt = getDialogPhaseText(syncStat_, paused_, finalResult_);
+
+    pnl_.m_staticTextPhase->SetLabel(dlgPhaseTxt);
+    //pnl_.m_bitmapStatus->SetToolTip(dlgPhaseTxt); -> redundant
+
+    auto setStatusBitmap = [&](const wchar_t* bmpName)
     {
         pnl_.m_bitmapStatus->SetBitmap(getResourceImage(bmpName));
-        pnl_.m_bitmapStatus->SetToolTip(tooltip);
         pnl_.m_bitmapStatus->Show();
-        //pnl.m_animCtrlSyncing->Hide();
     };
-
-    const wxString dlgStatusTxt = getDialogPhaseText(syncStat_, paused_, finalResult_);
-
-    pnl_.m_staticTextPhase->SetLabel(dlgStatusTxt);
 
     //status bitmap
     if (syncStat_) //sync running
     {
         if (paused_)
-            setStatusBitmap(L"status_pause", dlgStatusTxt);
+            setStatusBitmap(L"status_pause");
         else
-            switch (syncStat_->currentPhase())
-            {
-                case ProcessCallback::PHASE_NONE:
-                    //pnl.m_animCtrlSyncing->Hide();
-                    pnl_.m_bitmapStatus->Hide();
-                    break;
+        {
+            if (syncStat_->getAbortStatus())
+                setStatusBitmap(L"status_aborted");
+            else
+                switch (syncStat_->currentPhase())
+                {
+                    case ProcessCallback::PHASE_NONE:
+                        pnl_.m_bitmapStatus->Hide();
+                        break;
 
-                case ProcessCallback::PHASE_SCANNING:
-                    setStatusBitmap(L"status_scanning", dlgStatusTxt);
-                    break;
+                    case ProcessCallback::PHASE_SCANNING:
+                        setStatusBitmap(L"status_scanning");
+                        break;
 
-                case ProcessCallback::PHASE_COMPARING_CONTENT:
-                    setStatusBitmap(L"status_binary_compare", dlgStatusTxt);
-                    break;
+                    case ProcessCallback::PHASE_COMPARING_CONTENT:
+                        setStatusBitmap(L"status_binary_compare");
+                        break;
 
-                case ProcessCallback::PHASE_SYNCHRONIZING:
-                    pnl_.m_bitmapStatus->SetBitmap(getResourceImage(L"status_syncing"));
-                    pnl_.m_bitmapStatus->SetToolTip(dlgStatusTxt);
-                    pnl_.m_bitmapStatus->Show();
-                    //pnl.m_animCtrlSyncing->Show();
-                    //pnl.m_animCtrlSyncing->SetToolTip(dlgStatusTxt);
-                    break;
-            }
+                    case ProcessCallback::PHASE_SYNCHRONIZING:
+                        setStatusBitmap(L"status_syncing");
+                        break;
+                }
+        }
     }
     else //sync finished
         switch (finalResult_)
         {
             case RESULT_ABORTED:
-                setStatusBitmap(L"status_aborted", _("Synchronization stopped"));
+                setStatusBitmap(L"status_aborted");
                 break;
 
             case RESULT_FINISHED_WITH_ERROR:
-                setStatusBitmap(L"status_finished_errors", _("Synchronization completed with errors"));
+                setStatusBitmap(L"status_finished_errors");
                 break;
 
             case RESULT_FINISHED_WITH_WARNINGS:
-                setStatusBitmap(L"status_finished_warnings", _("Synchronization completed with warnings"));
+                setStatusBitmap(L"status_finished_warnings");
                 break;
 
             case RESULT_FINISHED_WITH_SUCCESS:
-                setStatusBitmap(L"status_finished_success", _("Synchronization completed successfully"));
+                setStatusBitmap(L"status_finished_success");
                 break;
         }
 
@@ -1960,10 +1973,11 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
             assert(bytesCurrent <= bytesTotal);
 
             //set overall speed (instead of current speed)
-            const int64_t timeDelta = timeElapsed_.timeMs() - phaseStartMs_; //we need to consider "time within current phase" not total "timeElapsed"!
+            const double timeDelta = std::chrono::duration<double>(stopWatch_.elapsed() - phaseStart_).count();
+            //we need to consider "time within current phase" not total "timeElapsed"!
 
-            const wxString overallBytesPerSecond = timeDelta == 0 ? std::wstring() : formatFilesizeShort(bytesCurrent * 1000 / timeDelta) + _("/sec");
-            const wxString overallItemsPerSecond = timeDelta == 0 ? std::wstring() : replaceCpy(_("%x items/sec"), L"%x", formatThreeDigitPrecision(itemsCurrent * 1000.0 / timeDelta));
+            const wxString overallBytesPerSecond = numeric::isNull(timeDelta) ? std::wstring() : formatFilesizeShort(numeric::round(bytesCurrent / timeDelta)) + _("/sec");
+            const wxString overallItemsPerSecond = numeric::isNull(timeDelta) ? std::wstring() : replaceCpy(_("%x items/sec"), L"%x", formatThreeDigitPrecision(itemsCurrent / timeDelta));
 
             pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(overallBytesPerSecond, Graph2D::CORNER_TOP_LEFT));
             pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(overallItemsPerSecond, Graph2D::CORNER_TOP_LEFT));
@@ -2007,6 +2021,9 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
 
     pnl_.bSizerProgressFooter->Show(false);
 
+    if (!parentFrame_) //hide checkbox for batch mode sync (where value won't be retrieved after close)
+        pnl_.m_checkBoxAutoClose->Hide();
+
     //set std order after button visibility was set
     setStandardButtonLayout(*pnl_.bSizerStdButtons, StdButtons().setAffirmative(pnl_.m_buttonClose));
 
@@ -2039,7 +2056,7 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
     //bSizerHoldStretch->Insert(0, logPanel, 1, wxEXPAND);
 
     //show log instead of graph if errors occurred! (not required for ignored warnings)
-    if (log.getItemCount(TYPE_ERROR | TYPE_FATAL_ERROR) > 0)
+    if (log.getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR) > 0)
         pnl_.m_notebookResult->ChangeSelection(pagePosLog);
 
     //fill image list to cope with wxNotebook image setting design desaster...
@@ -2108,11 +2125,10 @@ void SyncProgressDialogImpl<TopLevelDialog>::OnOkay(wxCommandEvent& event)
 template <class TopLevelDialog>
 void SyncProgressDialogImpl<TopLevelDialog>::OnCancel(wxCommandEvent& event)
 {
+    if (abortCb_) abortCb_->userRequestAbort();
+
     paused_ = false;
     updateStaticGui(); //update status + pause button
-
-    if (abortCb_)
-        abortCb_->userRequestAbort();
     //no Layout() or UI-update here to avoid cascaded Yield()-call!
 }
 
@@ -2225,15 +2241,16 @@ void SyncProgressDialogImpl<TopLevelDialog>::resumeFromSystray()
 
 //########################################################################################
 
-SyncProgressDialog* createProgressDialog(zen::AbortCallback& abortCb,
-                                         const std::function<void()>& notifyWindowTerminate, //note: user closing window cannot be prevented on OS X! (And neither on Windows during system shutdown!)
-                                         const zen::Statistics& syncStat,
-                                         wxFrame* parentWindow, //may be nullptr
-                                         bool showProgress,
-                                         const wxString& jobName,
-                                         const Zstring& soundFileSyncComplete,
-                                         bool ignoreErrors,
-                                         PostSyncAction postSyncAction)
+SyncProgressDialog* fff::createProgressDialog(AbortCallback& abortCb,
+                                              const std::function<void()>& notifyWindowTerminate, //note: user closing window cannot be prevented on OS X! (And neither on Windows during system shutdown!)
+                                              const Statistics& syncStat,
+                                              wxFrame* parentWindow, //may be nullptr
+                                              bool showProgress,
+                                              bool autoCloseDialog,
+                                              const wxString& jobName,
+                                              const Zstring& soundFileSyncComplete,
+                                              bool ignoreErrors,
+                                              PostSyncAction2 postSyncAction)
 {
     if (parentWindow) //sync from GUI
     {
@@ -2241,13 +2258,13 @@ SyncProgressDialog* createProgressDialog(zen::AbortCallback& abortCb,
         //https://groups.google.com/forum/#!topic/wx-users/J5SjjLaBOQE
         return new SyncProgressDialogImpl<wxDialog>(wxDEFAULT_DIALOG_STYLE | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxRESIZE_BORDER,
         [&](wxDialog& progDlg) { return parentWindow; },
-        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
+        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
     }
     else //FFS batch job
     {
         auto dlg = new SyncProgressDialogImpl<wxFrame>(wxDEFAULT_FRAME_STYLE,
         [](wxFrame& progDlg) { return &progDlg; },
-        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
+        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
 
         //only top level windows should have an icon:
         dlg->SetIcon(getFfsIcon());

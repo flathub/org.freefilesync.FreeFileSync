@@ -16,7 +16,7 @@
 #include "../ui/cfg_grid.h"
 
 
-namespace xmlAccess
+namespace fff
 {
 enum XmlType
 {
@@ -26,7 +26,7 @@ enum XmlType
     XML_TYPE_OTHER
 };
 
-XmlType getXmlType(const Zstring& filepath); //throw FileError
+XmlType getXmlType(const Zstring& filePath); //throw FileError
 
 
 enum class BatchErrorDialog
@@ -38,21 +38,21 @@ enum class BatchErrorDialog
 
 enum class PostSyncAction
 {
-    SUMMARY,
-    EXIT,
+    NONE,
     SLEEP,
     SHUTDOWN
 };
 
-using Description = std::wstring;
-using Commandline = Zstring;
-using ExternalApps = std::vector<std::pair<Description, Commandline>>;
+struct ExternalApp
+{
+    std::wstring description;
+    Zstring cmdLine;
+};
 
 //---------------------------------------------------------------------
 struct XmlGuiConfig
 {
-    zen::MainConfiguration mainCfg;
-
+    MainConfiguration mainCfg;
     bool highlightSyncAction = true;
 };
 
@@ -63,13 +63,15 @@ bool operator==(const XmlGuiConfig& lhs, const XmlGuiConfig& rhs)
     return lhs.mainCfg             == rhs.mainCfg &&
            lhs.highlightSyncAction == rhs.highlightSyncAction;
 }
+inline bool operator!=(const XmlGuiConfig& lhs, const XmlGuiConfig& rhs) { return !(lhs == rhs); }
 
 
 struct BatchExclusiveConfig
 {
     BatchErrorDialog batchErrorDialog = BatchErrorDialog::SHOW;
     bool runMinimized = false;
-    PostSyncAction postSyncAction = PostSyncAction::SUMMARY;
+    bool autoCloseSummary = false;
+    PostSyncAction postSyncAction = PostSyncAction::NONE;
     Zstring logFolderPathPhrase;
     int logfilesCountLimit = -1; //max logfiles; 0 := don't save logfiles; < 0 := no limit
 };
@@ -77,27 +79,54 @@ struct BatchExclusiveConfig
 
 struct XmlBatchConfig
 {
-    zen::MainConfiguration mainCfg;
+    MainConfiguration mainCfg;
     BatchExclusiveConfig batchExCfg;
 };
 
 
-struct OptionalDialogs
+struct ConfirmationDialogs
 {
-    bool warnDependentFolderPair          = true;
-    bool warnDependentBaseFolders         = true;
-    bool warnSignificantDifference        = true;
-    bool warnNotEnoughDiskSpace           = true;
-    bool warnUnresolvedConflicts          = true;
-    bool warnModificationTimeError        = true;
-    bool warnRecyclerMissing              = true;
-    bool warnInputFieldEmpty              = true;
-    bool warnDirectoryLockFailed          = true;
-    bool warnVersioningFolderPartOfSync   = true;
     bool popupOnConfigChange              = true;
     bool confirmSyncStart                 = true;
     bool confirmExternalCommandMassInvoke = true;
 };
+inline bool operator==(const ConfirmationDialogs& lhs, const ConfirmationDialogs& rhs)
+{
+    return lhs.popupOnConfigChange              == rhs.popupOnConfigChange &&
+           lhs.confirmSyncStart                 == rhs.confirmSyncStart    &&
+           lhs.confirmExternalCommandMassInvoke == rhs.confirmExternalCommandMassInvoke;
+}
+inline bool operator!=(const ConfirmationDialogs& lhs, const ConfirmationDialogs& rhs) { return !(lhs == rhs); }
+
+
+struct WarningDialogs
+{
+    bool warnDependentFolderPair        = true;
+    bool warnDependentBaseFolders       = true;
+    bool warnSignificantDifference      = true;
+    bool warnNotEnoughDiskSpace         = true;
+    bool warnUnresolvedConflicts        = true;
+    bool warnModificationTimeError      = true;
+    bool warnRecyclerMissing            = true;
+    bool warnInputFieldEmpty            = true;
+    bool warnDirectoryLockFailed        = true;
+    bool warnVersioningFolderPartOfSync = true;
+};
+inline bool operator==(const WarningDialogs& lhs, const WarningDialogs& rhs)
+{
+    return lhs.warnDependentFolderPair        == rhs.warnDependentFolderPair   &&
+           lhs.warnDependentBaseFolders       == rhs.warnDependentBaseFolders  &&
+           lhs.warnSignificantDifference      == rhs.warnSignificantDifference &&
+           lhs.warnNotEnoughDiskSpace         == rhs.warnNotEnoughDiskSpace    &&
+           lhs.warnUnresolvedConflicts        == rhs.warnUnresolvedConflicts   &&
+           lhs.warnModificationTimeError      == rhs.warnModificationTimeError &&
+           lhs.warnRecyclerMissing            == rhs.warnRecyclerMissing       &&
+           lhs.warnInputFieldEmpty            == rhs.warnInputFieldEmpty       &&
+           lhs.warnDirectoryLockFailed        == rhs.warnDirectoryLockFailed   &&
+           lhs.warnVersioningFolderPartOfSync == rhs.warnVersioningFolderPartOfSync;
+}
+inline bool operator!=(const WarningDialogs& lhs, const WarningDialogs& rhs) { return !(lhs == rhs); }
+
 
 
 enum FileIconSize
@@ -150,7 +179,7 @@ struct XmlGlobalSettings
 
     //---------------------------------------------------------------------
     //Shared (GUI/BATCH) settings
-    wxLanguage programLanguage = zen::getSystemLanguage();
+    wxLanguage programLanguage = getSystemLanguage();
     bool failSafeFileCopy = true;
     bool copyLockedFiles  = false; //safer default: avoid copies of partially written files
     bool copyFilePermissions = false;
@@ -165,8 +194,10 @@ struct XmlGlobalSettings
     size_t lastSyncsLogFileSizeMax = 100000; //maximum size for LastSyncs.log: use a human-readable number
     Zstring soundFileCompareFinished;
     Zstring soundFileSyncFinished = Zstr("gong.wav");
+    bool autoCloseProgressDialog = false;
 
-    OptionalDialogs optDialogs;
+    ConfirmationDialogs confirmDlgs;
+    WarningDialogs warnDlgs;
 
     //---------------------------------------------------------------------
     struct Gui
@@ -192,17 +223,17 @@ struct XmlGlobalSettings
 
             size_t             cfgGridTopRowPos = 0;
             int                cfgGridSyncOverdueDays = 7;
-            zen::ColumnTypeCfg cfgGridLastSortColumn    = zen::cfgGridLastSortColumnDefault;
-            bool               cfgGridLastSortAscending = zen::getDefaultSortDirection(zen::cfgGridLastSortColumnDefault);
-            std::vector<zen::ColAttributesCfg> cfgGridColumnAttribs = zen::getCfgGridDefaultColAttribs();
+            ColumnTypeCfg cfgGridLastSortColumn    = cfgGridLastSortColumnDefault;
+            bool          cfgGridLastSortAscending = getDefaultSortDirection(cfgGridLastSortColumnDefault);
+            std::vector<ColAttributesCfg> cfgGridColumnAttribs = getCfgGridDefaultColAttribs();
             size_t cfgHistItemsMax = 100;
             std::vector<ConfigFileItem> cfgFileHistory;
             std::vector<Zstring>        lastUsedConfigFiles;
 
-            bool treeGridShowPercentBar = zen::treeGridShowPercentageDefault;
-            zen::ColumnTypeTree treeGridLastSortColumn    = zen::treeGridLastSortColumnDefault;    //remember sort on overview panel
-            bool                treeGridLastSortAscending = zen::getDefaultSortDirection(zen::treeGridLastSortColumnDefault); //
-            std::vector<zen::ColAttributesTree> treeGridColumnAttribs = zen::getTreeGridDefaultColAttribs();
+            bool treeGridShowPercentBar = treeGridShowPercentageDefault;
+            ColumnTypeTree treeGridLastSortColumn    = treeGridLastSortColumnDefault;    //remember sort on overview panel
+            bool           treeGridLastSortAscending = getDefaultSortDirection(treeGridLastSortColumnDefault); //
+            std::vector<ColAttributesTree> treeGridColumnAttribs = getTreeGridDefaultColAttribs();
 
             std::vector<Zstring> folderHistoryLeft;
             std::vector<Zstring> folderHistoryRight;
@@ -211,11 +242,11 @@ struct XmlGlobalSettings
             FileIconSize iconSize = ICON_SIZE_SMALL;
             int sashOffset = 0;
 
-            zen::ItemPathFormat itemPathFormatLeftGrid  = zen::defaultItemPathFormatLeftGrid;
-            zen::ItemPathFormat itemPathFormatRightGrid = zen::defaultItemPathFormatRightGrid;
+            ItemPathFormat itemPathFormatLeftGrid  = defaultItemPathFormatLeftGrid;
+            ItemPathFormat itemPathFormatRightGrid = defaultItemPathFormatRightGrid;
 
-            std::vector<zen::ColAttributesRim>  columnAttribLeft  = zen::getFileGridDefaultColAttribsLeft();
-            std::vector<zen::ColAttributesRim>  columnAttribRight = zen::getFileGridDefaultColAttribsRight();
+            std::vector<ColAttributesRim>  columnAttribLeft  = getFileGridDefaultColAttribsLeft();
+            std::vector<ColAttributesRim>  columnAttribRight = getFileGridDefaultColAttribsRight();
 
             ViewFilterDefault viewFilterDefault;
             wxString guiPerspectiveLast; //used by wxAuiManager
@@ -227,7 +258,7 @@ struct XmlGlobalSettings
         std::vector<Zstring> commandHistory;
         size_t commandHistItemsMax = 8;
 
-        ExternalApps externelApplications
+        std::vector<ExternalApp> externalApps
         {
             //default external app descriptions will be translated "on the fly"!!!
             //CONTRACT: first entry will be used for [Enter] or mouse double-click!
@@ -242,22 +273,22 @@ struct XmlGlobalSettings
 };
 
 //read/write specific config types
-void readConfig(const Zstring& filepath, XmlGuiConfig&      config, std::wstring& warningMsg); //
-void readConfig(const Zstring& filepath, XmlBatchConfig&    config, std::wstring& warningMsg); //throw FileError
-void readConfig(const Zstring& filepath, XmlGlobalSettings& config, std::wstring& warningMsg); //
+void readConfig(const Zstring& filePath, XmlGuiConfig&      cfg, std::wstring& warningMsg); //
+void readConfig(const Zstring& filePath, XmlBatchConfig&    cfg, std::wstring& warningMsg); //throw FileError
+void readConfig(const Zstring& filePath, XmlGlobalSettings& cfg, std::wstring& warningMsg); //
 
-void writeConfig(const XmlGuiConfig&      config, const Zstring& filepath); //
-void writeConfig(const XmlBatchConfig&    config, const Zstring& filepath); //throw FileError
-void writeConfig(const XmlGlobalSettings& config, const Zstring& filepath); //
+void writeConfig(const XmlGuiConfig&      cfg, const Zstring& filePath); //
+void writeConfig(const XmlBatchConfig&    cfg, const Zstring& filePath); //throw FileError
+void writeConfig(const XmlGlobalSettings& cfg, const Zstring& filePath); //
 
 //convert (multiple) *.ffs_gui, *.ffs_batch files or combinations of both into target config structure:
-void readAnyConfig(const std::vector<Zstring>& filepaths, XmlGuiConfig& config, std::wstring& warningMsg); //throw FileError
+void readAnyConfig(const std::vector<Zstring>& filePaths, XmlGuiConfig& cfg, std::wstring& warningMsg); //throw FileError
 
 //config conversion utilities
 XmlGuiConfig   convertBatchToGui(const XmlBatchConfig& batchCfg); //noexcept
 XmlBatchConfig convertGuiToBatch(const XmlGuiConfig&   guiCfg, const BatchExclusiveConfig& batchExCfg); //
 
-std::wstring extractJobName(const Zstring& configFilename);
+std::wstring extractJobName(const Zstring& cfgFilePath);
 }
 
 #endif //PROCESS_XML_H_28345825704254262435

@@ -30,11 +30,11 @@ struct DirWatcher::Impl
 
 
 DirWatcher::DirWatcher(const Zstring& dirPath) : //throw FileError
-    baseDirPath(dirPath),
+    baseDirPath_(dirPath),
     pimpl_(std::make_unique<Impl>())
 {
     //get all subdirectories
-    std::vector<Zstring> fullFolderList { baseDirPath };
+    std::vector<Zstring> fullFolderList { baseDirPath_ };
     {
         std::function<void (const Zstring& path)> traverse;
 
@@ -46,13 +46,13 @@ DirWatcher::DirWatcher(const Zstring& dirPath) : //throw FileError
             [&](const std::wstring& errorMsg) { throw FileError(errorMsg); });
         };
 
-        traverse(baseDirPath);
+        traverse(baseDirPath_);
     }
 
     //init
     pimpl_->notifDescr  = ::inotify_init();
     if (pimpl_->notifDescr == -1)
-        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath)), L"inotify_init");
+        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath_)), L"inotify_init");
 
     ZEN_ON_SCOPE_FAIL( ::close(pimpl_->notifDescr); );
 
@@ -64,7 +64,7 @@ DirWatcher::DirWatcher(const Zstring& dirPath) : //throw FileError
             initSuccess = ::fcntl(pimpl_->notifDescr, F_SETFL, flags | O_NONBLOCK) != -1;
     }
     if (!initSuccess)
-        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath)), L"fcntl");
+        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath_)), L"fcntl");
 
     //add watches
     for (const Zstring& subDirPath : fullFolderList)
@@ -101,7 +101,7 @@ DirWatcher::~DirWatcher()
 }
 
 
-std::vector<DirWatcher::Entry> DirWatcher::getChanges(const std::function<void()>&) //throw FileError
+std::vector<DirWatcher::Entry> DirWatcher::getChanges(const std::function<void()>& requestUiRefresh, std::chrono::milliseconds cbInterval) //throw FileError
 {
     std::vector<char> buffer(512 * (sizeof(struct ::inotify_event) + NAME_MAX + 1));
 
@@ -118,7 +118,7 @@ std::vector<DirWatcher::Entry> DirWatcher::getChanges(const std::function<void()
         if (errno == EAGAIN)  //this error is ignored in all inotify wrappers I found
             return std::vector<Entry>();
 
-        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath)), L"read");
+        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot monitor directory %x."), L"%x", fmtPath(baseDirPath_)), L"read");
     }
 
     std::vector<Entry> output;
@@ -135,19 +135,19 @@ std::vector<DirWatcher::Entry> DirWatcher::getChanges(const std::function<void()
             {
                 //Note: evt.len is NOT the size of the evt.name c-string, but the array size including all padding 0 characters!
                 //It may be even 0 in which case evt.name must not be used!
-                const Zstring fullname = it->second + evt.name;
+                const Zstring itemPath = it->second + evt.name;
 
                 if ((evt.mask & IN_CREATE) ||
                     (evt.mask & IN_MOVED_TO))
-                    output.emplace_back(ACTION_CREATE, fullname);
+                    output.push_back({ ACTION_CREATE, itemPath });
                 else if ((evt.mask & IN_MODIFY) ||
                          (evt.mask & IN_CLOSE_WRITE))
-                    output.emplace_back(ACTION_UPDATE, fullname);
+                    output.push_back({ ACTION_UPDATE, itemPath });
                 else if ((evt.mask & IN_DELETE     ) ||
                          (evt.mask & IN_DELETE_SELF) ||
                          (evt.mask & IN_MOVE_SELF  ) ||
                          (evt.mask & IN_MOVED_FROM))
-                    output.emplace_back(ACTION_DELETE, fullname);
+                    output.push_back({ ACTION_DELETE, itemPath });
             }
         }
         bytePos += sizeof(struct ::inotify_event) + evt.len;

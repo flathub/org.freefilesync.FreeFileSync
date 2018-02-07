@@ -15,50 +15,30 @@
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
 struct SummaryInfo
 {
     std::wstring jobName; //may be empty
     std::wstring finalStatus;
-    int itemsProcessed;
-    int64_t bytesProcessed;
-    int itemsTotal;
-    int64_t bytesTotal;
-    int64_t totalTime; //unit: [sec]
+    int     itemsProcessed = 0;
+    int64_t bytesProcessed = 0;
+    int     itemsTotal = 0;
+    int64_t bytesTotal = 0;
+    int64_t totalTime = 0; //unit: [sec]
 };
 
 void streamToLogFile(const SummaryInfo& summary, //throw FileError
-                     const ErrorLog& log,
+                     const zen::ErrorLog& log,
                      AFS::OutputStream& streamOut);
 
 void saveToLastSyncsLog(const SummaryInfo& summary, //throw FileError
-                        const ErrorLog& log,
+                        const zen::ErrorLog& log,
                         size_t maxBytesToWrite,
-                        const IOCallback& notifyUnbufferedIO);
-
-Zstring getLastSyncsLogfilePath();
+                        const std::function<void(const std::wstring& msg)>& notifyStatus);
 
 
-
-struct OnUpdateLogfileStatusNoThrow
-{
-    OnUpdateLogfileStatusNoThrow(ProcessCallback& pc, const std::wstring& logfileDisplayPath) : pc_(pc),
-        msg(replaceCpy(_("Saving file %x..."), L"%x", fmtPath(logfileDisplayPath))) {}
-
-    void operator()(int64_t bytesDelta)
-    {
-        bytesWritten += bytesDelta;
-        try { pc_.reportStatus(msg + L" (" + formatFilesizeShort(bytesWritten) + L")"); /*throw X*/ }
-        catch (...) {}
-    }
-
-private:
-    ProcessCallback& pc_;
-    int64_t bytesWritten = 0;
-    const std::wstring msg;
-};
-
+inline Zstring getDefaultLogFolderPath() { return getConfigDirPathPf() + Zstr("Logs") ; }
 
 
 //####################### implementation #######################
@@ -66,6 +46,7 @@ namespace
 {
 std::wstring generateLogHeader(const SummaryInfo& s)
 {
+    using namespace zen;
     assert(s.itemsProcessed <= s.itemsTotal);
     assert(s.bytesProcessed <= s.bytesTotal);
 
@@ -74,8 +55,8 @@ std::wstring generateLogHeader(const SummaryInfo& s)
     //write header
     std::wstring headerLine = formatTime<std::wstring>(FORMAT_DATE);
     if (!s.jobName.empty())
-        headerLine += L" - " + s.jobName;
-    headerLine += L": " + s.finalStatus;
+        headerLine += L" | " + s.jobName;
+    headerLine += L" | " + s.finalStatus;
 
     //assemble results box
     std::vector<std::wstring> results;
@@ -118,9 +99,10 @@ std::wstring generateLogHeader(const SummaryInfo& s)
 
 inline
 void streamToLogFile(const SummaryInfo& summary, //throw FileError
-                     const ErrorLog& log,
+                     const zen::ErrorLog& log,
                      AFS::OutputStream& streamOut)
 {
+    using namespace zen;
     const std::string header = replaceCpy(utfTo<std::string>(generateLogHeader(summary)), '\n', LINE_BREAK); //don't replace line break any earlier
 
     streamOut.write(&header[0], header.size()); //throw FileError, X
@@ -141,16 +123,13 @@ void streamToLogFile(const SummaryInfo& summary, //throw FileError
 
 
 inline
-Zstring getLastSyncsLogfilePath() { return getConfigDirPathPf() + Zstr("LastSyncs.log"); }
-
-
-inline
 void saveToLastSyncsLog(const SummaryInfo& summary, //throw FileError
-                        const ErrorLog& log,
+                        const zen::ErrorLog& log,
                         size_t maxBytesToWrite, //log may be *huge*, e.g. 1 million items; LastSyncs.log *must not* create performance problems!
-                        const IOCallback& notifyUnbufferedIO)
+                        const std::function<void(const std::wstring& msg)>& notifyStatus)
 {
-    const Zstring filepath = getLastSyncsLogfilePath();
+    using namespace zen;
+    const Zstring filePath = getConfigDirPathPf() + Zstr("LastSyncs.log");
 
     Utf8String newStream = utfTo<Utf8String>(generateLogHeader(summary));
     replace(newStream, '\n', LINE_BREAK); //don't replace line break any earlier
@@ -170,13 +149,31 @@ void saveToLastSyncsLog(const SummaryInfo& summary, //throw FileError
         }
     }
 
+    auto notifyUnbufferedIOLoad = [notifyStatus,
+                                   bytesRead_ = int64_t(0),
+                                   msg_ = replaceCpy(_("Loading file %x..."), L"%x", fmtPath(filePath))]
+         (int64_t bytesDelta) mutable
+    {
+        if (notifyStatus)
+            notifyStatus(msg_ + L" (" + formatFilesizeShort(bytesRead_ += bytesDelta) + L")"); /*throw X*/
+    };
+
+    auto notifyUnbufferedIOSave = [notifyStatus,
+                                   bytesWritten_ = int64_t(0),
+                                   msg_ = replaceCpy(_("Saving file %x..."), L"%x", fmtPath(filePath))]
+         (int64_t bytesDelta) mutable
+    {
+        if (notifyStatus)
+            notifyStatus(msg_ + L" (" + formatFilesizeShort(bytesWritten_ += bytesDelta) + L")"); /*throw X*/
+    };
+
     //fill up the rest of permitted space by appending old log
     if (newStream.size() < maxBytesToWrite)
     {
         Utf8String oldStream;
         try
         {
-            oldStream = loadBinContainer<Utf8String>(filepath, notifyUnbufferedIO); //throw FileError, X
+            oldStream = loadBinContainer<Utf8String>(filePath, notifyUnbufferedIOLoad); //throw FileError, X
             //Note: we also report the loaded bytes via onUpdateSaveStatus()!
         }
         catch (FileError&) {}
@@ -185,7 +182,7 @@ void saveToLastSyncsLog(const SummaryInfo& summary, //throw FileError
         {
             newStream += LINE_BREAK;
             newStream += LINE_BREAK;
-            newStream += oldStream; //impliticly limited by "maxBytesToWrite"!
+            newStream += oldStream; //implicitly limited by "maxBytesToWrite"!
 
             //truncate size if required
             if (newStream.size() > maxBytesToWrite)
@@ -204,7 +201,7 @@ void saveToLastSyncsLog(const SummaryInfo& summary, //throw FileError
         }
     }
 
-    saveBinContainer(filepath, newStream, notifyUnbufferedIO); //throw FileError, X
+    saveBinContainer(filePath, newStream, notifyUnbufferedIOSave); //throw FileError, X
 }
 }
 

@@ -19,6 +19,7 @@
 #include "../lib/icon_buffer.h"
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -156,7 +157,7 @@ void calcPercentage(std::vector<std::pair<uint64_t, int*>>& workList)
 }
 
 
-Zstring zen::getShortDisplayNameForFolderPair(const AbstractPath& itemPathL, const AbstractPath& itemPathR)
+Zstring fff::getShortDisplayNameForFolderPair(const AbstractPath& itemPathL, const AbstractPath& itemPathR)
 {
     Zstring commonTrail;
     AbstractPath tmpPathL = itemPathL;
@@ -1244,7 +1245,7 @@ private:
 }
 
 
-void zen::treegrid::init(Grid& grid)
+void treegrid::init(Grid& grid)
 {
     grid.setDataProvider(std::make_shared<GridDataTree>(grid));
     grid.showRowLabel(false);
@@ -1254,7 +1255,7 @@ void zen::treegrid::init(Grid& grid)
 }
 
 
-TreeView& zen::treegrid::getDataView(Grid& grid)
+TreeView& treegrid::getDataView(Grid& grid)
 {
     if (auto* prov = dynamic_cast<GridDataTree*>(grid.getDataProvider()))
         return prov->getDataView();
@@ -1263,7 +1264,7 @@ TreeView& zen::treegrid::getDataView(Grid& grid)
 }
 
 
-void zen::treegrid::setShowPercentage(Grid& grid, bool value)
+void treegrid::setShowPercentage(Grid& grid, bool value)
 {
     if (auto* prov = dynamic_cast<GridDataTree*>(grid.getDataProvider()))
         prov->setShowPercentage(value);
@@ -1272,7 +1273,7 @@ void zen::treegrid::setShowPercentage(Grid& grid, bool value)
 }
 
 
-bool zen::treegrid::getShowPercentage(const Grid& grid)
+bool treegrid::getShowPercentage(const Grid& grid)
 {
     if (auto* prov = dynamic_cast<const GridDataTree*>(grid.getDataProvider()))
         return prov->getShowPercentage();

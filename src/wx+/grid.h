@@ -14,8 +14,8 @@
 #include <zen/basic_math.h>
 #include <zen/optional.h>
 
-//a user-friendly, extensible and high-performance grid control
 
+//a user-friendly, extensible and high-performance grid control
 namespace zen
 {
 enum class ColumnType { NONE = -1 }; //user-defiend column type

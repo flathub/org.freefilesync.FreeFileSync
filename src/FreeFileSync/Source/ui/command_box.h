@@ -14,9 +14,10 @@
 #include <zen/string_tools.h>
 #include <zen/zstring.h>
 
+
 //combobox with history function + functionality to delete items (DEL)
-
-
+namespace fff
+{
 class CommandBox : public wxComboBox
 {
 public:
@@ -54,6 +55,6 @@ private:
 
     const std::vector<std::pair<std::wstring, Zstring>> defaultCommands_;
 };
-
+}
 
 #endif //COMMAND_BOX_H_18947773210473214

@@ -7,15 +7,13 @@
 #ifndef MONITOR_H_345087425834253425
 #define MONITOR_H_345087425834253425
 
+#include <chrono>
 #include <functional>
 #include <zen/zstring.h>
 
 
 namespace rts
 {
-const int UI_UPDATE_INTERVAL_MS = 100; //unit: [ms]; perform ui updates not more often than necessary, 100 seems to be a good value with only a minimal performance loss
-
-
 struct MonitorCallback
 {
     virtual ~MonitorCallback() {}
@@ -32,8 +30,8 @@ struct MonitorCallback
 };
 void monitorDirectories(const std::vector<Zstring>& folderPathPhrases,
                         //non-formatted dirnames that yet require call to getFormattedDirectoryName(); empty directories must be checked by caller!
-                        unsigned int delay,
-                        MonitorCallback& callback);
+                        size_t delay,
+                        MonitorCallback& cb, std::chrono::milliseconds cbInterval);
 }
 
 #endif //MONITOR_H_345087425834253425

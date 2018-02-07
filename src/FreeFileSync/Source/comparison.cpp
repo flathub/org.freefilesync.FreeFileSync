@@ -16,9 +16,10 @@
 #include "fs/concrete.h"
 
 using namespace zen;
+using namespace fff;
 
 
-std::vector<FolderPairCfg> zen::extractCompareCfg(const MainConfiguration& mainCfg)
+std::vector<FolderPairCfg> fff::extractCompareCfg(const MainConfiguration& mainCfg)
 {
     //merge first and additional pairs
     std::vector<FolderPairEnh> allPairs = { mainCfg.firstPair };
@@ -152,7 +153,6 @@ ComparisonBuffer::ComparisonBuffer(const std::set<DirectoryKey>& keysToRead, int
             itemsReported_ = itemsTotal;
 
             callback_.reportStatus(statusMsg); //may throw
-            //callback_.requestUiRefresh(); //already called by reportStatus()
         }
 
         HandleError reportError(const std::wstring& msg, size_t retryNumber) override
@@ -170,6 +170,8 @@ ComparisonBuffer::ComparisonBuffer(const std::set<DirectoryKey>& keysToRead, int
             return ON_ERROR_CONTINUE;
         }
 
+        int getItemsTotal() const { return itemsReported_; }
+
     private:
         ProcessCallback& callback_;
         int itemsReported_ = 0;
@@ -178,7 +180,9 @@ ComparisonBuffer::ComparisonBuffer(const std::set<DirectoryKey>& keysToRead, int
     fillBuffer(keysToRead, //in
                directoryBuffer_, //out
                cb,
-               UI_UPDATE_INTERVAL_MS / 2); //every ~50 ms
+               UI_UPDATE_INTERVAL / 2); //every ~50 ms
+
+    callback.reportInfo(_("Comparison finished:") + L" " + _P("1 item found", "%x items found", cb.getItemsTotal()));
 }
 
 
@@ -714,11 +718,11 @@ std::shared_ptr<BaseFolderPair> ComparisonBuffer::performComparison(const Resolv
                                                                     std::vector<SymlinkPair*>& undefinedSymlinks) const
 {
     callback_.reportStatus(_("Generating file list..."));
-    callback_.forceUiRefresh();
+    callback_.forceUiRefresh(); //throw X
 
     auto getDirValue = [&](const AbstractPath& folderPath) -> const DirectoryValue*
     {
-        auto it = directoryBuffer_.find(DirectoryKey(folderPath, fpCfg.filter.nameFilter, fpCfg.handleSymlinks));
+        auto it = directoryBuffer_.find({ folderPath, fpCfg.filter.nameFilter, fpCfg.handleSymlinks });
         return it != directoryBuffer_.end() ? &it->second : nullptr;
     };
 
@@ -775,9 +779,9 @@ std::shared_ptr<BaseFolderPair> ComparisonBuffer::performComparison(const Resolv
 }
 
 
-void zen::logNonDefaultSettings(const xmlAccess::XmlGlobalSettings& activeSettings, ProcessCallback& callback)
+void fff::logNonDefaultSettings(const XmlGlobalSettings& activeSettings, ProcessCallback& callback)
 {
-    const xmlAccess::XmlGlobalSettings defaultSettings;
+    const XmlGlobalSettings defaultSettings;
     std::wstring changedSettingsMsg;
 
     if (activeSettings.failSafeFileCopy != defaultSettings.failSafeFileCopy)
@@ -809,7 +813,7 @@ void zen::logNonDefaultSettings(const xmlAccess::XmlGlobalSettings& activeSettin
 }
 
 
-FolderComparison zen::compare(xmlAccess::OptionalDialogs& warnings,
+FolderComparison fff::compare(WarningDialogs& warnings,
                               int fileTimeTolerance,
                               bool allowUserInteraction,
                               bool runWithBackgroundPriority,
@@ -823,8 +827,8 @@ FolderComparison zen::compare(xmlAccess::OptionalDialogs& warnings,
 
     //indicator at the very beginning of the log to make sense of "total time"
     //init process: keep at beginning so that all gui elements are initialized properly
-    callback.initNewPhase(-1, 0, ProcessCallback::PHASE_SCANNING); //may throw; it's not known how many files will be scanned => -1 objects
-    //callback.reportInfo(_("Starting comparison")); -> still useful?
+    callback.initNewPhase(-1, 0, ProcessCallback::PHASE_SCANNING); //may throw; it's unknown how many files will be scanned => -1 objects
+    //callback.reportInfo(Comparison started")); -> still useful?
 
     //-------------------------------------------------------------------------------
 
@@ -923,9 +927,9 @@ FolderComparison zen::compare(xmlAccess::OptionalDialogs& warnings,
         for (const auto& w : workLoad)
         {
             if (basefolderExisting(w.first.folderPathLeft)) //only traverse *currently existing* folders: at this point user is aware that non-ex + empty string are seen as empty folder!
-                dirsToRead.emplace(w.first.folderPathLeft,  w.second.filter.nameFilter, w.second.handleSymlinks);
+                dirsToRead.insert({ w.first.folderPathLeft,  w.second.filter.nameFilter, w.second.handleSymlinks });
             if (basefolderExisting(w.first.folderPathRight))
-                dirsToRead.emplace(w.first.folderPathRight, w.second.filter.nameFilter, w.second.handleSymlinks);
+                dirsToRead.insert({ w.first.folderPathRight, w.second.filter.nameFilter, w.second.handleSymlinks });
         }
 
         FolderComparison output;
@@ -940,15 +944,9 @@ FolderComparison zen::compare(xmlAccess::OptionalDialogs& warnings,
             //process binary comparison as one junk
             std::vector<std::pair<ResolvedFolderPair, FolderPairCfg>> workLoadByContent;
             for (const auto& w : workLoad)
-                switch (w.second.compareVar)
-                {
-                    case CompareVariant::TIME_SIZE:
-                    case CompareVariant::SIZE:
-                        break;
-                    case CompareVariant::CONTENT:
-                        workLoadByContent.push_back(w);
-                        break;
-                }
+                if (w.second.compareVar == CompareVariant::CONTENT)
+                    workLoadByContent.push_back(w);
+
             std::list<std::shared_ptr<BaseFolderPair>> outputByContent = cmpBuff.compareByContent(workLoadByContent);
 
             //write output in expected order
@@ -980,11 +978,11 @@ FolderComparison zen::compare(xmlAccess::OptionalDialogs& warnings,
             const FolderPairCfg& fpCfg = cfgList[it - output.begin()];
 
             callback.reportStatus(_("Calculating sync directions..."));
-            callback.forceUiRefresh();
+            callback.forceUiRefresh(); //throw X
 
             tryReportingError([&]
             {
-                zen::redetermineSyncDirection(fpCfg.directionCfg, *it, //throw FileError
+                redetermineSyncDirection(fpCfg.directionCfg, *it, //throw FileError
                 [&](const std::wstring& msg) { callback.reportStatus(msg); }); //throw X
 
             }, callback); //throw X?

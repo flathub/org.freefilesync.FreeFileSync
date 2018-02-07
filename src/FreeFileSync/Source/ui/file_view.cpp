@@ -11,6 +11,7 @@
 #include <zen/perf.h>
 
 using namespace zen;
+using namespace fff;
 
 
 template <class StatusResult>

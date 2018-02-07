@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <chrono>
 #include <functional>
 #include "file_error.h"
 
@@ -50,26 +51,22 @@ public:
 
     struct Entry
     {
-        Entry() {}
-        Entry(ActionType action, const Zstring& filepath) : action_(action), filepath_(filepath) {}
-
-        ActionType action_ = ACTION_CREATE;
-        Zstring filepath_;
+        ActionType action = ACTION_CREATE;
+        Zstring filePath;
     };
 
     //extract accumulated changes since last call
-    std::vector<Entry> getChanges(const std::function<void()>& processGuiMessages); //throw FileError
+    std::vector<Entry> getChanges(const std::function<void()>& requestUiRefresh, std::chrono::milliseconds cbInterval); //throw FileError
 
 private:
     DirWatcher           (const DirWatcher&) = delete;
     DirWatcher& operator=(const DirWatcher&) = delete;
 
-    const Zstring baseDirPath;
+    const Zstring baseDirPath_;
 
     struct Impl;
     const std::unique_ptr<Impl> pimpl_;
 };
-
 }
 
 #endif

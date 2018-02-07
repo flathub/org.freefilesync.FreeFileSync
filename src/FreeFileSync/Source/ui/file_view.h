@@ -13,10 +13,9 @@
 #include "../file_hierarchy.h"
 
 
-namespace zen
+namespace fff
 {
-//grid view of FolderComparison
-class FileView
+class FileView //grid view of FolderComparison
 {
 public:
     FileView() {}
@@ -101,11 +100,11 @@ public:
     void removeInvalidRows(); //remove references to rows that have been deleted meanwhile: call after manual deletion and synchronization!
 
     //sorting...
-    void sortView(zen::ColumnTypeRim type, zen::ItemPathFormat pathFmt, bool onLeft, bool ascending); //always call this method for sorting, never sort externally!
+    void sortView(ColumnTypeRim type, ItemPathFormat pathFmt, bool onLeft, bool ascending); //always call this method for sorting, never sort externally!
 
     struct SortInfo
     {
-        zen::ColumnTypeRim type = zen::ColumnTypeRim::ITEM_PATH;
+        ColumnTypeRim type = ColumnTypeRim::ITEM_PATH;
         bool onLeft    = false;
         bool ascending = false;
     };
@@ -173,7 +172,7 @@ private:
     template <bool ascending>
     struct LessSyncDirection;
 
-    Opt<SortInfo> currentSort_;
+    zen::Opt<SortInfo> currentSort_;
 };
 
 

@@ -10,11 +10,11 @@
 #include <zenxml/xml.h>
 #include "file_error.h"
 
+
 //combine zen::Xml and zen file i/o
 //-> loadXmlDocument vs loadStream:
 //1. better error reporting
 //2. quick exit if (potentially large) input file is not an XML
-
 namespace zen
 {
 XmlDoc loadXmlDocument(const Zstring& filePath); //throw FileError

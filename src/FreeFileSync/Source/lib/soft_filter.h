@@ -12,7 +12,7 @@
 #include "../structures.h"
 
 
-namespace zen
+namespace fff
 {
 /*
 Semantics of SoftFilter:
@@ -28,7 +28,7 @@ public:
                size_t sizeMin,  UnitSize unitSizeMin,
                size_t sizeMax,  UnitSize unitSizeMax);
 
-    bool matchTime(int64_t writeTime) const { return timeFrom_ <= writeTime; }
+    bool matchTime(time_t writeTime) const { return timeFrom_ <= writeTime; }
     bool matchSize(uint64_t fileSize) const { return sizeMin_ <= fileSize && fileSize <= sizeMax_; }
     bool matchFolder() const { return matchesFolder_; }
     bool isNull() const; //filter is equivalent to NullFilter, but may be technically slower
@@ -37,17 +37,17 @@ public:
     friend SoftFilter combineFilters(const SoftFilter& first, const SoftFilter& second);
 
 private:
-    SoftFilter(int64_t timeFrom,
+    SoftFilter(time_t timeFrom,
                uint64_t sizeMin,
                uint64_t sizeMax,
                bool matchesFolder);
 
-    int64_t timeFrom_ = 0; //unit: UTC, seconds
-    uint64_t sizeMin_ = 0; //unit: bytes
-    uint64_t sizeMax_ = 0; //unit: bytes
+    time_t   timeFrom_ = 0; //unit: UTC, seconds
+    uint64_t sizeMin_  = 0; //unit: bytes
+    uint64_t sizeMax_  = 0; //unit: bytes
     const bool matchesFolder_;
 };
-}
+
 
 
 
@@ -62,8 +62,6 @@ private:
 
 
 // ----------------------- implementation -----------------------
-namespace zen
-{
 inline
 SoftFilter::SoftFilter(size_t timeSpan, UnitTime unitTimeSpan,
                        size_t sizeMin,  UnitSize unitSizeMin,
@@ -81,7 +79,7 @@ SoftFilter::SoftFilter(size_t timeSpan, UnitTime unitTimeSpan,
 }
 
 inline
-SoftFilter::SoftFilter(int64_t timeFrom,
+SoftFilter::SoftFilter(time_t timeFrom,
                        uint64_t sizeMin,
                        uint64_t sizeMax,
                        bool matchesFolder) :
@@ -89,6 +87,7 @@ SoftFilter::SoftFilter(int64_t timeFrom,
     sizeMin_ (sizeMin),
     sizeMax_ (sizeMax),
     matchesFolder_(matchesFolder) {}
+
 
 inline
 SoftFilter combineFilters(const SoftFilter& lhs, const SoftFilter& rhs)
@@ -99,10 +98,11 @@ SoftFilter combineFilters(const SoftFilter& lhs, const SoftFilter& rhs)
                       lhs.matchesFolder_ && rhs.matchesFolder_);
 }
 
+
 inline
 bool SoftFilter::isNull() const //filter is equivalent to NullFilter, but may be technically slower
 {
-    return timeFrom_ == std::numeric_limits<int64_t>::min() &&
+    return timeFrom_ == std::numeric_limits<time_t>::min() &&
            sizeMin_  == 0U &&
            sizeMax_  == std::numeric_limits<uint64_t>::max() &&
            matchesFolder_ == true;

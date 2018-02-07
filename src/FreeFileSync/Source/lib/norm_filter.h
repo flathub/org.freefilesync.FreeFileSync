@@ -11,7 +11,7 @@
 #include "soft_filter.h"
 
 
-namespace zen
+namespace fff
 {
 struct NormalizedFilter //grade-a filter: global/local filter settings combined, units resolved, ready for use
 {
@@ -35,8 +35,6 @@ bool isNullFilter(const FilterConfig& filterCfg)
                       filterCfg.sizeMin,  filterCfg.unitSizeMin,
                       filterCfg.sizeMax,  filterCfg.unitSizeMax).isNull();
 }
-
-
 
 
 

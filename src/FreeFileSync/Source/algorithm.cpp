@@ -21,10 +21,10 @@
 
 
 using namespace zen;
-//using namespace std::rel_ops;
+using namespace fff;
 
 
-void zen::swapGrids(const MainConfiguration& config, FolderComparison& folderCmp) //throw FileError
+void fff::swapGrids(const MainConfiguration& config, FolderComparison& folderCmp) //throw FileError
 {
     std::for_each(begin(folderCmp), end(folderCmp), [](BaseFolderPair& baseFolder) { baseFolder.flip(); });
 
@@ -182,7 +182,7 @@ bool allItemsCategoryEqual(const ContainerObject& hierObj)
 }
 }
 
-bool zen::allElementsEqual(const FolderComparison& folderCmp)
+bool fff::allElementsEqual(const FolderComparison& folderCmp)
 {
     return std::all_of(begin(folderCmp), end(folderCmp), [](const BaseFolderPair& baseFolder) { return allItemsCategoryEqual(baseFolder); });
 }
@@ -655,7 +655,7 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------
 
-std::vector<DirectionConfig> zen::extractDirectionCfg(const MainConfiguration& mainCfg)
+std::vector<DirectionConfig> fff::extractDirectionCfg(const MainConfiguration& mainCfg)
 {
     //merge first and additional pairs
     std::vector<FolderPairEnh> allPairs;
@@ -672,7 +672,7 @@ std::vector<DirectionConfig> zen::extractDirectionCfg(const MainConfiguration& m
 }
 
 
-void zen::redetermineSyncDirection(const DirectionConfig& dirCfg, //throw FileError
+void fff::redetermineSyncDirection(const DirectionConfig& dirCfg, //throw FileError
                                    BaseFolderPair& baseFolder,
                                    const std::function<void(const std::wstring& msg)>& notifyStatus)
 {
@@ -718,7 +718,7 @@ void zen::redetermineSyncDirection(const DirectionConfig& dirCfg, //throw FileEr
 }
 
 
-void zen::redetermineSyncDirection(const MainConfiguration& mainCfg, //throw FileError
+void fff::redetermineSyncDirection(const MainConfiguration& mainCfg, //throw FileError
                                    FolderComparison& folderCmp,
                                    const std::function<void(const std::wstring& msg)>& notifyStatus)
 {
@@ -779,7 +779,7 @@ struct SetNewDirection
 };
 
 
-void zen::setSyncDirectionRec(SyncDirection newDirection, FileSystemObject& fsObj)
+void fff::setSyncDirectionRec(SyncDirection newDirection, FileSystemObject& fsObj)
 {
     //process subdirectories also!
     visitFSObject(fsObj, [&](const FolderPair& folder)
@@ -818,7 +818,7 @@ void inOrExcludeAllRows(ContainerObject& hierObj)
 }
 
 
-void zen::setActiveStatus(bool newStatus, FolderComparison& folderCmp)
+void fff::setActiveStatus(bool newStatus, FolderComparison& folderCmp)
 {
     if (newStatus)
         std::for_each(begin(folderCmp), end(folderCmp), [](BaseFolderPair& baseFolder) { inOrExcludeAllRows<true>(baseFolder); }); //include all rows
@@ -827,7 +827,7 @@ void zen::setActiveStatus(bool newStatus, FolderComparison& folderCmp)
 }
 
 
-void zen::setActiveStatus(bool newStatus, FileSystemObject& fsObj)
+void fff::setActiveStatus(bool newStatus, FileSystemObject& fsObj)
 {
     fsObj.setActive(newStatus);
 
@@ -929,7 +929,7 @@ public:
 private:
     ApplySoftFilter(ContainerObject& hierObj, const SoftFilter& timeSizeFilter) : timeSizeFilter_(timeSizeFilter) { recurse(hierObj); }
 
-    void recurse(zen::ContainerObject& hierObj) const
+    void recurse(fff::ContainerObject& hierObj) const
     {
         for (FilePair& file : hierObj.refSubFiles())
             processFile(file);
@@ -1013,20 +1013,20 @@ private:
 }
 
 
-void zen::addHardFiltering(BaseFolderPair& baseFolder, const Zstring& excludeFilter)
+void fff::addHardFiltering(BaseFolderPair& baseFolder, const Zstring& excludeFilter)
 {
     ApplyHardFilter<STRATEGY_AND>::execute(baseFolder, NameFilter(FilterConfig().includeFilter, excludeFilter));
 }
 
 
-void zen::addSoftFiltering(BaseFolderPair& baseFolder, const SoftFilter& timeSizeFilter)
+void fff::addSoftFiltering(BaseFolderPair& baseFolder, const SoftFilter& timeSizeFilter)
 {
     if (!timeSizeFilter.isNull()) //since we use STRATEGY_AND, we may skip a "null" filter
         ApplySoftFilter<STRATEGY_AND>::execute(baseFolder, timeSizeFilter);
 }
 
 
-void zen::applyFiltering(FolderComparison& folderCmp, const MainConfiguration& mainCfg)
+void fff::applyFiltering(FolderComparison& folderCmp, const MainConfiguration& mainCfg)
 {
     if (folderCmp.empty())
         return;
@@ -1117,13 +1117,13 @@ private:
 };
 
 
-void zen::applyTimeSpanFilter(FolderComparison& folderCmp, time_t timeFrom, time_t timeTo)
+void fff::applyTimeSpanFilter(FolderComparison& folderCmp, time_t timeFrom, time_t timeTo)
 {
     std::for_each(begin(folderCmp), end(folderCmp), [&](BaseFolderPair& baseFolder) { FilterByTimeSpan::execute(baseFolder, timeFrom, timeTo); });
 }
 
 
-Opt<PathDependency> zen::getPathDependency(const AbstractPath& basePathL, const HardFilter& filterL,
+Opt<PathDependency> fff::getPathDependency(const AbstractPath& basePathL, const HardFilter& filterL,
                                            const AbstractPath& basePathR, const HardFilter& filterR)
 {
     if (!AFS::isNullPath(basePathL) && !AFS::isNullPath(basePathR))
@@ -1163,7 +1163,7 @@ Opt<PathDependency> zen::getPathDependency(const AbstractPath& basePathL, const 
 
 //############################################################################################################
 
-std::pair<std::wstring, int> zen::getSelectedItemsAsString(const std::vector<const FileSystemObject*>& selectionLeft,
+std::pair<std::wstring, int> fff::getSelectedItemsAsString(const std::vector<const FileSystemObject*>& selectionLeft,
                                                            const std::vector<const FileSystemObject*>& selectionRight)
 {
     //don't use wxString! its rather dumb linear allocation strategy brings perf down to a crawl!
@@ -1184,7 +1184,7 @@ std::pair<std::wstring, int> zen::getSelectedItemsAsString(const std::vector<con
             ++totalDelCount;
         }
 
-    return std::make_pair(fileList, totalDelCount);
+    return { fileList, totalDelCount };
 }
 
 
@@ -1330,12 +1330,12 @@ void copyToAlternateFolderFrom(const std::vector<const FileSystemObject*>& rowsT
 }
 
 
-void zen::copyToAlternateFolder(const std::vector<const FileSystemObject*>& rowsToCopyOnLeft,
+void fff::copyToAlternateFolder(const std::vector<const FileSystemObject*>& rowsToCopyOnLeft,
                                 const std::vector<const FileSystemObject*>& rowsToCopyOnRight,
                                 const Zstring& targetFolderPathPhrase,
                                 bool keepRelPaths,
                                 bool overwriteIfExists,
-                                xmlAccess::OptionalDialogs& warnings,
+                                WarningDialogs& warnings,
                                 ProcessCallback& callback)
 {
     std::vector<const FileSystemObject*> itemSelectionLeft  = rowsToCopyOnLeft;
@@ -1494,7 +1494,7 @@ void categorize(const std::vector<FileSystemObject*>& rows,
 }
 
 
-void zen::deleteFromGridAndHD(const std::vector<FileSystemObject*>& rowsToDeleteOnLeft,  //refresh GUI grid after deletion to remove invalid rows
+void fff::deleteFromGridAndHD(const std::vector<FileSystemObject*>& rowsToDeleteOnLeft,  //refresh GUI grid after deletion to remove invalid rows
                               const std::vector<FileSystemObject*>& rowsToDeleteOnRight, //all pointers need to be bound!
                               FolderComparison& folderCmp,                         //attention: rows will be physically deleted!
                               const std::vector<DirectionConfig>& directCfgs,
@@ -1594,7 +1594,7 @@ void zen::deleteFromGridAndHD(const std::vector<FileSystemObject*>& rowsToDelete
 
 //############################################################################################################
 
-bool zen::operator<(const FileDescriptor& lhs, const FileDescriptor& rhs)
+bool fff::operator<(const FileDescriptor& lhs, const FileDescriptor& rhs)
 {
     if (lhs.attr.modTime != rhs.attr.modTime)
         return lhs.attr.modTime < rhs.attr.modTime;

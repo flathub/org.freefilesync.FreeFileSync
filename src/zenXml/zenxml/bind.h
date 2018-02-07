@@ -12,6 +12,7 @@
 #include "parser.h"
 #include "io.h"
 
+
 namespace zen
 {
 /**
@@ -167,17 +168,17 @@ public:
         in["elem3"](value3); //
       \endcode
     */
-    XmlIn(const XmlDoc& doc) : log(std::make_shared<ErrorLog>()) { refList.push_back(&doc.root()); }
+    XmlIn(const XmlDoc& doc) : log_(std::make_shared<ErrorLog>()) { refList_.push_back(&doc.root()); }
     ///Construct an input proxy for a single XML element, may be nullptr
     /**
       \sa XmlIn(const XmlDoc& doc)
     */
-    XmlIn(const XmlElement* element) : log(std::make_shared<ErrorLog>()) { refList.push_back(element); }
+    XmlIn(const XmlElement* element) : log_(std::make_shared<ErrorLog>()) { refList_.push_back(element); }
     ///Construct an input proxy for a single XML element
     /**
       \sa XmlIn(const XmlDoc& doc)
     */
-    XmlIn(const XmlElement& element) : log(std::make_shared<ErrorLog>()) { refList.push_back(&element); }
+    XmlIn(const XmlElement& element) : log_(std::make_shared<ErrorLog>()) { refList_.push_back(&element); }
 
     ///Retrieve a handle to an XML child element for reading
     /**
@@ -190,14 +191,14 @@ public:
     {
         std::vector<const XmlElement*> childList;
 
-        if (refIndex < refList.size())
+        if (refIndex_ < refList_.size())
         {
-            auto iterPair = refList[refIndex]->getChildren(name);
+            auto iterPair = refList_[refIndex_]->getChildren(name);
             std::for_each(iterPair.first, iterPair.second,
             [&](const XmlElement& child) { childList.push_back(&child); });
         }
 
-        return XmlIn(childList, childList.empty() ? getChildNameFormatted(name) : std::string(), log);
+        return XmlIn(childList, childList.empty() ? getChildNameFormatted(name) : std::string(), log_);
     }
 
     ///Refer to next sibling element with the same name
@@ -221,7 +222,7 @@ public:
     }
     \endcode
     */
-    void next() { ++refIndex; }
+    void next() { ++refIndex_; }
 
     ///Read user data from the underlying XML element
     /**
@@ -232,16 +233,16 @@ public:
     template <class T>
     bool operator()(T& value) const
     {
-        if (refIndex < refList.size())
+        if (refIndex_ < refList_.size())
         {
-            bool success = readStruc(*refList[refIndex], value);
+            bool success = readStruc(*refList_[refIndex_], value);
             if (!success)
-                log->notifyConversionError(getNameFormatted());
+                log_->notifyConversionError(getNameFormatted());
             return success;
         }
         else
         {
-            log->notifyMissingElement(getNameFormatted());
+            log_->notifyMissingElement(getNameFormatted());
             return false;
         }
     }
@@ -267,22 +268,22 @@ public:
     template <class String, class T>
     bool attribute(const String& name, T& value) const
     {
-        if (refIndex < refList.size())
+        if (refIndex_ < refList_.size())
         {
-            bool success = refList[refIndex]->getAttribute(name, value);
+            bool success = refList_[refIndex_]->getAttribute(name, value);
             if (!success)
-                log->notifyMissingAttribute(getNameFormatted(), utfTo<std::string>(name));
+                log_->notifyMissingAttribute(getNameFormatted(), utfTo<std::string>(name));
             return success;
         }
         else
         {
-            log->notifyMissingElement(getNameFormatted());
+            log_->notifyMissingElement(getNameFormatted());
             return false;
         }
     }
 
     ///Return a pointer to the underlying Xml element, may be nullptr
-    const XmlElement* get() const { return refIndex < refList.size() ? refList[refIndex] : nullptr; }
+    const XmlElement* get() const { return refIndex_ < refList_.size() ? refList_[refIndex_] : nullptr; }
 
     ///Test whether the underlying XML element exists
     /**
@@ -316,7 +317,7 @@ public:
       However be aware that the chain of connected proxy instances will be broken once you call XmlIn::get() to retrieve the underlying pointer.
       Errors that occur when working with this pointer are not logged by the original set of related instances.
     */
-    bool errorsOccured() const { return !log->elementList().empty(); }
+    bool errorsOccured() const { return !log_->elementList().empty(); }
 
     ///Get a list of XML element and attribute names which failed to convert to user data.
     /**
@@ -327,14 +328,14 @@ public:
     std::vector<String> getErrorsAs() const
     {
         std::vector<String> output;
-        const auto& elements = log->elementList();
+        const auto& elements = log_->elementList();
         std::transform(elements.begin(), elements.end(), std::back_inserter(output), [](const std::string& str) { return utfTo<String>(str); });
         return output;
     }
 
 private:
     XmlIn(const std::vector<const XmlElement*>& siblingList, const std::string& elementNameFmt, const std::shared_ptr<ErrorLog>& sharedlog) :
-        refList(siblingList), formattedName(elementNameFmt), log(sharedlog)
+        refList_(siblingList), formattedName_(elementNameFmt), log_(sharedlog)
     { assert((!siblingList.empty() && elementNameFmt.empty()) || (siblingList.empty() && !elementNameFmt.empty())); }
 
     static std::string getNameFormatted(const XmlElement& elem) //"<Root> <Level1> <Level2>"
@@ -344,13 +345,13 @@ private:
 
     std::string getNameFormatted() const
     {
-        if (refIndex < refList.size())
+        if (refIndex_ < refList_.size())
         {
-            assert(formattedName.empty());
-            return getNameFormatted(*refList[refIndex]);
+            assert(formattedName_.empty());
+            return getNameFormatted(*refList_[refIndex_]);
         }
         else
-            return formattedName;
+            return formattedName_;
     }
 
     std::string getChildNameFormatted(const std::string& childName) const
@@ -379,10 +380,10 @@ private:
         std::set<std::string>    usedElements;
     };
 
-    std::vector<const XmlElement*> refList; //all sibling elements with same name (all pointers bound!)
-    size_t refIndex = 0;                    //this sibling's index in refList
-    std::string formattedName;     //contains full and formatted element name if (and only if) refList is empty
-    std::shared_ptr<ErrorLog> log; //always bound
+    std::vector<const XmlElement*> refList_; //all sibling elements with same name (all pointers bound!)
+    size_t refIndex_ = 0;                    //this sibling's index in refList_
+    std::string formattedName_;     //contains full and formatted element name if (and only if) refList_ is empty
+    std::shared_ptr<ErrorLog> log_; //always bound
 };
 }
 

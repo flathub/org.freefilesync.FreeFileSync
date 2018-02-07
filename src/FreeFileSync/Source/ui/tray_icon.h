@@ -11,6 +11,7 @@
 #include <memory>
 #include <wx/image.h>
 
+
 /*
 show tray icon with progress during lifetime of this instance
 
@@ -21,7 +22,8 @@ ATTENTION: wxWidgets never assumes that an object indirectly destroys itself whi
 => don't derive from wxEvtHandler or any other wxWidgets object here!!!!!!
 => use simple std::function as callback instead => instance may now be safely deleted in callback!
 */
-
+namespace fff
+{
 class FfsTrayIcon
 {
 public:
@@ -36,13 +38,14 @@ private:
     FfsTrayIcon& operator=(const FfsTrayIcon&) = delete;
 
     class TaskBarImpl;
-    TaskBarImpl* trayIcon;
+    TaskBarImpl* trayIcon_;
 
     class ProgressIconGenerator;
-    std::unique_ptr<ProgressIconGenerator> iconGenerator;
+    std::unique_ptr<ProgressIconGenerator> iconGenerator_;
 
-    wxString activeToolTip = L"FreeFileSync";
-    double activeFraction = 1;
+    wxString activeToolTip_ = L"FreeFileSync";
+    double activeFraction_ = 1;
 };
+}
 
 #endif //TRAY_ICON_H_84217830427534285

@@ -11,7 +11,7 @@
 #include "icon_holder.h"
 
 
-namespace zen
+namespace fff
 {
 //=> all functions are safe to call from multiple threads!
 //!!!Note: init COM + system image list before loading icons!!!

@@ -15,7 +15,7 @@ namespace zen
 /*
     TREAD-SAFETY
     ------------
-    Windows: WinInet-based   => may be called from worker thread
+    Windows: WinInet-based   => may be called from worker thread, supports HTTPS
     Linux:   wxWidgets-based => don't call from worker thread
 */
 class HttpInputStream

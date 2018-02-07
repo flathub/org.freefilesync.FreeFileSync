@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun 17 2015)
+// C++ code generated with wxFormBuilder (version Nov  6 2017)
 // http://www.wxformbuilder.org/
 //
-// PLEASE DO "NOT" EDIT THIS FILE!
+// PLEASE DO *NOT* EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
 
 #ifndef __GUI_GENERATED_H__
@@ -77,6 +77,7 @@ protected:
 
     // Virtual event handlers, overide them in your derived class
     virtual void OnClose( wxCloseEvent& event ) { event.Skip(); }
+    virtual void OnConfigNew( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnConfigLoad( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnConfigSave( wxCommandEvent& event ) { event.Skip(); }
     virtual void OnMenuQuit( wxCommandEvent& event ) { event.Skip(); }

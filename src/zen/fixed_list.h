@@ -11,6 +11,7 @@
 #include <iterator>
 #include "stl_tools.h"
 
+
 namespace zen
 {
 //std::list(C++11)-like class for inplace element construction supporting non-copyable/non-movable types

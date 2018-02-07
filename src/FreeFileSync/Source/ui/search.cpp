@@ -9,6 +9,7 @@
 #include <zen/perf.h>
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -72,7 +73,7 @@ ptrdiff_t findRow(const Grid& grid, //return -1 if no matching row found
 }
 
 
-std::pair<const Grid*, ptrdiff_t> zen::findGridMatch(const Grid& grid1, const Grid& grid2, const std::wstring& searchString, bool respectCase, bool searchAscending)
+std::pair<const Grid*, ptrdiff_t> fff::findGridMatch(const Grid& grid1, const Grid& grid2, const std::wstring& searchString, bool respectCase, bool searchAscending)
 {
     //PERF_START
 
@@ -92,7 +93,7 @@ std::pair<const Grid*, ptrdiff_t> zen::findGridMatch(const Grid& grid1, const Gr
                                     findRow<false>(grid, searchString, searchAscending, rowFirst, rowLast);
         if (targetRow >= 0)
         {
-            result = std::make_pair(&grid, targetRow);
+            result = { &grid, targetRow };
             return true;
         }
         return false;

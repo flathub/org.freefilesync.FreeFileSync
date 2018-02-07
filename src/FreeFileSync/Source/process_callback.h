@@ -9,11 +9,14 @@
 
 #include <string>
 #include <cstdint>
+#include <chrono>
 
 
+namespace fff
+{
 //interface for comparison and synchronization process status updates (used by GUI or Batch mode)
-const int UI_UPDATE_INTERVAL_MS = 100; //unit: [ms]; perform ui updates not more often than necessary,
-//100 seems to be a good value with only a minimal performance loss; also used by Win 7 copy progress bar
+const std::chrono::milliseconds UI_UPDATE_INTERVAL(100); //perform ui updates not more often than necessary,
+//100 ms seems to be a good value with only a minimal performance loss; also used by Win 7 copy progress bar
 //this one is required by async directory existence check!
 
 //report status during comparison and synchronization
@@ -37,7 +40,7 @@ struct ProcessCallback
     //it is in general paired with a call to requestUiRefresh() to compensate!
     virtual void updateProcessedData(int itemsDelta, int64_t bytesDelta) = 0; //noexcept!!
     virtual void updateTotalData    (int itemsDelta, int64_t bytesDelta) = 0; //
-    /*the estimated and actual total workload may change *during* sync:
+    /* the estimated and actual total workload may change *during* sync:
             1. file cannot be moved -> fallback to copy + delete
             2. file copy, actual size changed after comparison
             3. file contains significant ADS data, is sparse or compressed
@@ -73,5 +76,6 @@ struct ProcessCallback
 
     virtual void abortProcessNow() = 0; //will throw an exception => don't call while in a C GUI callstack
 };
+}
 
 #endif //PROCESS_CALLBACK_H_48257827842345454545

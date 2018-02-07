@@ -21,11 +21,12 @@
 #include "../file_hierarchy.h"
 
 using namespace zen;
-using namespace filegrid;
+using namespace fff;
 
 
-const wxEventType zen::EVENT_GRID_CHECK_ROWS     = wxNewEventType();
-const wxEventType zen::EVENT_GRID_SYNC_DIRECTION = wxNewEventType();
+const wxEventType fff::EVENT_GRID_CHECK_ROWS     = wxNewEventType();
+const wxEventType fff::EVENT_GRID_SYNC_DIRECTION = wxNewEventType();
+
 
 namespace
 {
@@ -67,10 +68,10 @@ std::pair<ptrdiff_t, ptrdiff_t> getVisibleRows(const Grid& grid) //returns range
         const ptrdiff_t rowFrom  = grid.getRowAtPos(topLeft.y); //return -1 for invalid position, rowCount if out of range
         const ptrdiff_t rowTo    = grid.getRowAtPos(bottom.y);
         if (rowFrom >= 0 && rowTo >= 0)
-            return std::make_pair(rowFrom, std::min(rowTo + 1, rowCount));
+            return { rowFrom, std::min(rowTo + 1, rowCount) };
     }
     assert(false);
-    return std::make_pair(0, 0);
+    return {};
 }
 
 
@@ -1752,7 +1753,7 @@ void filegrid::highlightSyncAction(Grid& gridCenter, bool value)
 }
 
 
-wxBitmap zen::getSyncOpImage(SyncOperation syncOp)
+wxBitmap fff::getSyncOpImage(SyncOperation syncOp)
 {
     switch (syncOp) //evaluate comparison result and sync direction
     {
@@ -1792,7 +1793,7 @@ wxBitmap zen::getSyncOpImage(SyncOperation syncOp)
 }
 
 
-wxBitmap zen::getCmpResultImage(CompareFilesResult cmpResult)
+wxBitmap fff::getCmpResultImage(CompareFilesResult cmpResult)
 {
     switch (cmpResult)
     {

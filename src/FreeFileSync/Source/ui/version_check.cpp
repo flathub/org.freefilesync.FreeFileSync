@@ -22,6 +22,7 @@
 
 
 using namespace zen;
+using namespace fff;
 
 
 namespace
@@ -65,7 +66,7 @@ std::vector<std::pair<std::string, std::string>> geHttpPostParameters()
     assert(std::this_thread::get_id() == mainThreadId); //this function is not thread-safe, e.g. consider wxWidgets usage in isPortableVersion()
     std::vector<std::pair<std::string, std::string>> params;
 
-    params.emplace_back("ffs_version", zen::ffsVersion);
+    params.emplace_back("ffs_version", ffsVersion);
     params.emplace_back("installation_type", isPortableVersion() ? "Portable" : "Local");
 
 
@@ -102,10 +103,11 @@ void showUpdateAvailableDialog(wxWindow* parent, const std::string& onlineVersio
     std::wstring updateDetailsMsg;
     try
     {
-        try //harmonize with wxHTTP: get_latest_changes.php must be accessible without https!!!
+        try
         {
+            //consider wxHTTP limitation: URL must be accessible without https!!!
             const std::string buf = sendHttpPost(L"http://www.freefilesync.org/get_latest_changes.php", ffsUpdateCheckUserAgent,
-            nullptr /*notifyUnbufferedIO*/, { { "since", zen::ffsVersion } }).readAll(); //throw SysError
+            nullptr /*notifyUnbufferedIO*/, { { "since", ffsVersion } }).readAll(); //throw SysError
             updateDetailsMsg = utfTo<std::wstring>(buf);
         }
         catch (const zen::SysError& e) { throw FileError(_("Failed to retrieve update information."), e.toString()); }
@@ -135,7 +137,7 @@ void showUpdateAvailableDialog(wxWindow* parent, const std::string& onlineVersio
 //access is thread-safe on Windows (WinInet), but not on Linux/OS X (wxWidgets)
 std::string getOnlineVersion(const std::vector<std::pair<std::string, std::string>>& postParams) //throw SysError
 {
-    //harmonize with wxHTTP: get_latest_version_number.php must be accessible without https!!!
+    //consider wxHTTP limitation: URL must be accessible without https!!!
     const std::string buffer = sendHttpPost(L"http://www.freefilesync.org/get_latest_version_number.php", ffsUpdateCheckUserAgent,
                                             nullptr /*notifyUnbufferedIO*/, postParams).readAll(); //throw SysError
     return trimCpy(buffer);
@@ -152,9 +154,9 @@ std::vector<size_t> parseVersion(const std::string& version)
 }
 
 
-bool zen::haveNewerVersionOnline(const std::string& onlineVersion)
+bool fff::haveNewerVersionOnline(const std::string& onlineVersion)
 {
-    const std::vector<size_t> current = parseVersion(zen::ffsVersion);
+    const std::vector<size_t> current = parseVersion(ffsVersion);
     const std::vector<size_t> online  = parseVersion(onlineVersion);
 
     if (online.empty() || online[0] == 0) //online version string may be "This website has been moved..." In this case better check for an update
@@ -165,19 +167,19 @@ bool zen::haveNewerVersionOnline(const std::string& onlineVersion)
 }
 
 
-bool zen::updateCheckActive(time_t lastUpdateCheck)
+bool fff::updateCheckActive(time_t lastUpdateCheck)
 {
     return lastUpdateCheck != getVersionCheckInactiveId();
 }
 
 
-void zen::disableUpdateCheck(time_t& lastUpdateCheck)
+void fff::disableUpdateCheck(time_t& lastUpdateCheck)
 {
     lastUpdateCheck = getVersionCheckInactiveId();
 }
 
 
-void zen::checkForUpdateNow(wxWindow* parent, std::string& lastOnlineVersion)
+void fff::checkForUpdateNow(wxWindow* parent, std::string& lastOnlineVersion)
 {
     try
     {
@@ -229,19 +231,19 @@ void zen::checkForUpdateNow(wxWindow* parent, std::string& lastOnlineVersion)
 }
 
 
-struct zen::UpdateCheckResultPrep
+struct fff::UpdateCheckResultPrep
 {
     const std::vector<std::pair<std::string, std::string>> postParameters { geHttpPostParameters() };
 };
 
 //run on main thread:
-std::shared_ptr<UpdateCheckResultPrep> zen::automaticUpdateCheckPrepare()
+std::shared_ptr<UpdateCheckResultPrep> fff::automaticUpdateCheckPrepare()
 {
     return nullptr;
 }
 
 
-struct zen::UpdateCheckResult
+struct fff::UpdateCheckResult
 {
     UpdateCheckResult() {}
     UpdateCheckResult(const std::string& ver, const Opt<zen::SysError>& err, bool alive)  : onlineVersion(ver), error(err), internetIsAlive(alive) {}
@@ -252,14 +254,14 @@ struct zen::UpdateCheckResult
 };
 
 //run on worker thread:
-std::shared_ptr<UpdateCheckResult> zen::automaticUpdateCheckRunAsync(const UpdateCheckResultPrep* resultPrep)
+std::shared_ptr<UpdateCheckResult> fff::automaticUpdateCheckRunAsync(const UpdateCheckResultPrep* resultPrep)
 {
     return nullptr;
 }
 
 
 //run on main thread:
-void zen::automaticUpdateCheckEval(wxWindow* parent, time_t& lastUpdateCheck, std::string& lastOnlineVersion, const UpdateCheckResult* resultAsync)
+void fff::automaticUpdateCheckEval(wxWindow* parent, time_t& lastUpdateCheck, std::string& lastOnlineVersion, const UpdateCheckResult* resultAsync)
 {
     UpdateCheckResult result;
     try
@@ -267,7 +269,7 @@ void zen::automaticUpdateCheckEval(wxWindow* parent, time_t& lastUpdateCheck, st
         result.onlineVersion = getOnlineVersion(geHttpPostParameters()); //throw SysError
         result.internetIsAlive = true;
     }
-    catch (const SysError& e)
+    catch (const zen::SysError& e)
     {
         result.error = e;
         result.internetIsAlive = internetIsAlive();

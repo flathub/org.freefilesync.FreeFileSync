@@ -14,7 +14,11 @@
       amount of data needed.
     </p>
   </description>
-  <url type="homepage">https://www.freefilesync.org</url>
+  <url type="homepage">https://freefilesync.org</url>
+  <url type="bugtracker">https://freefilesync.org/forum/</url>
+  <url type="faq">https://freefilesync.org/faq.php</url>
+  <url type="help">https://freefilesync.org/manual.php</url>
+  <url type="donation">https://freefilesync.org/download.php</url>
   <screenshots>
     <screenshot type="default" priority="4">
       <caption>Manual synchronization of two folders</caption>

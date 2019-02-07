@@ -70,8 +70,8 @@ git checkout vREL
 git diff src patchNN > ./patchNN.patch
 # end for
 
-# adjust *appdata.xml and *FreeFileSync.json
-flatpak-builder builddir org.freefilesync.FreeFileSync.json --force-clean
+# adjust *appdata.xml and *FreeFileSync.yml
+flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean
 # test the app
 
 git add -A

@@ -2,7 +2,7 @@
 Name=FreeFileSync
 GenericName=Folder Synchronization
 Comment=Visual folder comparison and synchronization
-Exec=FreeFileSync
+Exec=FreeFileSync %F
 Terminal=false
 Type=Application
 Icon=org.freefilesync.FreeFileSync

@@ -2,7 +2,7 @@
 Name=RealTimeSync
 GenericName=Realtime Synchronization
 Comment=Realtime folder synchronization
-Exec=RealTimeSync
+Exec=RealTimeSync %f
 Terminal=false
 Type=Application
 Icon=org.freefilesync.FreeFileSync.RealTimeSync

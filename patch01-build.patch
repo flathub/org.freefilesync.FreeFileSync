@@ -1,86 +1,26 @@
-diff --git a/src/FreeFileSync/Source/Makefile b/src/FreeFileSync/Source/Makefile
-index 3319726..fe70ed6 100755
---- a/src/FreeFileSync/Source/Makefile
-+++ b/src/FreeFileSync/Source/Makefile
-@@ -1,5 +1,5 @@
- APPNAME     = FreeFileSync
--prefix      = /usr
-+prefix      = /app
- BINDIR      = $(DESTDIR)$(prefix)/bin
- SHAREDIR    = $(DESTDIR)$(prefix)/share
- APPSHAREDIR = $(SHAREDIR)/$(APPNAME)
-@@ -123,5 +123,5 @@ install:
- 	$(APPSHAREDIR)
+diff --git a/src/FreeFileSync/Source/fs/sftp.cpp b/src/FreeFileSync/Source/fs/sftp.cpp
+index e7014e0..76d1157 100644
+--- a/src/FreeFileSync/Source/fs/sftp.cpp
++++ b/src/FreeFileSync/Source/fs/sftp.cpp
+@@ -56,9 +56,9 @@ const std::chrono::seconds SFTP_CHANNEL_LIMIT_DETECTION_TIME_OUT(30);
  
- 	mkdir -p $(DOCSHAREDIR)
--	cp ../Build/Changelog.txt $(DOCSHAREDIR)/changelog
-+	cp ../../Changelog.txt $(DOCSHAREDIR)/changelog
- 	gzip $(DOCSHAREDIR)/changelog
-diff --git a/src/FreeFileSync/Source/RealTimeSync/Makefile b/src/FreeFileSync/Source/RealTimeSync/Makefile
-index baf4ef6..c19718c 100755
---- a/src/FreeFileSync/Source/RealTimeSync/Makefile
-+++ b/src/FreeFileSync/Source/RealTimeSync/Makefile
-@@ -1,5 +1,5 @@
- APPNAME = RealTimeSync
--prefix = /usr
-+prefix = /app
- BINDIR = $(DESTDIR)$(prefix)/bin
+ //attention: if operation fails due to time out, e.g. file copy, the cleanup code may hang, too => total delay = 2 x time out interval
  
- CXXFLAGS  = -std=c++14 -pipe -DWXINTL_NO_GETTEXT_MACRO -I../../.. -I../../../zenXml -include "zen/i18n.h" -Wall -O3 -DNDEBUG `wx-config --cxxflags --debug=no` -pthread
-diff --git a/src/FreeFileSync/Source/lib/dir_lock.cpp b/src/FreeFileSync/Source/lib/dir_lock.cpp
-index ef3bb8e..025233f 100755
---- a/src/FreeFileSync/Source/lib/dir_lock.cpp
-+++ b/src/FreeFileSync/Source/lib/dir_lock.cpp
-@@ -15,6 +15,7 @@
- #include <zen/optional.h>
- #include <wx/log.h>
- #include <wx/app.h>
-+#include <zen/warn_static.h>
+-const size_t SFTP_OPTIMAL_BLOCK_SIZE_READ  = 4 * MAX_SFTP_READ_SIZE;     //https://github.com/libssh2/libssh2/issues/90
+-const size_t SFTP_OPTIMAL_BLOCK_SIZE_WRITE = 4 * MAX_SFTP_OUTGOING_SIZE; //
+-static_assert(MAX_SFTP_READ_SIZE == 30000 && MAX_SFTP_OUTGOING_SIZE == 30000, "reevaluate optimal block sizes if these constants change!");
++const size_t SFTP_OPTIMAL_BLOCK_SIZE_READ  = 4 * 30000;     //https://github.com/libssh2/libssh2/issues/90
++const size_t SFTP_OPTIMAL_BLOCK_SIZE_WRITE = 4 * 30000; //
++static_assert(30000 == 30000 && 30000 == 30000, "reevaluate optimal block sizes if these constants change!");
+ /*
+ Perf Test, Sourceforge frs, SFTP upload, compressed 25 MB test file:
  
-     #include <fcntl.h>    //open()
-     #include <sys/stat.h> //
-diff --git a/src/FreeFileSync/Source/lib/versioning.cpp b/src/FreeFileSync/Source/lib/versioning.cpp
-index acc9256..bcb1f0a 100755
---- a/src/FreeFileSync/Source/lib/versioning.cpp
-+++ b/src/FreeFileSync/Source/lib/versioning.cpp
-@@ -1,3 +1,4 @@
-+#include <zen/warn_static.h>
- #include "versioning.h"
- #include <cstddef> //required by GCC 4.8.1 to find ptrdiff_t
- 
-diff --git a/src/FreeFileSync/Source/ui/progress_indicator.cpp b/src/FreeFileSync/Source/ui/progress_indicator.cpp
-index 04fb5e6..dc78945 100755
---- a/src/FreeFileSync/Source/ui/progress_indicator.cpp
-+++ b/src/FreeFileSync/Source/ui/progress_indicator.cpp
-@@ -4,6 +4,7 @@
- // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
- // *****************************************************************************
- 
-+#include <zen/warn_static.h>
- #include "progress_indicator.h"
- #include <memory>
- #include <wx/imaglist.h>
-diff --git a/src/zen/file_io.cpp b/src/zen/file_io.cpp
-index b0af195..e587ac8 100755
---- a/src/zen/file_io.cpp
-+++ b/src/zen/file_io.cpp
-@@ -4,6 +4,7 @@
- // * Copyright (C) Zenju (zenju AT freefilesync DOT org) - All Rights Reserved *
- // *****************************************************************************
- 
-+#include <zen/warn_static.h>
- #include "file_io.h"
- #include "file_access.h"
- 
-diff --git a/src/zen/shell_execute.h b/src/zen/shell_execute.h
-index 7770595..3e17701 100755
---- a/src/zen/shell_execute.h
-+++ b/src/zen/shell_execute.h
-@@ -7,6 +7,7 @@
- #ifndef SHELL_EXECUTE_H_23482134578134134
- #define SHELL_EXECUTE_H_23482134578134134
- 
-+#include "warn_static.h"
- #include "file_error.h"
- 
-     #include <unistd.h> //fork()
+@@ -1657,7 +1657,7 @@ private:
+             runSftpCommand(login_, L"libssh2_sftp_mkdir", //throw SysError
+                            [&](const SshSession::Details& sd) //noexcept!
+             {
+-#if 1 //let's see how LIBSSH2_SFTP_DEFAULT_MODE works out:
++#if 0 //let's see how LIBSSH2_SFTP_DEFAULT_MODE works out:
+                 return ::libssh2_sftp_mkdir(sd.sftpChannel, getLibssh2Path(afsPath).c_str(), LIBSSH2_SFTP_DEFAULT_MODE);
+ #else //default for newly created directories: 0777
+                 return ::libssh2_sftp_mkdir(sd.sftpChannel, getLibssh2Path(afsPath).c_str(), LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRWXG | LIBSSH2_SFTP_S_IRWXO);

@@ -1,8 +1,8 @@
 diff --git a/src/FreeFileSync/Source/ui/main_dlg.cpp b/src/FreeFileSync/Source/ui/main_dlg.cpp
-index 47672d6..74842cd 100755
+index 0e44544..8586bc8 100644
 --- a/src/FreeFileSync/Source/ui/main_dlg.cpp
 +++ b/src/FreeFileSync/Source/ui/main_dlg.cpp
-@@ -4821,13 +4821,13 @@ void MainDialog::OnMenuCheckVersionAutomatically(wxCommandEvent& event)
+@@ -5252,13 +5252,13 @@ void MainDialog::OnMenuCheckVersionAutomatically(wxCommandEvent& event)
  
      m_menuItemCheckVersionAuto->Check(updateCheckActive(globalCfg_.gui.lastUpdateCheck));
  
@@ -18,7 +18,7 @@ index 47672d6..74842cd 100755
  }
  
  
-@@ -4836,7 +4836,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
+@@ -5267,7 +5267,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
      //execute just once per startup!
      Disconnect(wxEVT_IDLE, wxIdleEventHandler(MainDialog::OnRegularUpdateCheck), nullptr, this);
  
@@ -27,7 +27,7 @@ index 47672d6..74842cd 100755
      {
          flashStatusInformation(_("Searching for program updates..."));
  
-@@ -4848,7 +4848,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
+@@ -5279,7 +5279,7 @@ void MainDialog::OnRegularUpdateCheck(wxIdleEvent& event)
              automaticUpdateCheckEval(this, globalCfg_.gui.lastUpdateCheck, globalCfg_.gui.lastOnlineVersion,
                                       resultAsync.get()); //run on main thread:
          });

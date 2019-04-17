@@ -1,7 +1,7 @@
 app-id: org.freefilesync.FreeFileSync
 
 runtime: org.gnome.Platform
-runtime-version: '3.26'
+runtime-version: '3.32'
 sdk: org.gnome.Sdk
 command: FreeFileSync
 
@@ -11,7 +11,9 @@ build-options:
 
 cleanup:
   - /include
-  - /lib
+  - /lib/cmake
+  - /lib/debug
+  - /lib/pkgconfig
   - /share/doc
   - '*.la'
   - '*.a'
@@ -36,6 +38,8 @@ modules:
         url: 'https://dl.bintray.com/boostorg/release/1.65.1/source/boost_1_65_1.tar.gz'
         sha256: a13de2c8fbad635e6ba9c8f8714a0e6b4264b60a29b964b940a22554705b6b60
 
+  - shared-modules/gtk2/gtk2.json
+
   - name: wxWidgets
     buildsystem: autotools
     rm-configure: true  # this is supposed to fix building on aarch64
@@ -45,33 +49,46 @@ modules:
       - --with-regex
     sources:
       - type: archive
-        url: 'https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.0/wxWidgets-3.1.0.tar.bz2'
-        sha256: e082460fb6bf14b7dd6e8ac142598d1d3d0b08a7b5ba402fdbf8711da7e66da8
+        url: 'https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.2/wxWidgets-3.1.2.tar.bz2'
+        sha256: 4cb8d23d70f9261debf7d6cfeca667fc0a7d2b6565adb8f1c484f9b674f1f27a
       - type: script  # this is supposed to fix building on aarch64
         dest-filename: autogen.sh
         commands:
           - cp -p /usr/share/automake-*/config.{sub,guess} .
           - autoconf -f -B build/autoconf_prepend-include
 
-  - name: freefilesync
-    buildsystem: simple
-    subdir: FreeFileSync/Source
-    build-commands:
-      - make -j `nproc`
-      - make install
-      - cd RealTimeSync && make -j `nproc`
-      - cd RealTimeSync && make install
-    post-install:
-      - mkdir -p /app/share/applications/
-      - cp ../../*.desktop /app/share/applications/
-      - mkdir -p /app/share/icons/hicolor/128x128/apps/
-      - cp ../../*.png /app/share/icons/hicolor/128x128/apps/
-      - mkdir -p /app/share/appdata
-      - cp ../../*.appdata.xml /app/share/appdata
+  - name: libssh2
+    buildsystem: cmake
+    config-opts:
+      - -DCMAKE_INSTALL_LIBDIR:PATH=/app/lib
+      - -DBUILD_SHARED_LIBS:BOOL=ON
     sources:
       - type: archive
-        url: 'https://www.freefilesync.org/download/FreeFileSync_9.8_Source.zip'
-        sha256: 77a59586284a518d6df6c0cc934c3efa434f247acce70452ab9fe37e7747b96d
+        url: 'https://www.libssh2.org/download/libssh2-1.8.2.tar.gz'
+        sha256: 088307d9f6b6c4b8c13f34602e8ff65d21c2dc4d55284dfe15d502c4ee190d67
+
+  - name: freefilesync
+    buildsystem: simple
+    build-commands:
+      - cd FreeFileSync/Source && make -j `nproc` EXENAME=FreeFileSync
+      - cd FreeFileSync/Source/RealTimeSync && make -j `nproc` EXENAME=RealTimeSync
+    post-install:
+      - mv FreeFileSync/Build /app/FreeFileSync
+      - ln -s /app/FreeFileSync/Bin/FreeFileSync /app/bin/FreeFileSync
+      - ln -s /app/FreeFileSync/Bin/RealTimeSync /app/bin/RealTimeSync
+      - mkdir -p /app/share/applications/
+      - cp *.desktop /app/share/applications/
+      - mkdir -p /app/share/icons/hicolor/128x128/apps/
+      - cp *.png /app/share/icons/hicolor/128x128/apps/
+      - mkdir -p /app/share/appdata
+      - cp *.appdata.xml /app/share/appdata
+    sources:
+      - type: archive
+        # the upstream is terrible, the original URL blocks curl/wget without
+        # a specific user-agent, we need to use a mirror. Original URL:
+        # https://freefilesync.org/download/FreeFileSync_10.11_Source.zip
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.11_Source.zip
+        sha256: ed322ef285d85b1cfaa7d4e6fd4dbcb00c4aaf57003a3cbd35126eaef95a1d37
         strip-components: 0
       - type: patch
         path: patch01-build.patch

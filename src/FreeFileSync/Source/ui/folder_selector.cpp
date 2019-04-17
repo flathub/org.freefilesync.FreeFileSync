@@ -14,19 +14,20 @@
 #include <wx+/image_resources.h>
 #include "../fs/concrete.h"
 #include "../fs/native.h"
-#include "../lib/icon_buffer.h"
+#include "../base/icon_buffer.h"
 
-    //    #include <gtk/gtk.h>
 
+    #include "small_dlgs.h" //includes structures.h, which defines "AFS"
 
 using namespace zen;
 using namespace fff;
 
-    using AFS = AbstractFileSystem;
-
 
 namespace
 {
+const std::chrono::milliseconds FOLDER_SELECTED_EXISTENCE_CHECK_TIME_MAX(200);
+
+
 void setFolderPathPhrase(const Zstring& folderPathPhrase, FolderHistoryBox* comboBox, wxWindow& tooltipWnd, wxStaticText* staticText) //pointers are optional
 {
     if (comboBox)
@@ -35,13 +36,15 @@ void setFolderPathPhrase(const Zstring& folderPathPhrase, FolderHistoryBox* comb
     const Zstring folderPathPhraseFmt = AFS::getInitPathPhrase(createAbstractPath(folderPathPhrase)); //noexcept
     //may block when resolving [<volume name>]
 
-    tooltipWnd.SetToolTip(nullptr); //workaround wxComboBox bug http://trac.wxwidgets.org/ticket/10512 / http://trac.wxwidgets.org/ticket/12659
-    tooltipWnd.SetToolTip(utfTo<wxString>(folderPathPhraseFmt)); //who knows when the real bugfix reaches mere mortals via an official release...
+    if (folderPathPhraseFmt.empty())
+        tooltipWnd.UnsetToolTip(); //wxGTK doesn't allow wxToolTip with empty text!
+    else
+        tooltipWnd.SetToolTip(utfTo<wxString>(folderPathPhraseFmt));
 
     if (staticText)
     {
         //change static box label only if there is a real difference to what is shown in wxTextCtrl anyway
-        staticText->SetLabel(equalFilePath(appendSeparator(trimCpy(folderPathPhrase)), appendSeparator(folderPathPhraseFmt)) ?
+        staticText->SetLabel(equalNoCase(appendSeparator(trimCpy(folderPathPhrase)), appendSeparator(folderPathPhraseFmt)) ?
                              wxString(_("Drag && drop")) : utfTo<wxString>(folderPathPhraseFmt));
     }
 }
@@ -54,12 +57,20 @@ const wxEventType fff::EVENT_ON_FOLDER_SELECTED    = wxNewEventType();
 const wxEventType fff::EVENT_ON_FOLDER_MANUAL_EDIT = wxNewEventType();
 
 
-FolderSelector::FolderSelector(wxWindow&         dropWindow,
+FolderSelector::FolderSelector(wxWindow*         parent,
+                               wxWindow&         dropWindow,
                                wxButton&         selectFolderButton,
                                wxButton&         selectAltFolderButton,
                                FolderHistoryBox& folderComboBox,
                                wxStaticText*     staticText,
-                               wxWindow*         dropWindow2) :
+                               wxWindow*         dropWindow2,
+                               const std::function<bool  (const std::vector<Zstring>& shellItemPaths)>&          droppedPathsFilter,
+                               const std::function<size_t(const Zstring& folderPathPhrase)>&                     getDeviceParallelOps,
+                               const std::function<void  (const Zstring& folderPathPhrase, size_t parallelOps)>& setDeviceParallelOps) :
+    droppedPathsFilter_  (droppedPathsFilter),
+    getDeviceParallelOps_(getDeviceParallelOps),
+    setDeviceParallelOps_(setDeviceParallelOps),
+    parent_(parent),
     dropWindow_(dropWindow),
     dropWindow2_(dropWindow2),
     selectFolderButton_(selectFolderButton),
@@ -67,6 +78,8 @@ FolderSelector::FolderSelector(wxWindow&         dropWindow,
     folderComboBox_(folderComboBox),
     staticText_(staticText)
 {
+    assert(getDeviceParallelOps_);
+
     auto setupDragDrop = [&](wxWindow& dropWin)
     {
         setupFileDrop(dropWin);
@@ -76,7 +89,7 @@ FolderSelector::FolderSelector(wxWindow&         dropWindow,
     setupDragDrop(dropWindow_);
     if (dropWindow2_) setupDragDrop(*dropWindow2_);
 
-    selectAltFolderButton_.Hide();
+    selectAltFolderButton_.SetBitmapLabel(getResourceImage(L"cloud_small"));
 
     //keep dirPicker and dirpath synchronous
     folderComboBox_       .Connect(wxEVT_MOUSEWHEEL,             wxMouseEventHandler  (FolderSelector::onMouseWheel     ), nullptr, this);
@@ -104,7 +117,7 @@ FolderSelector::~FolderSelector()
 
 void FolderSelector::onMouseWheel(wxMouseEvent& event)
 {
-    //for combobox: although switching through available items is wxWidgets default, this is NOT windows default, e.g. explorer
+    //for combobox: although switching through available items is wxWidgets default, this is NOT windows default, e.g. Explorer
     //additionally this will delete manual entries, although all the users wanted is scroll the parent window!
 
     //redirect to parent scrolled window!
@@ -126,7 +139,7 @@ void FolderSelector::onItemPathDropped(FileDropEvent& event)
     if (itemPaths.empty())
         return;
 
-    if (shouldSetDroppedPaths(itemPaths))
+    if (!droppedPathsFilter_ || droppedPathsFilter_(itemPaths))
     {
         auto fmtShellPath = [](const Zstring& shellItemPath)
         {
@@ -134,7 +147,7 @@ void FolderSelector::onItemPathDropped(FileDropEvent& event)
             try
             {
                 if (AFS::getItemType(itemPath) == AFS::ItemType::FILE) //throw FileError
-                    if (Opt<AbstractPath> parentPath = AFS::getParentFolderPath(itemPath))
+                    if (std::optional<AbstractPath> parentPath = AFS::getParentPath(itemPath))
                         return AFS::getInitPathPhrase(*parentPath);
             }
             catch (FileError&) {} //e.g. good for inactive mapped network shares, not so nice for C:\pagefile.sys
@@ -181,7 +194,7 @@ void FolderSelector::onSelectFolder(wxCommandEvent& event)
                 }
                 catch (FileError&) { return false; }
             });
-            return ft.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && ft.get(); //potentially slow network access: wait 200ms at most
+            return ft.wait_for(FOLDER_SELECTED_EXISTENCE_CHECK_TIME_MAX) == std::future_status::ready && ft.get(); //potentially slow network access: wait 200ms at most
         };
 
         const Zstring folderPathPhrase = getPath();
@@ -189,13 +202,12 @@ void FolderSelector::onSelectFolder(wxCommandEvent& event)
         {
             const AbstractPath folderPath = createItemPathNative(folderPathPhrase);
             if (folderExistsTimed(folderPath))
-                if (Opt<Zstring> nativeFolderPath = AFS::getNativeItemPath(folderPath))
+                if (std::optional<Zstring> nativeFolderPath = AFS::getNativeItemPath(folderPath))
                     defaultFolderPath = *nativeFolderPath;
         }
     }
 
-    //wxDirDialog internally uses lame-looking SHBrowseForFolder(); we better use IFileDialog() instead! (remembers size and position!)
-    wxDirDialog dirPicker(&selectFolderButton_, _("Select a folder"), utfTo<wxString>(defaultFolderPath)); //put modal wxWidgets dialogs on stack: creating on freestore leads to memleak!
+    wxDirDialog dirPicker(parent_, _("Select a folder"), utfTo<wxString>(defaultFolderPath)); //put modal wxWidgets dialogs on stack: creating on freestore leads to memleak!
 
     //-> following doesn't seem to do anything at all! still "Show hidden" is available as a context menu option:
     //::gtk_file_chooser_set_show_hidden(GTK_FILE_CHOOSER(dirPicker.m_widget), true /*show_hidden*/);
@@ -214,14 +226,30 @@ void FolderSelector::onSelectFolder(wxCommandEvent& event)
 
 void FolderSelector::onSelectAltFolder(wxCommandEvent& event)
 {
+    Zstring folderPathPhrase = getPath();
+    size_t parallelOps = getDeviceParallelOps_ ? getDeviceParallelOps_(folderPathPhrase) : 1;
+
+    std::optional<std::wstring> parallelOpsDisabledReason;
+
+        parallelOpsDisabledReason = _("Requires FreeFileSync Donation Edition");
+
+    if (showCloudSetupDialog(parent_, folderPathPhrase, parallelOps, get(parallelOpsDisabledReason)) != ReturnSmallDlg::BUTTON_OKAY)
+        return;
+
+    setFolderPathPhrase(folderPathPhrase, &folderComboBox_, folderComboBox_, staticText_);
+
+    if (setDeviceParallelOps_)
+        setDeviceParallelOps_(folderPathPhrase, parallelOps);
+
+    //notify action invoked by user
+    wxCommandEvent dummy(EVENT_ON_FOLDER_SELECTED);
+    ProcessEvent(dummy);
 }
 
 
 Zstring FolderSelector::getPath() const
 {
-    Zstring path = utfTo<Zstring>(folderComboBox_.GetValue());
-
-    return path;
+    return utfTo<Zstring>(folderComboBox_.GetValue());
 }
 
 

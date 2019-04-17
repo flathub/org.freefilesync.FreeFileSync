@@ -7,7 +7,8 @@
 #include "folder_history_box.h"
 #include <list>
 #include <zen/scope_guard.h>
-#include "../lib/resolve_path.h"
+#include <wx+/dc.h>
+#include "../base/resolve_path.h"
     #include <gtk/gtk.h>
 
 using namespace zen;
@@ -27,7 +28,7 @@ FolderHistoryBox::FolderHistoryBox(wxWindow* parent,
     wxComboBox(parent, id, value, pos, size, n, choices, style, validator, name)
 {
     //#####################################
-    /*##*/ SetMinSize(wxSize(150, -1)); //## workaround yet another wxWidgets bug: default minimum size is much too large for a wxComboBox
+    /*##*/ SetMinSize(wxSize(fastFromDIP(150), -1)); //## workaround yet another wxWidgets bug: default minimum size is much too large for a wxComboBox
     //#####################################
 
     Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(FolderHistoryBox::OnKeyEvent), nullptr, this);
@@ -61,8 +62,8 @@ void FolderHistoryBox::setValueAndUpdateList(const wxString& folderPathPhrase)
     //populate selection list....
     std::vector<wxString> dirList;
     {
-        //add some aliases to allow user changing to volume name and back, if possible
-        std::vector<Zstring> aliases = getDirectoryAliases(utfTo<Zstring>(folderPathPhrase)); //may block when resolving [<volume name>]
+        //allow user changing to volume name and back, if possible
+        std::vector<Zstring> aliases = getFolderPathAliases(utfTo<Zstring>(folderPathPhrase)); //may block when resolving [<volume name>]
         std::transform(aliases.begin(), aliases.end(), std::back_inserter(dirList), [](const Zstring& str) { return utfTo<wxString>(str); });
     }
     if (sharedHistory_.get())

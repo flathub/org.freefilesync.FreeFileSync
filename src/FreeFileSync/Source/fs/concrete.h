@@ -11,6 +11,14 @@
 
 namespace fff
 {
+struct AfsConfig
+{
+    Zstring resourceDirPathPf; //directory to read AFS-specific files
+    Zstring configDirPathPf;   //directory to store AFS-specific files
+};
+void initAfs(const AfsConfig& cfg);
+void teardownAfs();
+
 AbstractPath createAbstractPath(const Zstring& itemPathPhrase); //noexcept
 }
 

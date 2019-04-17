@@ -8,49 +8,18 @@
 #include "file_access.h"
 
     #include <sys/stat.h>
-    #include <fcntl.h>  //open, close
-    #include <unistd.h> //read, write
+    #include <fcntl.h>  //open
+    #include <unistd.h> //close, read, write
 
 using namespace zen;
 
 
-namespace
-{
-//- "filePath" could be a named pipe which *blocks* forever for open()!
-//- open() with O_NONBLOCK avoids the block, but opens successfully
-//- create sample pipe: "sudo mkfifo named_pipe"
-void checkForUnsupportedType(const Zstring& filePath) //throw FileError
-{
-    struct ::stat fileInfo = {};
-    if (::stat(filePath.c_str(), &fileInfo) != 0) //follows symlinks
-        return; //let the caller handle errors like "not existing"
-
-    if (!S_ISREG(fileInfo.st_mode) &&
-        !S_ISLNK(fileInfo.st_mode) &&
-        !S_ISDIR(fileInfo.st_mode))
-    {
-        auto getTypeName = [](mode_t m) -> std::wstring
-        {
-            const wchar_t* name =
-            S_ISCHR (m) ? L"character device":
-            S_ISBLK (m) ? L"block device" :
-            S_ISFIFO(m) ? L"FIFO, named pipe" :
-            S_ISSOCK(m) ? L"socket" : nullptr;
-            const std::wstring numFmt = printNumber<std::wstring>(L"0%06o", m & S_IFMT);
-            return name ? numFmt + L", " + name : numFmt;
-        };
-        throw FileError(replaceCpy(_("Type of item %x is not supported:"), L"%x", fmtPath(filePath)) + L" " + getTypeName(fileInfo.st_mode));
-    }
-}
-}
-
-
-    const FileBase::FileHandle FileBase::invalidHandleValue = -1;
+    const FileBase::FileHandle FileBase::invalidHandleValue_ = -1;
 
 
 FileBase::~FileBase()
 {
-    if (fileHandle_ != invalidHandleValue)
+    if (fileHandle_ != invalidHandleValue_)
         try
         {
             close(); //throw FileError
@@ -61,9 +30,9 @@ FileBase::~FileBase()
 
 void FileBase::close() //throw FileError
 {
-    if (fileHandle_ == invalidHandleValue)
+    if (fileHandle_ == invalidHandleValue_)
         throw FileError(replaceCpy(_("Cannot write file %x."), L"%x", fmtPath(getFilePath())), L"Contract error: close() called more than once.");
-    ZEN_ON_SCOPE_EXIT(fileHandle_ = invalidHandleValue);
+    ZEN_ON_SCOPE_EXIT(fileHandle_ = invalidHandleValue_);
 
     //no need to clean-up on failure here (just like there is no clean on FileOutput::write failure!) => FileOutput is not transactional!
 
@@ -77,10 +46,35 @@ namespace
 {
 FileBase::FileHandle openHandleForRead(const Zstring& filePath) //throw FileError, ErrorFileLocked
 {
-    checkForUnsupportedType(filePath); //throw FileError; opening a named pipe would block forever!
+    //- "filePath" could be a named pipe which *blocks* forever for open()!
+    //- open() with O_NONBLOCK avoids the block, but opens successfully
+    //- create sample pipe: "sudo mkfifo named_pipe"
+    struct ::stat fileInfo = {};
+    if (::stat(filePath.c_str(), &fileInfo) == 0) //follows symlinks
+    {
+        if (!S_ISREG(fileInfo.st_mode) &&
+            !S_ISLNK(fileInfo.st_mode) &&
+            !S_ISDIR(fileInfo.st_mode))
+        {
+            const std::wstring typeName = [m = fileInfo.st_mode]
+            {
+                std::wstring name =
+                S_ISCHR (m) ? L"character device" :
+                S_ISBLK (m) ? L"block device" :
+                S_ISFIFO(m) ? L"FIFO, named pipe" :
+                S_ISSOCK(m) ? L"socket" : L"";
+                if (!name.empty())
+                    name += L", ";
+                return name + printNumber<std::wstring>(L"0%06o", m & S_IFMT);
+            }();
+            throw FileError(replaceCpy(_("Cannot open file %x."), L"%x", fmtPath(filePath)),
+                            _("Unsupported item type.") + L" [" + typeName + L"]");
+        }
+    }
+    //else: let ::open() fail for errors like "not existing"
 
     //don't use O_DIRECT: http://yarchive.net/comp/linux/o_direct.html
-    const FileBase::FileHandle fileHandle = ::open(filePath.c_str(), O_RDONLY);
+    const FileBase::FileHandle fileHandle = ::open(filePath.c_str(), O_RDONLY | O_CLOEXEC);
     if (fileHandle == -1) //don't check "< 0" -> docu seems to allow "-2" to be a valid file handle
         THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot open file %x."), L"%x", fmtPath(filePath)), L"open");
     return fileHandle; //pass ownership
@@ -132,7 +126,7 @@ size_t FileInput::tryRead(void* buffer, size_t bytesToRead) //throw FileError, E
 size_t FileInput::read(void* buffer, size_t bytesToRead) //throw FileError, ErrorFileLocked, X; return "bytesToRead" bytes unless end of stream!
 {
     /*
-        FFS 8.9-9.5 perf issues on macOS: https://www.freefilesync.org/forum/viewtopic.php?t=4808
+        FFS 8.9-9.5 perf issues on macOS: https://freefilesync.org/forum/viewtopic.php?t=4808
             app-level buffering is essential to optimize random data sizes; e.g. "export file list":
                 => big perf improvement on Windows, Linux. No significant improvement on macOS in tests
             impact on stream-based file copy:
@@ -148,8 +142,8 @@ size_t FileInput::read(void* buffer, size_t bytesToRead) //throw FileError, Erro
     assert(memBuf_.size() >= blockSize);
     assert(bufPos_ <= bufPosEnd_ && bufPosEnd_ <= memBuf_.size());
 
-    char*       it    = static_cast<char*>(buffer);
-    char* const itEnd = it + bytesToRead;
+    auto       it    = static_cast<std::byte*>(buffer);
+    const auto itEnd = it + bytesToRead;
     for (;;)
     {
         const size_t junkSize = std::min(static_cast<size_t>(itEnd - it), bufPosEnd_ - bufPos_);
@@ -169,7 +163,7 @@ size_t FileInput::read(void* buffer, size_t bytesToRead) //throw FileError, Erro
         if (bytesRead == 0) //end of file
             break;
     }
-    return it - static_cast<char*>(buffer);
+    return it - static_cast<std::byte*>(buffer);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -180,7 +174,7 @@ FileBase::FileHandle openHandleForWrite(const Zstring& filePath, FileOutput::Acc
 {
     //checkForUnsupportedType(filePath); -> not needed, open() + O_WRONLY should fail fast
 
-    const FileBase::FileHandle fileHandle = ::open(filePath.c_str(), O_WRONLY | O_CREAT | (access == FileOutput::ACC_CREATE_NEW ? O_EXCL : O_TRUNC),
+    const FileBase::FileHandle fileHandle = ::open(filePath.c_str(), O_WRONLY | O_CREAT | O_CLOEXEC | (access == FileOutput::ACC_CREATE_NEW ? O_EXCL : O_TRUNC),
                                                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH); //0666
     if (fileHandle == -1)
     {
@@ -203,7 +197,7 @@ FileOutput::FileOutput(FileHandle handle, const Zstring& filePath, const IOCallb
     FileBase(handle, filePath), notifyUnbufferedIO_(notifyUnbufferedIO) {}
 
 
-FileOutput::FileOutput(const Zstring& filePath, AccessFlag access, const IOCallback& notifyUnbufferedIO) :
+FileOutput::FileOutput(AccessFlag access, const Zstring& filePath, const IOCallback& notifyUnbufferedIO) :
     FileBase(openHandleForWrite(filePath, access), filePath), notifyUnbufferedIO_(notifyUnbufferedIO) {} //throw FileError, ErrorTargetExisting
 
 
@@ -253,8 +247,8 @@ void FileOutput::write(const void* buffer, size_t bytesToWrite) //throw FileErro
     assert(memBuf_.size() >= blockSize);
     assert(bufPos_ <= bufPosEnd_ && bufPosEnd_ <= memBuf_.size());
 
-    const char*       it    = static_cast<const char*>(buffer);
-    const char* const itEnd = it + bytesToWrite;
+    auto       it    = static_cast<const std::byte*>(buffer);
+    const auto itEnd = it + bytesToWrite;
     for (;;)
     {
         if (memBuf_.size() - bufPos_ < blockSize) //support memBuf_.size() > blockSize to reduce memmove()s, but perf test shows: not really needed!

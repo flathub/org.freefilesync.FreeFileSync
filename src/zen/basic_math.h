@@ -13,6 +13,7 @@
 #include <cmath>
 #include <functional>
 #include <cassert>
+#include "type_traits.h"
 
 
 namespace numeric
@@ -20,13 +21,7 @@ namespace numeric
 template <class T> T abs(T value);
 template <class T> auto dist(T a, T b);
 template <class T> int sign(T value); //returns one of {-1, 0, 1}
-template <class T> T min(T a, T b, T c);
-template <class T> T max(T a, T b, T c);
 template <class T> bool isNull(T value);
-
-template <class T> void clamp(T& val, T minVal, T maxVal); //make sure minVal <= val && val <= maxVal
-template <class T> T  clampCpy(T val, T minVal, T maxVal);
-//std::clamp() available with C++17
 
 template <class T, class InputIterator> //precondition: range must be sorted!
 auto nearMatch(const T& val, InputIterator first, InputIterator last);
@@ -65,6 +60,7 @@ const double sqrt2 = 1.41421356237309504880;
 const double ln2   = 0.693147180559945309417;
 
 //static_assert(pi + e + sqrt2 + ln2 == 7.9672352249818781, "whoopsie");
+
 //----------------------------------------------------------------------------------
 
 
@@ -83,7 +79,7 @@ const double ln2   = 0.693147180559945309417;
 template <class T> inline
 T abs(T value)
 {
-    //static_assert(std::is_signed<T>::value, "");
+    //static_assert(std::is_signed_v<T>);
     if (value < 0)
         return -value; //operator "?:" caveat: may be different type than "value"
     else
@@ -100,54 +96,9 @@ auto dist(T a, T b) //return type might be different than T, e.g. std::chrono::d
 template <class T> inline
 int sign(T value) //returns one of {-1, 0, 1}
 {
-    static_assert(std::is_signed<T>::value, "");
+    static_assert(std::is_signed_v<T>);
     return value < 0 ? -1 : (value > 0 ? 1 : 0);
 }
-
-
-template <class T> inline
-T min(T a, T b, T c) //don't follow std::min's "const T&(const T&, const T&)" API
-{
-    if (a < b)
-        return a < c ? a : c;
-    else
-        return b < c ? b : c;
-    //return std::min(std::min(a, b), c);
-}
-
-
-template <class T> inline
-T max(T a, T b, T c)
-{
-    if (a > b)
-        return a > c ? a : c;
-    else
-        return b > c ? b : c;
-    //return std::max(std::max(a, b), c);
-}
-
-
-template <class T> inline
-T clampCpy(T val, T minVal, T maxVal)
-{
-    assert(minVal <= maxVal);
-    if (val < minVal)
-        return minVal;
-    else if (val > maxVal)
-        return maxVal;
-    return val;
-}
-
-template <class T> inline
-void clamp(T& val, T minVal, T maxVal)
-{
-    assert(minVal <= maxVal);
-    if (val < minVal)
-        val = minVal;
-    else if (val > maxVal)
-        val = maxVal;
-}
-
 
 /*
 part of C++11 now!
@@ -231,8 +182,8 @@ int64_t round(double d)
 template <class N, class D> inline
 auto integerDivideRoundUp(N numerator, D denominator)
 {
-    static_assert(std::is_integral<N>::value, "");
-    static_assert(std::is_integral<D>::value, "");
+    static_assert(zen::IsInteger<N>::value);
+    static_assert(zen::IsInteger<D>::value);
     assert(numerator > 0 && denominator > 0);
     return (numerator + denominator - 1) / denominator;
 }

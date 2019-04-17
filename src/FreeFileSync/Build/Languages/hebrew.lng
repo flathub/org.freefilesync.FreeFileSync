@@ -58,8 +58,8 @@
 <source>An exception occurred</source>
 <target>אירוע חריג</target>
 
-<source>A directory path is expected after %x.</source>
-<target>נתיב מחיצה נדרש אחרי %x.</target>
+<source>A left and a right directory path are expected after %x.</source>
+<target>נתיב מחיצה שמאלי וימני נדרשים לאחר %x.</target>
 
 <source>Syntax error</source>
 <target>שגיאת תחביר</target>
@@ -72,9 +72,6 @@
 
 <source>File %x does not contain a valid configuration.</source>
 <target>קובץ %x אינו כולל תצורה תקינה.</target>
-
-<source>Unequal number of left and right directories specified.</source>
-<target>מספר בלתי שווה של מחיצות ימין ושמאל צוין.</target>
 
 <source>The config file must not contain settings at directory pair level when directories are set via command line.</source>
 <target>קבצי הקונפיגורציה אינם  יכולים לכלול הגדרות של זוגות מחיצות כאשר מחיצות מוגדרות באמצעות שורת הפקודה.</target>
@@ -97,23 +94,50 @@
 <source>global config file:</source>
 <target>קבצי תצורה גלובליים:</target>
 
-<source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>כל כמות של קבצי FreeFileSync .ffs_gui ו\או קבצי קונפיגורציה .ffs_batch.</target>
+<source>Any number of FreeFileSync "ffs_gui" and/or "ffs_batch" configuration files.</source>
+<target>כל כמות של קבצי FreeFileSync "ffs_gui" ו\או קבצי קונפיגורציה "ffs_batch".</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>כל כמות של זוגות מחיצות אלטרנטיביות עבור קובץ תצורה אחד לפחות.</target>
 
-<source>Open the selected configuration for editing only without executing it.</source>
+<source>Open the selected configuration for editing only, without executing it.</source>
 <target>פתח את התצורה הבאה לעריכה בלבד מבלי להפעיל אותה.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
-<target>נתיב אל קובץ GlobalSettingd.xml אלטרנטיבי.</target>
+<target>נתיב אל קובץ GlobalSettings.xml אלטרנטיבי.</target>
+
+<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
+<target>קבצי ההתקנה פגומים. בבקשה התקן מחדש את FreeFileSync.</target>
+
+<source>Cannot load file %x.</source>
+<target>לא יכול לטעון קובץ %x.</target>
 
 <source>Cannot find the following folders:</source>
 <target>לא יכול למצוא את התיקיות הבאות:</target>
 
-<source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
-<target>אם תתעלם משגיאה זו התיקיות יחשבו כריקות. תיקיות חסרות נוצרות באופן אוטומטי כאשר נדרש.</target>
+<source>The following folders do not yet exist:</source>
+<target>התיקיות הבאות אינן קיימות עדיין:</target>
+
+<source>The folders are created automatically when needed.</source>
+<target>התיקיות נוצרות באופן אוטמטי כאשר נדרש.</target>
+
+<source>The following folder paths differ in case. Please use a single form in order to avoid duplicate accesses.</source>
+<target>נתיביי התיקיות הבאים שונים. בבקשה עשה שימוש בתצורה אחידה כדי להימנע מריבוי גישה.</target>
+
+<source>Scanning:</source>
+<target>סורק:</target>
+
+<source>Comparison finished:</source>
+<target>ההשוואה הסתיימה:</target>
+
+<source>
+<pluralform>1 item found</pluralform>
+<pluralform>%x items found</pluralform>
+</source>
+<target>
+<pluralform>פריט 1 נמצא</pluralform>
+<pluralform>%x פריטים נמצאו</pluralform>
+</target>
 
 <source>File %x has an invalid date.</source>
 <target>קובץ %x מכיל תאריך שגוי.</target>
@@ -132,6 +156,9 @@
 
 <source>Items differ in attributes only</source>
 <target>פריטים שונים בתכונות בלבד</target>
+
+<source>The name %x is used by more than one item in the folder.</source>
+<target>בשם %x נעשה שימוש יותר מפעם אחת בתיקייה.</target>
 
 <source>Resolving symbolic link %x</source>
 <target>פותר קישור סימבולי %x</target>
@@ -160,9 +187,6 @@
 <source>File time tolerance</source>
 <target>אפיצות זמן קובץ</target>
 
-<source>Folder access timeout</source>
-<target>זמן קצוב לגישה לתיייה</target>
-
 <source>Run with background priority</source>
 <target>בצע עם עדיפות רקע</target>
 
@@ -174,9 +198,6 @@
 
 <source>Using non-default global settings:</source>
 <target>משתמש בהגדרות כלליות שאינן ברירת מחדל:</target>
-
-<source>Starting comparison</source>
-<target>מתחיל השוואה</target>
 
 <source>A folder input field is empty.</source>
 <target>שדה קלט תיקייה ריק.</target>
@@ -198,6 +219,63 @@
 
 <source>Out of memory.</source>
 <target>תם הזכרון.</target>
+
+<source>Database file %x is incompatible.</source>
+<target>קובץ מסד נתונים %x אינו במבנה מתאים.</target>
+
+<source>Initial synchronization:</source>
+<target>סנכרון ראשוני:</target>
+
+<source>Database file %x does not yet exist.</source>
+<target>קובץ מסד נתונים %x אינו קיים עדיין.</target>
+
+<source>Database file is corrupted:</source>
+<target>קובץ בסיס נתונים פגום:</target>
+
+<source>Cannot write file %x.</source>
+<target>לא יכול לכתוב קובץ %x.</target>
+
+<source>Cannot read file %x.</source>
+<target>לא יכול לקרוא קובץ %x.</target>
+
+<source>The database files do not yet contain information about the last synchronization.</source>
+<target>קבצי בסיס הנתונים אינם כוללים עדיין מידע על סינכרון אחרון.</target>
+
+<source>Loading file %x...</source>
+<target>טוען קובץ %x...</target>
+
+<source>Saving file %x...</source>
+<target>שומר קובץ %x...</target>
+
+<source>Searching for folder %x...</source>
+<target>מחפש את תיקייה %x...</target>
+
+<source>Timeout while searching for folder %x.</source>
+<target>פקע הזמן עבור חיפוש של תיקייה %x.</target>
+
+<source>Cannot get process information.</source>
+<target>לא יכול לקבל את נתוני התהליך.</target>
+
+<source>Cannot read file attributes of %x.</source>
+<target>לא יכול לקרוא תכונות של קובץ %x.</target>
+
+<source>Waiting while directory is locked:</source>
+<target>ממתין בזמן שהמחיצה נעולה:</target>
+
+<source>Lock owner:</source>
+<target>בעלים נעול:</target>
+
+<source>Detecting abandoned lock...</source>
+<target>מגלה נעילה נטושה...</target>
+
+<source>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+</source>
+<target>
+<pluralform>1 שנייה</pluralform>
+<pluralform>%x שניות</pluralform>
+</target>
 
 <source>Item exists on left side only</source>
 <target>הפריט קיים בצד ימין בלבד</target>
@@ -253,8 +331,239 @@
 <source>Update attributes on right</source>
 <target>עדכן תכונות בצד שמאל</target>
 
-<source>Cannot read file %x.</source>
-<target>לא יכול לקרוא קובץ %x.</target>
+<source>Errors:</source>
+<target>שגיאות:</target>
+
+<source>Warnings:</source>
+<target>אזהרות:</target>
+
+<source>Items processed:</source>
+<target>אלמנטים עובדו:</target>
+
+<source>Items remaining:</source>
+<target>אלמנתים נותרו:</target>
+
+<source>Total time:</source>
+<target>זמן כולל:</target>
+
+<source>Warning</source>
+<target>אזהרה</target>
+
+<source>Stopped</source>
+<target>נעצר</target>
+
+<source>Cleaning up log files:</source>
+<target>מנקה קבצי יומן:</target>
+
+<source>Error parsing file %x, row %y, column %z.</source>
+<target>שגיאה בפענוח קובץ %x, שורה %y, טור %z.</target>
+
+<source>Services</source>
+<target>שרותים</target>
+
+<source>Show All</source>
+<target>הראה הכל</target>
+
+<source>Hide Others</source>
+<target>מסתיר אחרים</target>
+
+<source>Hide %x</source>
+<target>מסתיר %x</target>
+
+<source>Quit %x</source>
+<target>יוצא %x</target>
+
+<source>Cannot set directory locks for the following folders:</source>
+<target>אין אפשרות להגדיר נעילות מחיצה עבור התיקיות הבאות:</target>
+
+<source>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</source>
+<target>
+<pluralform>תהליך 1</pluralform>
+<pluralform>%x תהליכים</pluralform>
+</target>
+
+<source>Cannot read directory %x.</source>
+<target>לא ניתן לקרוא מחיצה %x.</target>
+
+<source>%x/sec</source>
+<target>%x /שניות</target>
+
+<source>%x items</source>
+<target>%x פריטים</target>
+
+<source>Show in Explorer</source>
+<target>הראה בסייר הקבצים</target>
+
+<source>Open with default application</source>
+<target>פתח באמצאות האפליקציה המתאימה</target>
+
+<source>Browse directory</source>
+<target>עיין במחיצה</target>
+
+<source>Unable to connect to %x.</source>
+<target>לא יכול להתחבר אל %x.</target>
+
+<source>Completed successfully</source>
+<target>הסתיים בהצלחה</target>
+
+<source>Completed with warnings</source>
+<target>הסתיים עם אזהרות</target>
+
+<source>Completed with errors</source>
+<target>הסתיים עם שגיאות</target>
+
+<source>Cannot access the Volume Shadow Copy Service.</source>
+<target>לא ניתן לגשת אל שרות Volume Shadow Copy.</target>
+
+<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
+<target>בבקשה הרץ את גירסת 64 סיביות של FreeFileSync כדי ליצור עותקי צל של מערכת זו.</target>
+
+<source>Volume name %x is not part of file path %y.</source>
+<target>כרך בשם %x אינו חלק של נתיב קובץ %y.</target>
+
+<source>File time and size</source>
+<target>זמן וגודל קובץ</target>
+
+<source>File content</source>
+<target>תכולת הקובץ</target>
+
+<source>File size</source>
+<target>גודל קובץ</target>
+
+<source>Two way</source>
+<target>דו כווני</target>
+
+<source>Mirror</source>
+<target>מראה</target>
+
+<source>Update</source>
+<target>שדרג</target>
+
+<source>Custom</source>
+<target>מותאם</target>
+
+<source>Multiple...</source>
+<target>הכפל...</target>
+
+<source>Cannot write file attributes of %x.</source>
+<target>לא יכול לכתוב תכונות קובץ של %x.</target>
+
+<source>Cannot open file %x.</source>
+<target>לא יכול לפתוח קובץ %x.</target>
+
+<source>%x and %y have different content.</source>
+<target>%x ו- %y הם בעלי צוכן שונה.</target>
+
+<source>Data verification error:</source>
+<target>שגיאת בדיקת מידע:</target>
+
+<source>Moving file %x to %y</source>
+<target>מעביר קובץ %x אל %y</target>
+
+<source>Moving folder %x to %y</source>
+<target>מעביר תיקייה %x אל %y</target>
+
+<source>Moving symbolic link %x to %y</source>
+<target>מעביר קישור סימבולי %x אל %y</target>
+
+<source>Updating file %x</source>
+<target>מעדכן קובץ %x</target>
+
+<source>Updating symbolic link %x</source>
+<target>מעדכן קישור סימבולי %x</target>
+
+<source>Verifying file %x</source>
+<target>מאמת קובץ %x</target>
+
+<source>Updating attributes of %x</source>
+<target>מעדכן תכונות של %x</target>
+
+<source>Source item %x not found</source>
+<target>פריט מקור %x לא נמצא</target>
+
+<source>Cannot move file %x to %y.</source>
+<target>לא יכול להעביר קובץ %x אל %y.</target>
+
+<source>Parent folder %x is not existing.</source>
+<target>תיקיית אב %x לא קיימת.</target>
+
+<source>The name %x is already used by another item.</source>
+<target>השם %x כבר בשימוש על ידי פריט אחר.</target>
+
+<source>Cannot copy file %x to %y.</source>
+<target>לא יכול להעתיק קובץ %x  אל %y.</target>
+
+<source>Cannot copy symbolic link %x to %y.</source>
+<target>לא יכול להעתיק קישור סימבולי %x אל %y.</target>
+
+<source>Creating a Volume Shadow Copy for %x...</source>
+<target>מייצר Volume Shadow Copy עבור %x...</target>
+
+<source>Cannot find folder %x.</source>
+<target>לא מוצא תיקייה %x.</target>
+
+<source>Target folder %x already existing.</source>
+<target>תיקיית מטרה %x כבר קיימת.</target>
+
+<source>Target folder input field must not be empty.</source>
+<target>קלט תיקיית מטרה אינה יכול להיות ריק.</target>
+
+<source>Source folder %x not found.</source>
+<target>תיקיית מקור %x לא נמצאת.</target>
+
+<source>Please enter a target folder for versioning.</source>
+<target>בבקשה הזן תיקיית יעד עבור גרסאות.</target>
+
+<source>The following items have unresolved conflicts and will not be synchronized:</source>
+<target>לפריטים הבאים יש קונפליקטים בלתי פתורים והם לא יסונכרנו:</target>
+
+<source>Folder pair:</source>
+<target>זוג תיקיות:</target>
+
+<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
+<target>התיקיות הבאות שונות באופן מהותי. בבקשה בדוק כי נבחרו התיקיות הנכונות לסחנכרון.</target>
+
+<source>Not enough free disk space available in:</source>
+<target>אין מספיק מקום דיסק פנוי ב:</target>
+
+<source>Required:</source>
+<target>נדרש:</target>
+
+<source>Available:</source>
+<target>זמין:</target>
+
+<source>Some files will be synchronized as part of multiple base folders.</source>
+<target>קבצים מסויימים יסונכרנו כחלק מתיקיות בסיס מרובות.</target>
+
+<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
+<target>כדי למנוע התנגשויות, הגדר מסננים לאי הכללת קבצים כך שכל קובץ מעודכן ייחשב על ידי תיקיית בסיס אחת.</target>
+
+<source>Versioning folder:</source>
+<target>תיקיית גרסאות:</target>
+
+<source>Base folder:</source>
+<target>תיקיית בסיס:</target>
+
+<source>The versioning folder is contained in a base folder.</source>
+<target>תיקיית ניהול הגירסאות נמצאת בתיקיית בסיס.</target>
+
+<source>Synchronizing folder pair:</source>
+<target>מסנכרן זוג תיקיות:</target>
+
+<source>Generating database...</source>
+<target>מייצר מסד נתונים...</target>
+
+<source>Searching for old file versions:</source>
+<target>מחפש גרסאות קובץ ישנות:</target>
+
+<source>Removing old file versions:</source>
+<target>מסיר גרסאות קובץ ישנות:</target>
+
+<source>Unable to create time stamp for versioning:</source>
+<target>לא ניתן ליצור תג זמן לגרסאות:</target>
 
 <source>
 Unexpected size of data stream.
@@ -270,47 +579,32 @@ Actual: %y bytes
 <source>Cannot write permissions of %x.</source>
 <target>לא יכול לכתוב הרשאות של %x.</target>
 
-<source>Operation not supported for different base folder types.</source>
-<target>פעולה לא נתמכת עבור סוגים אחרים של תיקית בסיס.</target>
-
-<source>Cannot write file %x.</source>
-<target>לא יכול לכתוב קובץ %x.</target>
-
-<source>Cannot move file %x to %y.</source>
-<target>לא יכול להעביר קובץ %x אל %y.</target>
-
-<source>Cannot copy symbolic link %x to %y.</source>
-<target>לא יכול להעתיק קישור סימבולי %x אל %y.</target>
-
-<source>Unable to connect to %x.</source>
-<target>לא יכול להתחבר אל %x.</target>
-
-<source>Failed to get information about server %x.</source>
-<target>נכשלה קבלת מידע על שרת %x.</target>
-
-<source>Cannot open directory %x.</source>
-<target>לא יכול לפתוח מחיצה %x.</target>
-
-<source>Cannot read directory %x.</source>
-<target>לא ניתן לקרוא מחיצה %x.</target>
-
-<source>Cannot read file attributes of %x.</source>
-<target>לא יכול לקרוא תכונות של קובץ %x.</target>
-
-<source>Cannot create directory %x.</source>
-<target>לא יכול ליצור מחיצה %x.</target>
+<source>Operation not supported between different devices.</source>
+<target>הפעולה אינה נתמכת בין התקנים שונים.</target>
 
 <source>Cannot delete file %x.</source>
 <target>לא יכול למחוק קובץ %x.</target>
 
+<source>Cannot delete symbolic link %x.</source>
+<target>לא ניתן למחוק קישור סימבולי %x.</target>
+
 <source>Cannot delete directory %x.</source>
 <target>לא יכול למחוק מחיצה %x.</target>
+
+<source>Error Code %x</source>
+<target>קוד שגיאה %x</target>
 
 <source>Cannot write modification time of %x.</source>
 <target>לא יכול לרשום זמן שינוי של %x.</target>
 
+<source>Cannot create directory %x.</source>
+<target>לא יכול ליצור מחיצה %x.</target>
+
 <source>Cannot determine final path for %x.</source>
 <target>לא יכול לקבוע את המסלול הסופי ל %x.</target>
+
+<source>Operation not supported by device.</source>
+<target>הפעולה אינה נתמכת על ידי ההתקן.</target>
 
 <source>Cannot resolve symbolic link %x.</source>
 <target>לא יכול לפענח את הקישור הסימבולי %x.</target>
@@ -318,38 +612,50 @@ Actual: %y bytes
 <source>Unable to move %x to the recycle bin.</source>
 <target>לא יכול להעביר את %x לסל המחזור.</target>
 
-<source>Cannot open file %x.</source>
-<target>לא יכול לפתוח קובץ %x.</target>
+<source>Authentication completed.</source>
+<target>האימות הושלם.</target>
 
-<source>Cannot find device %x.</source>
-<target>לא מוצא התקן %x.</target>
+<source>You may close this page now and continue with FreeFileSync.</source>
+<target>אתה יכול לסגור דף זה עכשיו ולהמשיך עם FreeFileSync.</target>
+
+<source>Authentication failed.</source>
+<target>האימות נכשל.</target>
 
 <source>Cannot find %x.</source>
 <target>לא מוצא %x.</target>
 
-<source>Type of item %x is not supported:</source>
-<target>סוג של פריט %x אינו נתמך:</target>
-
-<source>Cannot delete symbolic link %x.</source>
-<target>לא ניתן למחוק קישור סימבולי %x.</target>
+<source>Please authorize access to user account %x.</source>
+<target>בבקשה הרשה גישה לחשבון משתמש %x.</target>
 
 <source>Cannot determine free disk space for %x.</source>
 <target>לא ניתן לקבוע שטח דיסק פנוי עבור %x.</target>
 
-<source>Incorrect command line:</source>
-<target>שורת פקודה לא תקינה:</target>
-
-<source>Error Code %x</source>
-<target>קוד שגיאה %x</target>
-
-<source>The server does not support authentication via %x.</source>
-<target>השרת אינו תומך באימות באמצעות %x.</target>
-
-<source>Required:</source>
-<target>נדרש:</target>
+<source>Unable to disconnect from %x.</source>
+<target>לא ניתן להתנתק מ %x.</target>
 
 <source>Unable to access %x.</source>
 <target>לא ניתן לגשת אל %x.</target>
+
+<source>Failed to get information about server %x.</source>
+<target>נכשלה קבלת מידע על שרת %x.</target>
+
+<source>Cannot monitor directory %x.</source>
+<target>לא יכול לנטר מחיצה %x.</target>
+
+<source>Cannot find device %x.</source>
+<target>לא מוצא התקן %x.</target>
+
+<source>Cannot open directory %x.</source>
+<target>לא יכול לפתוח מחיצה %x.</target>
+
+<source>Unsupported item type.</source>
+<target>סוג פריט לא נתמך.</target>
+
+<source>Incorrect command line:</source>
+<target>שורת פקודה לא תקינה:</target>
+
+<source>The server does not support authentication via %x.</source>
+<target>השרת אינו תומך באימות באמצעות %x.</target>
 
 <source>
 <pluralform>Operation timed out after 1 second.</pluralform>
@@ -375,143 +681,14 @@ Actual: %y bytes
 <source>Failed to open SFTP channel number %x.</source>
 <target>נכשלה פתיחת ערוץ SFTP מספר %x.</target>
 
-<source>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</source>
-<target>
-<pluralform>בית 1</pluralform>
-<pluralform>%x בתים</pluralform>
-</target>
-
-<source>%x MB</source>
-<target>%x מגה בייט</target>
-
-<source>%x KB</source>
-<target>%x קילו בייט</target>
-
-<source>%x GB</source>
-<target>%x גיגה בייט</target>
-
-<source>Cannot load file %x.</source>
-<target>לא יכול לטעון קובץ %x.</target>
-
-<source>Database file %x is incompatible.</source>
-<target>קובץ מסד נתונים %x אינו במבנה מתאים.</target>
-
-<source>Initial synchronization:</source>
-<target>סנכרון ראשוני:</target>
-
-<source>Database file %x does not yet exist.</source>
-<target>קובץ מסד נתונים %x אינו קיים עדיין.</target>
-
-<source>Database file is corrupted:</source>
-<target>קובץ בסיס נתונים פגום:</target>
-
-<source>The database files do not yet contain information about the last synchronization.</source>
-<target>קבצי בסיס הנתונים אינם כוללים עדיין מידע על סינכרון אחרון.</target>
-
-<source>Loading file %x...</source>
-<target>טוען קובץ %x...</target>
-
-<source>Saving file %x...</source>
-<target>שומר קובץ %x...</target>
-
-<source>Searching for folder %x...</source>
-<target>מחפש את תיקייה %x...</target>
-
-<source>Timeout while searching for folder %x.</source>
-<target>פקע הזמן עבור חיפוש של תיקייה %x.</target>
-
-<source>Cannot get process information.</source>
-<target>לא יכול לקבל את נתוני התהליך.</target>
-
-<source>Waiting while directory is locked:</source>
-<target>ממתין בזמן שהמחיצה נעולה:</target>
-
-<source>Lock owner:</source>
-<target>בעלים נעול:</target>
-
-<source>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-</source>
-<target>
-<pluralform>1 שנייה</pluralform>
-<pluralform>%x שניות</pluralform>
-</target>
-
-<source>Detecting abandoned lock...</source>
-<target>מגלה נעילה נטושה...</target>
-
-<source>Items processed:</source>
-<target>אלמנטים עובדו:</target>
-
-<source>Items remaining:</source>
-<target>אלמנתים נותרו:</target>
-
-<source>Total time:</source>
-<target>זמן כולל:</target>
-
-<source>Error parsing file %x, row %y, column %z.</source>
-<target>שגיאה בפענוח קובץ %x, שורה %y, טור %z.</target>
-
-<source>Cannot set directory lock for %x.</source>
-<target>לא ניתן לנעול מחיצה עבור %x.</target>
-
-<source>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</source>
-<target>
-<pluralform>תהליך 1</pluralform>
-<pluralform>%x תהליכים</pluralform>
-</target>
-
-<source>Scanning:</source>
-<target>סורק:</target>
-
-<source>/sec</source>
-<target>/שנ</target>
-
-<source>%x items/sec</source>
-<target>%x פריטים לשניה</target>
-
-<source>Show in Explorer</source>
-<target>הראה בסייר הקבצים</target>
-
-<source>Open with default application</source>
-<target>פתח באמצאות האפליקציה המתאימה</target>
-
-<source>Browse directory</source>
-<target>עיין במחיצה</target>
-
-<source>Cannot access the Volume Shadow Copy Service.</source>
-<target>לא ניתן לגשת אל שרות Volume Shadow Copy.</target>
-
-<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
-<target>בבקשה הרץ את גירסת 64 סיביות של FreeFileSync כדי ליצור עותקי צל של מערכת זו.</target>
-
-<source>Cannot determine volume name for %x.</source>
-<target>לא יכול לקבוע שם אמצעי אחסון %x.</target>
-
-<source>Volume name %x is not part of file path %y.</source>
-<target>כרך בשם %x אינו חלק של נתיב קובץ %y.</target>
-
-<source>Stop requested: Waiting for current operation to finish...</source>
-<target>עצירה התבקשה: מחכה שפעולה נוכחית תסתיים...</target>
-
-<source>Unable to create time stamp for versioning:</source>
-<target>לא ניתן ליצור תג זמן לגרסאות:</target>
-
 <source>Drag && drop</source>
 <target>גרור ושחרר</target>
 
-<source>Cannot find folder %x.</source>
-<target>לא מוצא תיקייה %x.</target>
-
 <source>Select a folder</source>
 <target>בחר תיקייה</target>
+
+<source>&New</source>
+<target>&חדש</target>
 
 <source>&Open...</source>
 <target>&פתח...</target>
@@ -546,8 +723,8 @@ Actual: %y bytes
 <source>3. Press 'Start'.</source>
 <target>3. לחץ 'הפעל'.</target>
 
-<source>To get started just import a .ffs_batch file.</source>
-<target>בכדי להתחיל יבא קובץ .ffs_batch.</target>
+<source>To get started just import a "ffs_batch" file.</source>
+<target>בכדי להתחיל יבא קובץ "ffs_batch".</target>
 
 <source>Folders to watch:</source>
 <target>תיקיות לצפייה:</target>
@@ -602,14 +779,14 @@ The command is triggered if:
 <source>Directory monitoring active</source>
 <target>ניטור מחיצות פעיל</target>
 
-<source>Waiting until all directories are available...</source>
-<target>מחכה עד שכל המחיצות יהיו זמינות...</target>
+<source>Waiting until directory is available:</source>
+<target>מחכה עד שהמחיצה זמינה:</target>
 
 <source>&Restore</source>
 <target>&טען מחדש</target>
 
-<source>&Show error</source>
-<target>&הראה שגיאה</target>
+<source>&Show error message</source>
+<target>&הצג הודעת שגיאה</target>
 
 <source>&Quit</source>
 <target>&יציאה</target>
@@ -617,152 +794,44 @@ The command is triggered if:
 <source>&Retry</source>
 <target>&נסה שנית</target>
 
-<source>File time and size</source>
-<target>זמן וגודל קובץ</target>
+<source>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</source>
+<target>
+<pluralform>בית 1</pluralform>
+<pluralform>%x בתים</pluralform>
+</target>
 
-<source>File content</source>
-<target>תכולת הקובץ</target>
+<source>%x MB</source>
+<target>%x מגה בייט</target>
 
-<source>File size</source>
-<target>גודל קובץ</target>
+<source>%x KB</source>
+<target>%x קילו בייט</target>
 
-<source>Two way</source>
-<target>דו כווני</target>
-
-<source>Mirror</source>
-<target>מראה</target>
-
-<source>Update</source>
-<target>שדרג</target>
-
-<source>Custom</source>
-<target>מותאם</target>
-
-<source>Multiple...</source>
-<target>הכפל...</target>
-
-<source>Moving file %x to %y</source>
-<target>מעביר קובץ %x אל %y</target>
-
-<source>Moving folder %x to %y</source>
-<target>מעביר תיקייה %x אל %y</target>
-
-<source>Moving symbolic link %x to %y</source>
-<target>מעביר קישור סימבולי %x אל %y</target>
-
-<source>Removing old versions...</source>
-<target>מסיר גרסאות ישנות...</target>
-
-<source>Updating file %x</source>
-<target>מעדכן קובץ %x</target>
-
-<source>Updating symbolic link %x</source>
-<target>מעדכן קישור סימבולי %x</target>
-
-<source>Verifying file %x</source>
-<target>מאמת קובץ %x</target>
-
-<source>Updating attributes of %x</source>
-<target>מעדכן תכונות של %x</target>
-
-<source>Cannot write file attributes of %x.</source>
-<target>לא יכול לכתוב תכונות קובץ של %x.</target>
-
-<source>%x and %y have different content.</source>
-<target>%x ו- %y הם בעלי צוכן שונה.</target>
-
-<source>Data verification error:</source>
-<target>שגיאת בדיקת מידע:</target>
-
-<source>Creating a Volume Shadow Copy for %x...</source>
-<target>מייצר Volume Shadow Copy עבור %x...</target>
-
-<source>Target folder %x already existing.</source>
-<target>תיקיית מטרה %x כבר קיימת.</target>
-
-<source>Target folder input field must not be empty.</source>
-<target>קלט תיקיית מטרה אינה יכול להיות ריק.</target>
-
-<source>Source folder %x not found.</source>
-<target>תיקיית מקור %x לא נמצאת.</target>
-
-<source>Please enter a target folder for versioning.</source>
-<target>בבקשה הזן תיקיית יעד עבור גרסאות.</target>
-
-<source>The following items have unresolved conflicts and will not be synchronized:</source>
-<target>לפריטים הבאים יש קונפליקטים בלתי פתורים והם לא יסונכרנו:</target>
-
-<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
-<target>התיקיות הבאות שונות באופן מהותי. בבקשה בדוק כי נבחרו התיקיות הנכונות לסחנכרון.</target>
-
-<source>Not enough free disk space available in:</source>
-<target>אין מספיק מקום דיסק פנוי ב:</target>
-
-<source>Available:</source>
-<target>זמין:</target>
-
-<source>Some files will be synchronized as part of multiple base folders.</source>
-<target>קבצים מסויימים יסונכרנו כחלק מתיקיות בסיס מרובות.</target>
-
-<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
-<target>כדי למנוע התנגשויות, הגדר מסננים לאי הכללת קבצים כך שכל קובץ מעודכן ייחשב על ידי תיקיית בסיס אחת.</target>
-
-<source>Versioning folder:</source>
-<target>תיקיית גרסאות:</target>
-
-<source>Base folder:</source>
-<target>תיקיית בסיס:</target>
-
-<source>The versioning folder is contained in a base folder.</source>
-<target>תיקיית ניהול הגירסאות נמצאת בתיקיית בסיס.</target>
-
-<source>Synchronizing folder pair:</source>
-<target>מסנכרן זוג תיקיות:</target>
-
-<source>Generating database...</source>
-<target>מייצר מסד נתונים...</target>
+<source>%x GB</source>
+<target>%x גיגה בייט</target>
 
 <source>Loading...</source>
 <target>טוען...</target>
 
+<source>Scanning...</source>
+<target>סורק...</target>
+
 <source>job name</source>
 <target>שם משימה</target>
 
-<source>Show summary</source>
-<target>הצג תקציר</target>
+<source>System: Sleep</source>
+<target>מערכת: שינה</target>
 
-<source>Sleep</source>
-<target>שינה</target>
-
-<source>Shut down</source>
-<target>כבה מחשב</target>
-
-<source>Synchronization stopped</source>
-<target>סנכרון הופסק</target>
-
-<source>Stopped</source>
-<target>נעצר</target>
-
-<source>Synchronization completed with errors</source>
-<target>סנכרון הושלם עם שגיאות</target>
-
-<source>Synchronization completed with warnings</source>
-<target>סנכרון הסתיים עם אזהרות</target>
-
-<source>Warning</source>
-<target>אזהרה</target>
+<source>System: Shut down</source>
+<target>מערכת: כיבוי</target>
 
 <source>Nothing to synchronize</source>
 <target>אין מה לסנכרן</target>
 
-<source>Synchronization completed successfully</source>
-<target>סנכרון הסתיים בהצלחה</target>
-
 <source>Executing command %x</source>
 <target>מבצע פקודה %x</target>
-
-<source>Cleaning up old log files...</source>
-<target>מנקה קבצי יומן ישנים...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
 <target>ניתן לעבור לחלון הראשי של FreeFileSync כדי לפתור את הסוגיה הזו.</target>
@@ -779,14 +848,8 @@ The command is triggered if:
 <source>Switching to FreeFileSync's main window</source>
 <target>מעבר אל החלון הראשי של FreeFileSync</target>
 
-<source>
-<pluralform>Automatic retry in 1 second...</pluralform>
-<pluralform>Automatic retry in %x seconds...</pluralform>
-</source>
-<target>
-<pluralform>נסיון מחדש אוטומטי בתוך שניה 1...</pluralform>
-<pluralform>נסיון מחדש אוטומטי בתוך %x שניות...</pluralform>
-</target>
+<source>Automatic retry</source>
+<target>נסיון חוזר באופן אוטומטי</target>
 
 <source>Ignore &all</source>
 <target>התעלם &מהכל</target>
@@ -796,6 +859,30 @@ The command is triggered if:
 
 <source>Serious Error</source>
 <target>שגיאה חמורה</target>
+
+<source>Last session</source>
+<target>פעילות אחרונה</target>
+
+<source>Today</source>
+<target>היום</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 יום</pluralform>
+<pluralform>%x ימים</pluralform>
+</target>
+
+<source>Name</source>
+<target>שם</target>
+
+<source>Last sync</source>
+<target>סינכרון אחרון</target>
+
+<source>Log</source>
+<target>יומן</target>
 
 <source>Folder</source>
 <target>תיקייה</target>
@@ -860,14 +947,20 @@ The command is triggered if:
 <source>Please select a folder on a local file system, network or an MTP device.</source>
 <target>אנא בחר תיקייה במערכת הקבצים המקומית, ברשת או בהתקן MTP.</target>
 
-<source>&New</source>
-<target>&חדש</target>
+<source>Defined by context of use</source>
+<target>מוגדר בהקשר של השימוש</target>
+
+<source>Requires FreeFileSync Donation Edition</source>
+<target>נדרשת מהדורת התרומות של FreeFileSync</target>
 
 <source>&Save</source>
 <target>&שמור</target>
 
 <source>Save as &batch job...</source>
 <target>שמור כעבודת &אצווה...</target>
+
+<source>Show &log</source>
+<target>הצג &יומנים:</target>
 
 <source>Start &comparison</source>
 <target>התחל &והשווה</target>
@@ -929,9 +1022,6 @@ The command is triggered if:
 <source>Access online storage</source>
 <target>גש לאחסון מכוון</target>
 
-<source>Swap sides</source>
-<target>החלף צדדים</target>
-
 <source>Close search bar</source>
 <target>סגור סרגל חיפוש</target>
 
@@ -959,6 +1049,9 @@ The command is triggered if:
 <source>Select view:</source>
 <target>בחר תצוגה:</target>
 
+<source>Save as default</source>
+<target>שמור כברירת מחדל</target>
+
 <source>Statistics:</source>
 <target>סטטיסטיקה:</target>
 
@@ -974,8 +1067,8 @@ The command is triggered if:
 <source>Total bytes to copy</source>
 <target>סה"כ בתים להעתיק</target>
 
-<source>Folder pair:</source>
-<target>זוג תיקיות:</target>
+<source>Arrange folder pair</source>
+<target>סדר זוג תיקיות</target>
 
 <source>Main settings:</source>
 <target>הגדרות ראשיות:</target>
@@ -1010,6 +1103,24 @@ The command is triggered if:
 <source>Handle daylight saving time</source>
 <target>התמודד עם שעון קיץ</target>
 
+<source>Ignore errors</source>
+<target>התעלם משגיאות</target>
+
+<source>Retry count:</source>
+<target>מונה נסיונות חוזרים:</target>
+
+<source>Delay (in seconds):</source>
+<target>השהייה (בשניות):</target>
+
+<source>Performance improvements:</source>
+<target>שיפורים בביצועים:</target>
+
+<source>Parallel file operations:</source>
+<target>פעולות קובץ מקבילות:</target>
+
+<source>How to get best performance?</source>
+<target>כיצד לקבל את הביצועים הטובים ביותר?</target>
+
 <source>Local settings:</source>
 <target>הגדרות מקומיות:</target>
 
@@ -1019,8 +1130,8 @@ The command is triggered if:
 <source>Show examples</source>
 <target>הראה דוגמאות</target>
 
-<source>Time span:</source>
-<target>טווח זמן:</target>
+<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
+<target>בחר כללי סינון כדי לא לכלול קבצים מסוימים בסנכרון. הזן את נתיבי הקבצים ביחס לזוג התיקיות בהתאמה.</target>
 
 <source>File size:</source>
 <target>גודל קובץ:</target>
@@ -1031,8 +1142,8 @@ The command is triggered if:
 <source>Maximum:</source>
 <target>מקסימום:</target>
 
-<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
-<target>בחר כללי סינון כדי לא לכלול קבצים מסוימים בסנכרון. הזן את נתיבי הקבצים ביחס לזוג התיקיות בהתאמה.</target>
+<source>Time span:</source>
+<target>טווח זמן:</target>
 
 <source>C&lear</source>
 <target>א&פס</target>
@@ -1063,29 +1174,41 @@ The command is triggered if:
 <source>&Versioning</source>
 <target>&גרסאות</target>
 
+<source>Move files to a user-defined folder</source>
+<target>העבר קבצים לתיקייה המוגדרת ע"י המפעיל</target>
+
 <source>Naming convention:</source>
 <target>מוסכמות לקביעת שמות:</target>
 
-<source>&Ignore errors</source>
-<target>&התעלם משגיאות</target>
+<source>Limit file versions:</source>
+<target>הגבל גירסאות קובץ:</target>
 
-<source>Show pop-up on errors or warnings</source>
-<target>הראה חלונות מוקפצים עבור שגיאות או אזהרות</target>
+<source>Last x days:</source>
+<target>x ימים אחרונים:</target>
 
-<source>Run a command after synchronization:</source>
-<target>הרץ פקודה לאחר סינכרון:</target>
+<source>&Override default log path:</source>
+<target>&דרוס נתיב ברירת מחדל של יומן:</target>
+
+<source>Run a command:</source>
+<target>הפעל פקודה:</target>
 
 <source>OK</source>
 <target>אשר</target>
 
-<source>Arrange folder pair</source>
-<target>סדר זוג תיקיות</target>
-
-<source>Enter your login details:</source>
-<target>הזן את פרטי הגישה שלך:</target>
-
 <source>Connection type:</source>
 <target>סוג חיבור:</target>
+
+<source>Connected user accounts:</source>
+<target>חשבונות משתמש מחוברים:</target>
+
+<source>&Add connection</source>
+<target>&הוסף חיבור</target>
+
+<source>&Disconnect</source>
+<target>&להתנתק</target>
+
+<source>Selected user account:</source>
+<target>בחר חשבון משתמש:</target>
 
 <source>Server name or IP address:</source>
 <target>שם שרת או כתובת IP:</target>
@@ -1126,14 +1249,8 @@ The command is triggered if:
 <source>Directory on server:</source>
 <target>מחיצה על שרת:</target>
 
-<source>Performance improvements:</source>
-<target>שיפורים בביצועים:</target>
-
-<source>How to get best performance?</source>
-<target>כיצד לקבל את הביצועים הטובים ביותר?</target>
-
-<source>Connections for directory reading:</source>
-<target>חיבורים לקריאת מחיצה:</target>
+<source>Access timeout (in seconds):</source>
+<target>זמן קצוב לתפוגה (בשניות):</target>
 
 <source>SFTP channels per connection:</source>
 <target>ערוצי SFTP לחיבור:</target>
@@ -1141,14 +1258,8 @@ The command is triggered if:
 <source>Detect server limit</source>
 <target>גלה את גבול השרת</target>
 
-<source>Select a directory on the server:</source>
-<target>בחר מחיצה על השרת:</target>
-
 <source>Select Folder</source>
 <target>בחר מחיצה</target>
-
-<source>Start synchronization now?</source>
-<target>האם להתחיל סנכרון עכשיו?</target>
 
 <source>Variant:</source>
 <target>גרסה אחרת:</target>
@@ -1177,11 +1288,11 @@ The command is triggered if:
 <source>Minimize to notification area</source>
 <target>הקטן לאיזור ההתרעות</target>
 
-<source>Bytes copied:</source>
-<target>בתים שהועתקו:</target>
-
 <source>When finished:</source>
 <target>לאחר הסיום:</target>
+
+<source>Auto-close</source>
+<target>סגירה באופן אוטומטי</target>
 
 <source>Close</source>
 <target>סגור</target>
@@ -1195,26 +1306,20 @@ The command is triggered if:
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
 <target>צור קובץ אצווה לסינכרון ללא התערבות מפעיל. כדי להפעיל, הקלק הקלקה כפולה על הקובץ או תזמן במתכנן המשימות: %x</target>
 
+<source>Progress dialog:</source>
+<target>דושיח התקדמות:</target>
+
 <source>Run minimized</source>
 <target>הרץ ממוזער</target>
 
-<source>&Show error dialog</source>
-<target>&הצג דו-שיח שגיאה</target>
+<source>Show pop-up on errors or warnings</source>
+<target>הראה חלונות מוקפצים עבור שגיאות או אזהרות</target>
 
 <source>&Cancel</source>
 <target>&ביטול</target>
 
 <source>Stop synchronization at first error</source>
 <target>עצור סנכרון עם הופעת שגיאה ראשונה</target>
-
-<source>Save log:</source>
-<target>שמור יומן:</target>
-
-<source>Limit:</source>
-<target>מגבלה:</target>
-
-<source>Limit maximum number of log files</source>
-<target>הגבל מספר מכסימלי של קבצי יומן</target>
 
 <source>How can I schedule a batch job?</source>
 <target>כיצד לתזמן משימת אצווה?</target>
@@ -1249,14 +1354,14 @@ This guarantees a consistent state even in case of a serious error.
 <source>Transfer file and folder permissions.</source>
 <target>הרשאות העברת קובץ ותיקייה.</target>
 
-<source>Automatic retry on error:</source>
-<target>נסיון חוזר אוטומטי במקרה שגיאה:</target>
+<source>Show all permanently hidden dialogs and warning messages again</source>
+<target>הראה שוב את כל הדיאלוגים והודאות האזהרה המוסתרים באופן קבוע</target>
 
-<source>Retry count:</source>
-<target>מונה נסיונות חוזרים:</target>
+<source>Default log path:</source>
+<target>נתיב יומן ברירת מחדל:</target>
 
-<source>Delay (in seconds):</source>
-<target>השהייה (בשניות):</target>
+<source>&Delete logs after x days:</source>
+<target>&מחק יומנים לאחר x ימים:</target>
 
 <source>Customize context menu:</source>
 <target>התאמה אישית של תפריט הקשר:</target>
@@ -1264,17 +1369,20 @@ This guarantees a consistent state even in case of a serious error.
 <source>Description</source>
 <target>תאור</target>
 
-<source>Show hidden dialogs again</source>
-<target>הראה שוב דיאלוגים נסתרים</target>
-
-<source>Show all permanently hidden dialogs and warning messages again</source>
-<target>הראה שוב את כל הדיאלוגים והודאות האזהרה המוסתרים באופן קבוע</target>
-
 <source>&Default</source>
 <target>&ברירת מחדל</target>
 
-<source>Source code written in C++ using:</source>
-<target>קוד מקור נכתב ב- C++‎ באמצעות:</target>
+<source>Feedback and suggestions are welcome:</source>
+<target>משוב והצעות יתקבלו בברכה:</target>
+
+<source>Home page</source>
+<target>דף הבית</target>
+
+<source>FreeFileSync Forum</source>
+<target>פורום FreeFileSync</target>
+
+<source>Email</source>
+<target>דוא"ל</target>
 
 <source>If you like FreeFileSync:</source>
 <target>במידה ו-FreeFileSync מוצאת חן בעינכם:</target>
@@ -1282,23 +1390,17 @@ This guarantees a consistent state even in case of a serious error.
 <source>Support with a donation</source>
 <target>תמיכה באמצאות תרומה</target>
 
-<source>Donation details</source>
-<target>פרטי תרומה:</target>
-
 <source>The auto updater was disabled by the administrator.</source>
 <target>עידכון אוטומטי הושבת על ידי מנהל מערכת.</target>
 
-<source>Feedback and suggestions are welcome</source>
-<target>משוב והצעות יתקבלו בברכה</target>
+<source>Donation details</source>
+<target>פרטי תרומה:</target>
 
-<source>Home page</source>
-<target>דף הבית</target>
+<source>Source code written in C++ using:</source>
+<target>קוד מקור נכתב ב- C++‎ באמצעות:</target>
 
-<source>Email</source>
-<target>דוא"ל</target>
-
-<source>Published under the GNU General Public License</source>
-<target>מפורסם במסגרת GNU General Public License</target>
+<source>Published under the GNU General Public License:</source>
+<target>פורסם תחת הרישיון הציבורי הכללי של GNU:</target>
 
 <source>Many thanks for localization:</source>
 <target>תודות עבור תרגום שפות:</target>
@@ -1324,13 +1426,22 @@ This guarantees a consistent state even in case of a serious error.
 <source>Activate offline</source>
 <target>הפעלה בלתי מקוונת</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>הדגש תצורות שלא הופעלו למשך יותר ממספר הימים הבא:</target>
+
+<source>Synchronization Settings</source>
+<target>הגדרות סנכרון</target>
+
+<source>Access Online Storage</source>
+<target>גישה לאחסון מקוון</target>
+
 <source>Save as a Batch Job</source>
 <target>שמור כמשימת אצווה</target>
 
 <source>Delete Items</source>
 <target>מחק פריטים</target>
 
-<source>Copy items</source>
+<source>Copy Items</source>
 <target>העתק פריטים</target>
 
 <source>Options</source>
@@ -1339,8 +1450,17 @@ This guarantees a consistent state even in case of a serious error.
 <source>Select Time Span</source>
 <target>בחר טווח זמן</target>
 
-<source>FreeFileSync Donation Edition</source>
-<target>מהדורת תרומות של FreeFileSync</target>
+<source>Highlight Configurations</source>
+<target>הדגש תצורות</target>
+
+<source>Info</source>
+<target>מידע</target>
+
+<source>No log entries</source>
+<target>אין רשומות יומן</target>
+
+<source>Select all</source>
+<target>בחר הכל</target>
 
 <source>&Options</source>
 <target>&אפשרויות</target>
@@ -1363,6 +1483,9 @@ This guarantees a consistent state even in case of a serious error.
 <source>Overview</source>
 <target>מבט כללי</target>
 
+<source>Swap sides</source>
+<target>החלף צדדים</target>
+
 <source>Show "%x"</source>
 <target>הראה "%x"</target>
 
@@ -1370,10 +1493,7 @@ This guarantees a consistent state even in case of a serious error.
 <target>&הראה פרטים</target>
 
 <source>FreeFileSync %x is available!</source>
-<target>FreeFileSync %x זמין !</target>
-
-<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
-<target>קבצי ההתקנה פגומים. בבקשה התקן מחדש את FreeFileSync.</target>
+<target>FreeFileSync %x זמין!</target>
 
 <source>Local path not available for %x.</source>
 <target>נתיב מקומי לא זמין עבור %x.</target>
@@ -1426,17 +1546,20 @@ This guarantees a consistent state even in case of a serious error.
 <source>multiple selection</source>
 <target>בחירה מרובה</target>
 
-<source>Include via filter:</source>
-<target>כלול באמצעות מסנן:</target>
+<source>&Include via filter:</source>
+<target>&כלול באמצעות מסנן:</target>
 
-<source>Exclude via filter:</source>
-<target>אל תכלול בעזרת סנן:</target>
+<source>&Exclude via filter:</source>
+<target>&אל תכלול באמצעות מסנן:</target>
 
 <source>Include temporarily</source>
 <target>כלול זמנית</target>
 
 <source>Exclude temporarily</source>
 <target>אל תכלול זמנית</target>
+
+<source>&Synchronize selection</source>
+<target>&סנכרן את הבחירה</target>
 
 <source>&Copy to...</source>
 <target>&העתק אל...</target>
@@ -1465,8 +1588,8 @@ This guarantees a consistent state even in case of a serious error.
 <source>Select time span...</source>
 <target>בחר תחום זמן...</target>
 
-<source>Last session</source>
-<target>פעילות אחרונה</target>
+<source>Donation Edition</source>
+<target>מהדורת התרומות</target>
 
 <source>Folder Comparison and Synchronization</source>
 <target>סנכרון קבצים ותיקיות</target>
@@ -1486,8 +1609,11 @@ This guarantees a consistent state even in case of a serious error.
 <source>Do&n't save</source>
 <target>אל &תשמור</target>
 
-<source>Remove entry from list</source>
-<target>הסר פריט מרשימה</target>
+<source>Hide configuration</source>
+<target>הסתר תצורה</target>
+
+<source>Highlight...</source>
+<target>הדגש...</target>
 
 <source>Clear filter</source>
 <target>נקה מסנן</target>
@@ -1537,9 +1663,6 @@ This guarantees a consistent state even in case of a serious error.
 <source>Show filtered or temporarily excluded files</source>
 <target>הראה קבצים שסוננו או לא נכללו זמנית</target>
 
-<source>Save as default</source>
-<target>שמור כברירת מחדל</target>
-
 <source>Filter</source>
 <target>מסנן</target>
 
@@ -1567,23 +1690,14 @@ This guarantees a consistent state even in case of a serious error.
 <source>Paused</source>
 <target>עצור</target>
 
-<source>Initializing...</source>
-<target>מאתחל ...</target>
+<source>Stop requested...</source>
+<target>עצור בקשה...</target>
 
-<source>Scanning...</source>
-<target>סורק...</target>
+<source>Initializing...</source>
+<target>מאתחל...</target>
 
 <source>Comparing content...</source>
 <target>משווה תכולה...</target>
-
-<source>Completed</source>
-<target>הושלם</target>
-
-<source>Info</source>
-<target>מידע</target>
-
-<source>Select all</source>
-<target>בחר הכל</target>
 
 <source>&Continue</source>
 <target>&המשך</target>
@@ -1591,14 +1705,17 @@ This guarantees a consistent state even in case of a serious error.
 <source>Progress</source>
 <target>התקדמות</target>
 
-<source>Log</source>
-<target>יומן</target>
-
 <source>Thank you, %x, for your donation and support!</source>
 <target>תודה לך %x, עבור תרומתך ותמיכתך!</target>
 
+<source>Connections</source>
+<target>קשרים</target>
+
 <source>Recommended range:</source>
 <target>טווח מומלץ:</target>
+
+<source>Do you really want to disconnect from user account %x?</source>
+<target>האם אתה באמת רוצה לנתק את חשבון המשתמש %x?</target>
 
 <source>Password:</source>
 <target>סיסמה:</target>
@@ -1642,6 +1759,12 @@ This guarantees a consistent state even in case of a serious error.
 <pluralform>האם ברצונך למחוק את הפריטים %x הבאים?</pluralform>
 </target>
 
+<source>Start to synchronize the selection?</source>
+<target>התחל לסנכרן את הבחירה?</target>
+
+<source>Start synchronization now?</source>
+<target>האם להתחיל סנכרון עכשיו?</target>
+
 <source>Copy DACL, SACL, Owner, Group</source>
 <target>העתק DACL, SACL, Owner, Group</target>
 
@@ -1660,11 +1783,11 @@ This guarantees a consistent state even in case of a serious error.
 <source>Parameters for opposite side</source>
 <target>פרמטרים עבור צד נגדי</target>
 
-<source>Show hidden dialogs and warning messages again?</source>
-<target>להראות שוב את הדיאלוגים והודעות האזהרה המוסתרים?</target>
+<source>Show hidden dialogs again</source>
+<target>הראה שוב דיאלוגים נסתרים</target>
 
-<source>&Show</source>
-<target>&הראה</target>
+<source>All dialogs shown</source>
+<target>כל תיבות הדו שיח מוצגות</target>
 
 <source>Downloading update...</source>
 <target>מוריד עדכון...</target>
@@ -1690,17 +1813,11 @@ This guarantees a consistent state even in case of a serious error.
 <source>Configure your own synchronization rules.</source>
 <target>סדר את כללי הסנכרון שלך.</target>
 
-<source>Synchronization Settings</source>
-<target>הגדרות סנכרון</target>
-
 <source>Comparison</source>
 <target>השוואה</target>
 
 <source>Synchronization</source>
 <target>סינכרון</target>
-
-<source>Today</source>
-<target>היום</target>
 
 <source>This week</source>
 <target>בשבוע הנוכחי</target>
@@ -1710,9 +1827,6 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>This year</source>
 <target>בשנה הנוכחית</target>
-
-<source>Last x days</source>
-<target>x ימים אחרונים</target>
 
 <source>Byte</source>
 <target>בייט</target>
@@ -1729,9 +1843,6 @@ This guarantees a consistent state even in case of a serious error.
 <source>Delete and overwrite files permanently</source>
 <target>מחק והחלף קבצים לצמיתות</target>
 
-<source>Move files to a user-defined folder</source>
-<target>העבר קבצים לתיקייה המוגדרת ע"י המפעיל</target>
-
 <source>Replace</source>
 <target>החלף</target>
 
@@ -1740,6 +1851,12 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>Time stamp</source>
 <target>תג זמן</target>
+
+<source>Move files into a time-stamped subfolder</source>
+<target>העבר קבצים של תת תיקיה עם חתימת זמן</target>
+
+<source>File</source>
+<target>קובץ</target>
 
 <source>Append a time stamp to each file name</source>
 <target>הוסף חתימת זמן לכל שם קובץ</target>
@@ -1762,17 +1879,14 @@ This guarantees a consistent state even in case of a serious error.
 <source>Leave as unresolved conflict</source>
 <target>השאר כקונפליקט לא מטופל</target>
 
-<source>File</source>
-<target>קובץ</target>
-
 <source>YYYY-MM-DD hhmmss</source>
 <target>YYYY-MM-DD hhmmss</target>
 
+<source>Minimum version count must be smaller than maximum count.</source>
+<target>מונה גירסה מינימלי חייב להיות קטן ממונה גירסה מקסימלי.</target>
+
 <source>Files</source>
 <target>קבצים</target>
-
-<source>Name</source>
-<target>שם</target>
 
 <source>Percentage</source>
 <target>אחוז</target>
@@ -1782,9 +1896,6 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>Automatic updates:</source>
 <target>עדכונים אוטומטיים:</target>
-
-<source>Requires FreeFileSync Donation Edition</source>
-<target>נדרשת מהדורת התרומות של FreeFileSync</target>
 
 <source>Check for Program Updates</source>
 <target>בדוק קיום עדכוני תוכנה</target>
@@ -1828,14 +1939,14 @@ This guarantees a consistent state even in case of a serious error.
 <source>Unable to register to receive system messages.</source>
 <target>לא ניתן להרשם לקבלת הודעות מערכת.</target>
 
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>אפשרת התקנה %x זמינה רק במהדורת תרומות של FreeFileSync.</target>
+
 <source>Cannot find system function %x.</source>
 <target>לא יכול למצוא פונקצית מערכת %x.</target>
 
 <source>Unable to register device notifications for %x.</source>
 <target>לא יכול לרשום הודעות עבור התקן %x.</target>
-
-<source>Cannot monitor directory %x.</source>
-<target>לא יכול לנטר מחיצה %x.</target>
 
 <source>The file is locked by another process:</source>
 <target>הקובץ נעול ע"י תהליך:</target>
@@ -1854,9 +1965,6 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>%x is not a regular directory name.</source>
 <target>%x אינו שם של מחיצה רגילה.</target>
-
-<source>Cannot copy file %x to %y.</source>
-<target>לא יכול להעתיק קובץ %x  אל %y.</target>
 
 <source>Cannot copy attributes from %x to %y.</source>
 <target>לא יכול להעתיק תכונות מ- %x אל %y.</target>
@@ -1885,15 +1993,6 @@ This guarantees a consistent state even in case of a serious error.
 <pluralform>%x שעות</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 יום</pluralform>
-<pluralform>%x ימים</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>לא יכול להגדיר זבות %x.</target>
 
@@ -1908,12 +2007,6 @@ This guarantees a consistent state even in case of a serious error.
 
 <source>Checking recycle bin failed for folder %x.</source>
 <target>בודק כשלון בתא מחזור עבור תיקייה %x.</target>
-
-<source>The following XML elements could not be read:</source>
-<target>לא ניתן לקרוא את רכיבי XML הבאים:</target>
-
-<source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>קובץ תצורה %x אינו שלם. הרכיבים החסרים יוגדרו עם ערכי ברירת המחדל.</target>
 
 <source>Prepare installation</source>
 <target>מכין התקנה</target>
@@ -1930,8 +2023,8 @@ This guarantees a consistent state even in case of a serious error.
 <source>Portable</source>
 <target>נייד</target>
 
-<source>Save settings to "%APPDATA%\FreeFileSync"</source>
-<target>שמור נתונים ל "%APPDATA%\FreeFileSync"</target>
+<source>Save settings in %x</source>
+<target>שמור הגדרות ב%x</target>
 
 <source>Register FreeFileSync file extensions</source>
 <target>רשום את סיומות הקבצים של FreeFileSync.</target>
@@ -1957,8 +2050,11 @@ This guarantees a consistent state even in case of a serious error.
 <source>Desktop</source>
 <target>שולחן עבודה</target>
 
-<source>Start menu</source>
+<source>Start Menu</source>
 <target>תפריט התחל</target>
+
+<source>Send To</source>
+<target>שלח אל</target>
 
 <source>Registering FreeFileSync file extensions</source>
 <target>רושם את סיומות הקבצים של FreeFileSync.</target>
@@ -1981,12 +2077,15 @@ This guarantees a consistent state even in case of a serious error.
 <source>Edit with FreeFileSync</source>
 <target>ערוך עם FreeFileSync</target>
 
+<source>Instead of an ad, here's an animal.</source>
+<target>במקום פרסומת, להלן  חיה.</target>
+
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
 <target>הגירסה הניידת של FreeFileSync אינה ניתנת להתקנה בתת תיקייה של %x.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>בבקשה בחר התקנה מקומית או בחר תיקייה אחרת להתקנה.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>התקנה שקטה אפשרית רק במהדורת התרומות של FreeFileSync.</target>
+<source>Get the Donation Edition with bonus features and help keep FreeFileSync ad-free.</source>
+<target>קבל את מהדורת התרומות עם תכונות נוספות ועזור לשמר את FreeFileSync נטול-פרסומות.</target>
 

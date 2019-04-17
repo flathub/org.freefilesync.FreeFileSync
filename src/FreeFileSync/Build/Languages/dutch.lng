@@ -58,8 +58,8 @@
 <source>An exception occurred</source>
 <target>Er is een uitzondering opgetreden</target>
 
-<source>A directory path is expected after %x.</source>
-<target>Een mappad wordt na %x verwacht.</target>
+<source>A left and a right directory path are expected after %x.</source>
+<target>Een linker en een rechter mappad worden verwacht na %x.</target>
 
 <source>Syntax error</source>
 <target>Syntaxis fout</target>
@@ -72,9 +72,6 @@
 
 <source>File %x does not contain a valid configuration.</source>
 <target>Het bestand %x bevat geen geldige configuratie.</target>
-
-<source>Unequal number of left and right directories specified.</source>
-<target>Ongelijk aantal linker- en rechter- mappen opgegeven.</target>
 
 <source>The config file must not contain settings at directory pair level when directories are set via command line.</source>
 <target>Het configuratiebestand mag geen instellingen op mappaarniveau bevatten, als de mappen via de opdrachtregel zijn ingesteld.</target>
@@ -97,23 +94,50 @@
 <source>global config file:</source>
 <target>globaal configuratiebestand:</target>
 
-<source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>Een willekeurig aantal FreeFileSync. ffs_gui en/of .ffs_batch configuratiebestanden.</target>
+<source>Any number of FreeFileSync "ffs_gui" and/or "ffs_batch" configuration files.</source>
+<target>Een willekeurig aantal FreeFileSync "ffs_gui" en/of "ffs_batch" configuratiebestanden.</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>Een willekeurig aantal alternatieve mapparen voor maximaal een configuratiebestand.</target>
 
-<source>Open the selected configuration for editing only without executing it.</source>
+<source>Open the selected configuration for editing only, without executing it.</source>
 <target>Open de geselecteerde configuratie om deze alleen te bewerken zonder deze uit te voeren.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
 <target>Bestandspad naar plaatsvervangend GlobalSettings.xml bestand.</target>
 
+<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
+<target>Installatiebestanden zijn beschadigd. Installeer FreeFileSync opnieuw.</target>
+
+<source>Cannot load file %x.</source>
+<target>Kan bestand %x niet inlezen.</target>
+
 <source>Cannot find the following folders:</source>
 <target>De volgende mappen konden niet worden gevonden:</target>
 
-<source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
-<target>Indien deze fout wordt genegeerd zullen de mappen als leeg beschouwd worden. Ontbrekende mappen worden automatisch aangemaakt indien nodig.</target>
+<source>The following folders do not yet exist:</source>
+<target>De volgende mappen bestaan nog niet:</target>
+
+<source>The folders are created automatically when needed.</source>
+<target>De mappen worden automatisch gemaakt indien dit nodig is.</target>
+
+<source>The following folder paths differ in case. Please use a single form in order to avoid duplicate accesses.</source>
+<target>De volgende mappaden zijn hoofdlettergevoelig. Gebruik een uniforme vorm om dubbele toegang te voorkomen.</target>
+
+<source>Scanning:</source>
+<target>Scannen:</target>
+
+<source>Comparison finished:</source>
+<target>Vergelijking voltooid:</target>
+
+<source>
+<pluralform>1 item found</pluralform>
+<pluralform>%x items found</pluralform>
+</source>
+<target>
+<pluralform>1 item gevonden</pluralform>
+<pluralform>%x items gevonden</pluralform>
+</target>
 
 <source>File %x has an invalid date.</source>
 <target>Het bestand %x heeft een ongeldige datum.</target>
@@ -132,6 +156,9 @@
 
 <source>Items differ in attributes only</source>
 <target>De items verschillen alleen in de kenmerken</target>
+
+<source>The name %x is used by more than one item in the folder.</source>
+<target>De naam %x wordt gebruikt door meer dan één item in de map.</target>
 
 <source>Resolving symbolic link %x</source>
 <target>Symbolische link %x oplossen</target>
@@ -160,23 +187,17 @@
 <source>File time tolerance</source>
 <target>Tolerantie bestandstijd</target>
 
-<source>Folder access timeout</source>
-<target>Time-out map toegang</target>
-
 <source>Run with background priority</source>
 <target>Uitvoeren met achtergrond prioriteit</target>
 
 <source>Lock directories during sync</source>
-<target>Directories vergrendelen tijdens de synchronisatie</target>
+<target>Mappen vergrendelen tijdens de synchronisatie</target>
 
 <source>Verify copied files</source>
 <target>Controleer de gekopieerde bestanden</target>
 
 <source>Using non-default global settings:</source>
 <target>Het gebruik van niet-standaard algemene instellingen:</target>
-
-<source>Starting comparison</source>
-<target>Start vergelijking</target>
 
 <source>A folder input field is empty.</source>
 <target>Invoerveld van een map is leeg.</target>
@@ -198,6 +219,63 @@
 
 <source>Out of memory.</source>
 <target>Onvoldoende werkgeheugen.</target>
+
+<source>Database file %x is incompatible.</source>
+<target>Databasebestand %x is niet compatibel.</target>
+
+<source>Initial synchronization:</source>
+<target>Initiële synchronisatie:</target>
+
+<source>Database file %x does not yet exist.</source>
+<target>Databasebestand %x bestaat nog niet.</target>
+
+<source>Database file is corrupted:</source>
+<target>Databasebestand is beschadigd:</target>
+
+<source>Cannot write file %x.</source>
+<target>Kan bestand %x niet schrijven.</target>
+
+<source>Cannot read file %x.</source>
+<target>Kan het bestand %x niet lezen.</target>
+
+<source>The database files do not yet contain information about the last synchronization.</source>
+<target>De databasebestanden bevatten nog geen informatie over de laatste synchronisatie.</target>
+
+<source>Loading file %x...</source>
+<target>Laden van bestand %x...</target>
+
+<source>Saving file %x...</source>
+<target>Opslaan van bestand %x...</target>
+
+<source>Searching for folder %x...</source>
+<target>Zoeken naar map %x...</target>
+
+<source>Timeout while searching for folder %x.</source>
+<target>Time-out tijdens het zoeken naar de map %x.</target>
+
+<source>Cannot get process information.</source>
+<target>Kan geen procesinformatie krijgen.</target>
+
+<source>Cannot read file attributes of %x.</source>
+<target>Kan de bestandskenmerken van %x niet lezen.</target>
+
+<source>Waiting while directory is locked:</source>
+<target>Wachten terwijl de map is vergrendeld:</target>
+
+<source>Lock owner:</source>
+<target>Vergrendel eigenaar:</target>
+
+<source>Detecting abandoned lock...</source>
+<target>Opsporen van verlaten vergrendeling...</target>
+
+<source>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+</source>
+<target>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+</target>
 
 <source>Item exists on left side only</source>
 <target>Item bestaat alleen aan de linkerzijde</target>
@@ -253,8 +331,239 @@
 <source>Update attributes on right</source>
 <target>Update kenmerken aan de rechterzijde</target>
 
-<source>Cannot read file %x.</source>
-<target>Kan het bestand %x niet lezen.</target>
+<source>Errors:</source>
+<target>Fouten:</target>
+
+<source>Warnings:</source>
+<target>Waarschuwingen:</target>
+
+<source>Items processed:</source>
+<target>Items verwerkt:</target>
+
+<source>Items remaining:</source>
+<target>Overgebleven items:</target>
+
+<source>Total time:</source>
+<target>Totale tijd:</target>
+
+<source>Warning</source>
+<target>Waarschuwing</target>
+
+<source>Stopped</source>
+<target>Gestopt</target>
+
+<source>Cleaning up log files:</source>
+<target>Logbestanden opschonen:</target>
+
+<source>Error parsing file %x, row %y, column %z.</source>
+<target>Fout bij het analyseren van bestand %x, rij %y, kolom %z.</target>
+
+<source>Services</source>
+<target>Diensten</target>
+
+<source>Show All</source>
+<target>Toon alles</target>
+
+<source>Hide Others</source>
+<target>Verberg anderen</target>
+
+<source>Hide %x</source>
+<target>Verberg %x</target>
+
+<source>Quit %x</source>
+<target>Sluit %x</target>
+
+<source>Cannot set directory locks for the following folders:</source>
+<target>Kan map vergrendelingen niet instellen voor de volgende mappen:</target>
+
+<source>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</source>
+<target>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</target>
+
+<source>Cannot read directory %x.</source>
+<target>Kan de map %x niet lezen.</target>
+
+<source>%x/sec</source>
+<target>%x/sec</target>
+
+<source>%x items</source>
+<target>%x items</target>
+
+<source>Show in Explorer</source>
+<target>In Explorer weergeven</target>
+
+<source>Open with default application</source>
+<target>Openen met standaardtoepassing</target>
+
+<source>Browse directory</source>
+<target>Blader in map</target>
+
+<source>Unable to connect to %x.</source>
+<target>Kan geen verbinding maken met %x.</target>
+
+<source>Completed successfully</source>
+<target>Succesvol voltooid</target>
+
+<source>Completed with warnings</source>
+<target>Voltooid met waarschuwingen</target>
+
+<source>Completed with errors</source>
+<target>Voltooid met fouten</target>
+
+<source>Cannot access the Volume Shadow Copy Service.</source>
+<target>Kan geen toegang krijgen tot de Volume Shadow Copy Service.</target>
+
+<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
+<target>Gelieve de 64-bits versie van FreeFileSync te gebruiken om schaduwkopiën te maken op dit systeem.</target>
+
+<source>Volume name %x is not part of file path %y.</source>
+<target>Volumenaam %x behoort niet tot bestandspad %y.</target>
+
+<source>File time and size</source>
+<target>Datum en grootte bestand</target>
+
+<source>File content</source>
+<target>Bestandsinhoud</target>
+
+<source>File size</source>
+<target>Bestandsgrootte</target>
+
+<source>Two way</source>
+<target>Twee richtingen</target>
+
+<source>Mirror</source>
+<target>Spiegelen</target>
+
+<source>Update</source>
+<target>Bijwerken</target>
+
+<source>Custom</source>
+<target>Aangepast</target>
+
+<source>Multiple...</source>
+<target>Meerdere...</target>
+
+<source>Cannot write file attributes of %x.</source>
+<target>De bestandskenmerken voor %x kunnen niet geschreven worden.</target>
+
+<source>Cannot open file %x.</source>
+<target>Het bestand %x kan niet geopend worden.</target>
+
+<source>%x and %y have different content.</source>
+<target>%x en %y hebben verschillende inhoud.</target>
+
+<source>Data verification error:</source>
+<target>Gegevens verificatiefout:</target>
+
+<source>Moving file %x to %y</source>
+<target>Bestand %x verplaatsen naar %y</target>
+
+<source>Moving folder %x to %y</source>
+<target>Map %x verplaatsen naar %y</target>
+
+<source>Moving symbolic link %x to %y</source>
+<target>Symbolische link %x verplaatsen naar %y</target>
+
+<source>Updating file %x</source>
+<target>Bestand %x bijwerken</target>
+
+<source>Updating symbolic link %x</source>
+<target>Symbolische link %x bijwerken</target>
+
+<source>Verifying file %x</source>
+<target>Controleren van bestand %x</target>
+
+<source>Updating attributes of %x</source>
+<target>Kenmerken van %x bijwerken</target>
+
+<source>Source item %x not found</source>
+<target>Bronitem %x niet gevonden</target>
+
+<source>Cannot move file %x to %y.</source>
+<target>Het bestand %x kan niet naar %y verplaatst worden.</target>
+
+<source>Parent folder %x is not existing.</source>
+<target>Bovenliggende map %x bestaat niet.</target>
+
+<source>The name %x is already used by another item.</source>
+<target>De naam %x wordt al door een ander item gebruikt.</target>
+
+<source>Cannot copy file %x to %y.</source>
+<target>Kan bestand %x niet kopiëren naar %y.</target>
+
+<source>Cannot copy symbolic link %x to %y.</source>
+<target>Kan de symbolische koppeling %x niet kopiëren naar %y.</target>
+
+<source>Creating a Volume Shadow Copy for %x...</source>
+<target>Maken van een volume schaduwkopie voor %x...</target>
+
+<source>Cannot find folder %x.</source>
+<target>Kan de map %x niet vinden.</target>
+
+<source>Target folder %x already existing.</source>
+<target>Doelmap %x bestaat reeds.</target>
+
+<source>Target folder input field must not be empty.</source>
+<target>Het invoerveld van de doelmap moet niet leeg zijn.</target>
+
+<source>Source folder %x not found.</source>
+<target>Bronmap %x niet gevonden.</target>
+
+<source>Please enter a target folder for versioning.</source>
+<target>Voer een doelmap in voor versiebeheer.</target>
+
+<source>The following items have unresolved conflicts and will not be synchronized:</source>
+<target>De volgende items hebben onopgeloste conflicten en zullen niet worden gesynchroniseerd:</target>
+
+<source>Folder pair:</source>
+<target>Map-paar:</target>
+
+<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
+<target>De volgende mappen zijn significant verschillend. Controleer of de juiste mappen zijn geselecteerd voor synchronisatie.</target>
+
+<source>Not enough free disk space available in:</source>
+<target>Er is onvoldoende vrije schijfruimte beschikbaar in:</target>
+
+<source>Required:</source>
+<target>Vereist:</target>
+
+<source>Available:</source>
+<target>Beschikbaar:</target>
+
+<source>Some files will be synchronized as part of multiple base folders.</source>
+<target>Sommige bestanden worden gesynchroniseerd als onderdeel van meerdere basis mappen.</target>
+
+<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
+<target>Om conflicten te voorkomen, filters uitsluitingen zodanig instellen dat elke bijgewerkte bestand wordt beschouwd als slechts één basismap.</target>
+
+<source>Versioning folder:</source>
+<target>Map versiebeheer:</target>
+
+<source>Base folder:</source>
+<target>Basismap:</target>
+
+<source>The versioning folder is contained in a base folder.</source>
+<target>De map versiebeheer bevindt zich in een basismap.</target>
+
+<source>Synchronizing folder pair:</source>
+<target>Synchroniseren van map-paar:</target>
+
+<source>Generating database...</source>
+<target>Genereren database...</target>
+
+<source>Searching for old file versions:</source>
+<target>Naar oude bestandsversies zoeken:</target>
+
+<source>Removing old file versions:</source>
+<target>Oude bestandsversies verwijderen:</target>
+
+<source>Unable to create time stamp for versioning:</source>
+<target>Kan geen tijdstempel maken voor versiebeheer:</target>
 
 <source>
 Unexpected size of data stream.
@@ -270,47 +579,32 @@ Werkelijk: %y bytes
 <source>Cannot write permissions of %x.</source>
 <target>Kan de aangegeven machtigingen van %x niet schrijven.</target>
 
-<source>Operation not supported for different base folder types.</source>
-<target>Deze bewerking wordt niet ondersteund voor verschillende basis maptypen.</target>
-
-<source>Cannot write file %x.</source>
-<target>Kan bestand %x niet schrijven.</target>
-
-<source>Cannot move file %x to %y.</source>
-<target>Het bestand %x kan niet naar %y verplaatst worden.</target>
-
-<source>Cannot copy symbolic link %x to %y.</source>
-<target>Kan de symbolische koppeling %x niet kopiëren naar %y.</target>
-
-<source>Unable to connect to %x.</source>
-<target>Kan geen verbinding maken met %x.</target>
-
-<source>Failed to get information about server %x.</source>
-<target>Fout bij het ophalen van informatie over server %x.</target>
-
-<source>Cannot open directory %x.</source>
-<target>Kan de map %x niet openen.</target>
-
-<source>Cannot read directory %x.</source>
-<target>Kan de map %x niet lezen.</target>
-
-<source>Cannot read file attributes of %x.</source>
-<target>Kan de bestandskenmerken van %x niet lezen.</target>
-
-<source>Cannot create directory %x.</source>
-<target>Kan de map %x niet maken.</target>
+<source>Operation not supported between different devices.</source>
+<target>Bewerking wordt niet ondersteund tussen verschillende apparaten.</target>
 
 <source>Cannot delete file %x.</source>
 <target>Kan bestand %x niet verwijderen.</target>
 
+<source>Cannot delete symbolic link %x.</source>
+<target>Kan de symbolische koppeling %x niet verwijderen.</target>
+
 <source>Cannot delete directory %x.</source>
 <target>De map %x kan niet verwijderd worden.</target>
+
+<source>Error Code %x</source>
+<target>Foutcode %x</target>
 
 <source>Cannot write modification time of %x.</source>
 <target>De modificatie-tijd van %x kan niet geschreven worden.</target>
 
+<source>Cannot create directory %x.</source>
+<target>Kan de map %x niet maken.</target>
+
 <source>Cannot determine final path for %x.</source>
 <target>Kan het uiteindelijke pad voor %x niet bepalen.</target>
+
+<source>Operation not supported by device.</source>
+<target>Bewerking wordt niet ondersteund door het apparaat.</target>
 
 <source>Cannot resolve symbolic link %x.</source>
 <target>Kan de symbolische koppeling %x niet oplossen.</target>
@@ -318,38 +612,50 @@ Werkelijk: %y bytes
 <source>Unable to move %x to the recycle bin.</source>
 <target>Niet in staat om %x naar de prullenbak te verplaatsen.</target>
 
-<source>Cannot open file %x.</source>
-<target>Het bestand %x kan niet geopend worden.</target>
+<source>Authentication completed.</source>
+<target>Authenticatie voltooid.</target>
 
-<source>Cannot find device %x.</source>
-<target>Kan apparaat %x niet vinden.</target>
+<source>You may close this page now and continue with FreeFileSync.</source>
+<target>U kunt deze pagina nu sluiten en doorgaan met FreeFileSync.</target>
+
+<source>Authentication failed.</source>
+<target>Verificatie mislukt.</target>
 
 <source>Cannot find %x.</source>
 <target>Kan %x niet vinden.</target>
 
-<source>Type of item %x is not supported:</source>
-<target>Dit itemtype %x wordt niet ondersteund:</target>
-
-<source>Cannot delete symbolic link %x.</source>
-<target>Kan de symbolische koppeling %x niet verwijderen.</target>
+<source>Please authorize access to user account %x.</source>
+<target>Gelieve toestemming te geven om toegang tot het gebruikersaccount %x.</target>
 
 <source>Cannot determine free disk space for %x.</source>
 <target>Kan de vrije schijfruimte voor %x niet bepalen.</target>
 
-<source>Incorrect command line:</source>
-<target>Onjuiste opdrachtregel:</target>
-
-<source>Error Code %x</source>
-<target>Foutcode %x</target>
-
-<source>The server does not support authentication via %x.</source>
-<target>De server ondersteunt geen verificatie via %x.</target>
-
-<source>Required:</source>
-<target>Vereist:</target>
+<source>Unable to disconnect from %x.</source>
+<target>Kan verbinding van %x niet verbreken.</target>
 
 <source>Unable to access %x.</source>
 <target>Geen toegang tot %x.</target>
+
+<source>Failed to get information about server %x.</source>
+<target>Fout bij het ophalen van informatie over server %x.</target>
+
+<source>Cannot monitor directory %x.</source>
+<target>Kan map %x niet bewaken.</target>
+
+<source>Cannot find device %x.</source>
+<target>Kan apparaat %x niet vinden.</target>
+
+<source>Cannot open directory %x.</source>
+<target>Kan de map %x niet openen.</target>
+
+<source>Unsupported item type.</source>
+<target>Niet-ondersteund item type.</target>
+
+<source>Incorrect command line:</source>
+<target>Onjuiste opdrachtregel:</target>
+
+<source>The server does not support authentication via %x.</source>
+<target>De server ondersteunt geen verificatie via %x.</target>
 
 <source>
 <pluralform>Operation timed out after 1 second.</pluralform>
@@ -375,143 +681,14 @@ Werkelijk: %y bytes
 <source>Failed to open SFTP channel number %x.</source>
 <target>Fout bij het openen van SFTP kanaalnummer %x.</target>
 
-<source>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</source>
-<target>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</target>
-
-<source>%x MB</source>
-<target>%x MB</target>
-
-<source>%x KB</source>
-<target>%x KB</target>
-
-<source>%x GB</source>
-<target>%x GB</target>
-
-<source>Cannot load file %x.</source>
-<target>Kan bestand %x niet inlezen.</target>
-
-<source>Database file %x is incompatible.</source>
-<target>Databasebestand %x is niet compatibel.</target>
-
-<source>Initial synchronization:</source>
-<target>Initiële synchronisatie:</target>
-
-<source>Database file %x does not yet exist.</source>
-<target>Databasebestand %x bestaat nog niet.</target>
-
-<source>Database file is corrupted:</source>
-<target>Databasebestand is beschadigd:</target>
-
-<source>The database files do not yet contain information about the last synchronization.</source>
-<target>De databasebestanden bevatten nog geen informatie over de laatste synchronisatie.</target>
-
-<source>Loading file %x...</source>
-<target>Laden van bestand %x...</target>
-
-<source>Saving file %x...</source>
-<target>Opslaan van bestand %x...</target>
-
-<source>Searching for folder %x...</source>
-<target>Zoeken naar map %x...</target>
-
-<source>Timeout while searching for folder %x.</source>
-<target>Time-out tijdens het zoeken naar de map %x.</target>
-
-<source>Cannot get process information.</source>
-<target>Kan geen procesinformatie krijgen.</target>
-
-<source>Waiting while directory is locked:</source>
-<target>Wachten terwijl de map is vergrendeld:</target>
-
-<source>Lock owner:</source>
-<target>Vergrendel eigenaar:</target>
-
-<source>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-</source>
-<target>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-</target>
-
-<source>Detecting abandoned lock...</source>
-<target>Opsporen van verlaten vergrendeling...</target>
-
-<source>Items processed:</source>
-<target>Items verwerkt:</target>
-
-<source>Items remaining:</source>
-<target>Overgebleven items:</target>
-
-<source>Total time:</source>
-<target>Totale tijd:</target>
-
-<source>Error parsing file %x, row %y, column %z.</source>
-<target>Fout bij het analyseren van bestand %x, rij %y, kolom %z.</target>
-
-<source>Cannot set directory lock for %x.</source>
-<target>De mapvergrendeling voor %x kan niet ingesteld worden.</target>
-
-<source>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</source>
-<target>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</target>
-
-<source>Scanning:</source>
-<target>Scannen:</target>
-
-<source>/sec</source>
-<target>/sec</target>
-
-<source>%x items/sec</source>
-<target>%x items/sec</target>
-
-<source>Show in Explorer</source>
-<target>In Explorer weergeven</target>
-
-<source>Open with default application</source>
-<target>Openen met standaardtoepassing</target>
-
-<source>Browse directory</source>
-<target>Blader in map</target>
-
-<source>Cannot access the Volume Shadow Copy Service.</source>
-<target>Kan geen toegang krijgen tot de Volume Shadow Copy Service.</target>
-
-<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
-<target>Gelieve de 64-bits versie van FreeFileSync te gebruiken om schaduwkopiën te maken op dit systeem.</target>
-
-<source>Cannot determine volume name for %x.</source>
-<target>Kan de volumenaam niet vaststellen voor %x.</target>
-
-<source>Volume name %x is not part of file path %y.</source>
-<target>Volumenaam %x behoort niet tot bestandspad %y.</target>
-
-<source>Stop requested: Waiting for current operation to finish...</source>
-<target>Stoppen gevraagd: wachten totdat de huidige bewerking is voltooid...</target>
-
-<source>Unable to create time stamp for versioning:</source>
-<target>Kan geen tijdstempel maken voor versiebeheer:</target>
-
 <source>Drag && drop</source>
 <target>Slepen && neerzetten</target>
 
-<source>Cannot find folder %x.</source>
-<target>Kan de map %x niet vinden.</target>
-
 <source>Select a folder</source>
 <target>Selecteer een map</target>
+
+<source>&New</source>
+<target>&Nieuw</target>
 
 <source>&Open...</source>
 <target>&Openen...</target>
@@ -546,8 +723,8 @@ Werkelijk: %y bytes
 <source>3. Press 'Start'.</source>
 <target>3. Druk op 'Start'.</target>
 
-<source>To get started just import a .ffs_batch file.</source>
-<target>Om te beginnen gewoon een .ffs_batch-bestand importeren.</target>
+<source>To get started just import a "ffs_batch" file.</source>
+<target>Om te beginnen gewoon een "ffs_batch"-bestand importeren.</target>
 
 <source>Folders to watch:</source>
 <target>Mappen om te bekijken:</target>
@@ -588,7 +765,7 @@ De opdracht wordt geactiveerd als:
 <target>Over</target>
 
 <source>Build: %x</source>
-<target>Build: %x</target>
+<target>Ontwikkeld: %x</target>
 
 <source>All files</source>
 <target>Alle bestanden</target>
@@ -602,14 +779,14 @@ De opdracht wordt geactiveerd als:
 <source>Directory monitoring active</source>
 <target>Mapcontrole actief</target>
 
-<source>Waiting until all directories are available...</source>
-<target>Wacht totdat alle mappen beschikbaar zijn...</target>
+<source>Waiting until directory is available:</source>
+<target>Wachten tot de map beschikbaar is:</target>
 
 <source>&Restore</source>
 <target>&Herstellen</target>
 
-<source>&Show error</source>
-<target>&Toon fout</target>
+<source>&Show error message</source>
+<target>&Toon foutmelding</target>
 
 <source>&Quit</source>
 <target>&Stoppen</target>
@@ -617,152 +794,44 @@ De opdracht wordt geactiveerd als:
 <source>&Retry</source>
 <target>&Probeer opnieuw</target>
 
-<source>File time and size</source>
-<target>Datum en grootte bestand</target>
+<source>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</source>
+<target>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</target>
 
-<source>File content</source>
-<target>Bestandsinhoud</target>
+<source>%x MB</source>
+<target>%x MB</target>
 
-<source>File size</source>
-<target>Bestandsgrootte</target>
+<source>%x KB</source>
+<target>%x KB</target>
 
-<source>Two way</source>
-<target>Twee richtingen</target>
-
-<source>Mirror</source>
-<target>Spiegelen</target>
-
-<source>Update</source>
-<target>Bijwerken</target>
-
-<source>Custom</source>
-<target>Aangepast</target>
-
-<source>Multiple...</source>
-<target>Meerdere...</target>
-
-<source>Moving file %x to %y</source>
-<target>Bestand %x verplaatsen naar %y</target>
-
-<source>Moving folder %x to %y</source>
-<target>Map %x verplaatsen naar %y</target>
-
-<source>Moving symbolic link %x to %y</source>
-<target>Symbolische link %x verplaatsen naar %y</target>
-
-<source>Removing old versions...</source>
-<target>Verwijderen van oude versies...</target>
-
-<source>Updating file %x</source>
-<target>Bestand %x bijwerken</target>
-
-<source>Updating symbolic link %x</source>
-<target>Symbolische link %x bijwerken</target>
-
-<source>Verifying file %x</source>
-<target>Controleren van bestand %x</target>
-
-<source>Updating attributes of %x</source>
-<target>Kenmerken van %x bijwerken</target>
-
-<source>Cannot write file attributes of %x.</source>
-<target>De bestandskenmerken voor %x kunnen niet geschreven worden.</target>
-
-<source>%x and %y have different content.</source>
-<target>%x en %y hebben verschillende inhoud.</target>
-
-<source>Data verification error:</source>
-<target>Gegevens verificatiefout:</target>
-
-<source>Creating a Volume Shadow Copy for %x...</source>
-<target>Maken van een volume schaduwkopie voor %x...</target>
-
-<source>Target folder %x already existing.</source>
-<target>Doelmap %x bestaat reeds.</target>
-
-<source>Target folder input field must not be empty.</source>
-<target>Het invoerveld van de doelmap moet niet leeg zijn.</target>
-
-<source>Source folder %x not found.</source>
-<target>Bronmap %x niet gevonden.</target>
-
-<source>Please enter a target folder for versioning.</source>
-<target>Voer een doelmap in voor versiebeheer.</target>
-
-<source>The following items have unresolved conflicts and will not be synchronized:</source>
-<target>De volgende items hebben onopgeloste conflicten en zullen niet worden gesynchroniseerd:</target>
-
-<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
-<target>De volgende mappen zijn significant verschillend. Controleer of de juiste mappen zijn geselecteerd voor synchronisatie.</target>
-
-<source>Not enough free disk space available in:</source>
-<target>Er is onvoldoende vrije schijfruimte beschikbaar in:</target>
-
-<source>Available:</source>
-<target>Beschikbaar:</target>
-
-<source>Some files will be synchronized as part of multiple base folders.</source>
-<target>Sommige bestanden worden gesynchroniseerd als onderdeel van meerdere basis mappen.</target>
-
-<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
-<target>Om conflicten te voorkomen, filters uitsluitingen zodanig instellen dat elke bijgewerkte bestand wordt beschouwd als slechts één basismap.</target>
-
-<source>Versioning folder:</source>
-<target>Map versiebeheer:</target>
-
-<source>Base folder:</source>
-<target>Basismap:</target>
-
-<source>The versioning folder is contained in a base folder.</source>
-<target>De map versiebeheer bevindt zich in een basismap.</target>
-
-<source>Synchronizing folder pair:</source>
-<target>Synchroniseren van map-paar:</target>
-
-<source>Generating database...</source>
-<target>Genereren database...</target>
+<source>%x GB</source>
+<target>%x GB</target>
 
 <source>Loading...</source>
 <target>Laden...</target>
 
+<source>Scanning...</source>
+<target>Scannen...</target>
+
 <source>job name</source>
 <target>taaknaam</target>
 
-<source>Show summary</source>
-<target>Toon samenvatting</target>
+<source>System: Sleep</source>
+<target>Systeem: Slaapstand</target>
 
-<source>Sleep</source>
-<target>Slaapstand</target>
-
-<source>Shut down</source>
-<target>Uitschakelen</target>
-
-<source>Synchronization stopped</source>
-<target>Synchronisatie gestopt</target>
-
-<source>Stopped</source>
-<target>Gestopt</target>
-
-<source>Synchronization completed with errors</source>
-<target>Synchronisatie met fouten voltooid</target>
-
-<source>Synchronization completed with warnings</source>
-<target>Synchronisatie met waarschuwingen voltooid</target>
-
-<source>Warning</source>
-<target>Waarschuwing</target>
+<source>System: Shut down</source>
+<target>Systeem: Uitschakelen</target>
 
 <source>Nothing to synchronize</source>
 <target>Niets om te synchroniseren</target>
 
-<source>Synchronization completed successfully</source>
-<target>Synchronisatie succesvol voltooid</target>
-
 <source>Executing command %x</source>
 <target>Opdracht %x uitvoeren</target>
-
-<source>Cleaning up old log files...</source>
-<target>Opruimen oude logboekbestanden...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
 <target>U kunt overschakelen naar het hoofdvenster van FreeFileSync om dit probleem op te lossen.</target>
@@ -779,14 +848,8 @@ De opdracht wordt geactiveerd als:
 <source>Switching to FreeFileSync's main window</source>
 <target>Overschakelen naar het hoofdvenster van FreeFileSyncs</target>
 
-<source>
-<pluralform>Automatic retry in 1 second...</pluralform>
-<pluralform>Automatic retry in %x seconds...</pluralform>
-</source>
-<target>
-<pluralform>Automatisch opnieuw proberen in 1 seconde...</pluralform>
-<pluralform>Automatisch opnieuw proberen in %x seconden...</pluralform>
-</target>
+<source>Automatic retry</source>
+<target>Automatisch opnieuw proberen</target>
 
 <source>Ignore &all</source>
 <target>Negeer &alles</target>
@@ -796,6 +859,30 @@ De opdracht wordt geactiveerd als:
 
 <source>Serious Error</source>
 <target>Ernstige fout</target>
+
+<source>Last session</source>
+<target>Laatste sessie</target>
+
+<source>Today</source>
+<target>Vandaag</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 dag</pluralform>
+<pluralform>%x dagen</pluralform>
+</target>
+
+<source>Name</source>
+<target>Naam</target>
+
+<source>Last sync</source>
+<target>Laatste synchronisatie</target>
+
+<source>Log</source>
+<target>Logboek</target>
 
 <source>Folder</source>
 <target>Map</target>
@@ -831,7 +918,7 @@ De opdracht wordt geactiveerd als:
 <target>Lokale vergelijking instellingen</target>
 
 <source>Local synchronization settings</source>
-<target>Lokale synchronisatie-instellingen</target>
+<target>Lokale synchronisatie instellingen</target>
 
 <source>Local filter</source>
 <target>Lokaal filter</target>
@@ -860,14 +947,20 @@ De opdracht wordt geactiveerd als:
 <source>Please select a folder on a local file system, network or an MTP device.</source>
 <target>Selecteer een map op een lokaal bestandssysteem, netwerk of een MTP-apparaat.</target>
 
-<source>&New</source>
-<target>&Nieuw</target>
+<source>Defined by context of use</source>
+<target>Gedefinieerd door de samenhang van het gebruik</target>
+
+<source>Requires FreeFileSync Donation Edition</source>
+<target>Vereist FreeFileSync Donatie Editie</target>
 
 <source>&Save</source>
 <target>&Opslaan</target>
 
 <source>Save as &batch job...</source>
 <target>Opslaan als &batchverwerking...</target>
+
+<source>Show &log</source>
+<target>Bekijk &logbestand</target>
 
 <source>Start &comparison</source>
 <target>Start &vergelijking</target>
@@ -909,7 +1002,7 @@ De opdracht wordt geactiveerd als:
 <target>&Controleren op updates</target>
 
 <source>Check &automatically once a week</source>
-<target>Controleer een keer per week &automatisch</target>
+<target>Controleer eens per week &automatisch</target>
 
 <source>Cancel</source>
 <target>Annuleren</target>
@@ -928,9 +1021,6 @@ De opdracht wordt geactiveerd als:
 
 <source>Access online storage</source>
 <target>Toegang tot online opslag</target>
-
-<source>Swap sides</source>
-<target>Verwisselen van zijden</target>
 
 <source>Close search bar</source>
 <target>Sluit de zoekbalk</target>
@@ -959,6 +1049,9 @@ De opdracht wordt geactiveerd als:
 <source>Select view:</source>
 <target>Selecteer weergave:</target>
 
+<source>Save as default</source>
+<target>Opslaan als standaard</target>
+
 <source>Statistics:</source>
 <target>Statistieken:</target>
 
@@ -974,8 +1067,8 @@ De opdracht wordt geactiveerd als:
 <source>Total bytes to copy</source>
 <target>Totaal aantal te kopiëren bytes</target>
 
-<source>Folder pair:</source>
-<target>Map-paar:</target>
+<source>Arrange folder pair</source>
+<target>Rangschik folder-paar</target>
 
 <source>Main settings:</source>
 <target>Belangrijkste instellingen:</target>
@@ -1010,6 +1103,24 @@ De opdracht wordt geactiveerd als:
 <source>Handle daylight saving time</source>
 <target>Zomertijd gebruiken</target>
 
+<source>Ignore errors</source>
+<target>Negeer fouten</target>
+
+<source>Retry count:</source>
+<target>Probeer opnieuw te tellen:</target>
+
+<source>Delay (in seconds):</source>
+<target>Vertraging (in seconden):</target>
+
+<source>Performance improvements:</source>
+<target>Prestatieverbeteringen:</target>
+
+<source>Parallel file operations:</source>
+<target>Parallelle bestandsbewerkingen:</target>
+
+<source>How to get best performance?</source>
+<target>Hoe kom je aan de beste prestaties?</target>
+
 <source>Local settings:</source>
 <target>Lokale instellingen:</target>
 
@@ -1019,8 +1130,8 @@ De opdracht wordt geactiveerd als:
 <source>Show examples</source>
 <target>Toon voorbeelden</target>
 
-<source>Time span:</source>
-<target>Tijdsduur:</target>
+<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
+<target>Selecteer filterregels om bepaalde bestanden uit te sluiten van synchronisatie. Voer bestandspaden in ten opzichte van hun bijbehorend map-paar.</target>
 
 <source>File size:</source>
 <target>Bestandsgrootte:</target>
@@ -1031,8 +1142,8 @@ De opdracht wordt geactiveerd als:
 <source>Maximum:</source>
 <target>Maximum:</target>
 
-<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
-<target>Selecteer filterregels om bepaalde bestanden uit te sluiten van synchronisatie. Voer bestandspaden in ten opzichte van hun bijbehorend map-paar.</target>
+<source>Time span:</source>
+<target>Tijdsduur:</target>
 
 <source>C&lear</source>
 <target>&Wissen</target>
@@ -1063,29 +1174,41 @@ De opdracht wordt geactiveerd als:
 <source>&Versioning</source>
 <target>&Versiebeheer</target>
 
+<source>Move files to a user-defined folder</source>
+<target>Verplaats bestanden naar een door de gebruiker gedefinieerde map</target>
+
 <source>Naming convention:</source>
 <target>Naamgevingsconventie:</target>
 
-<source>&Ignore errors</source>
-<target>&Negeer fouten</target>
+<source>Limit file versions:</source>
+<target>Beperk bestandsversies:</target>
 
-<source>Show pop-up on errors or warnings</source>
-<target>Toon pop-up bij fouten of waarschuwingen</target>
+<source>Last x days:</source>
+<target>Laatste x dagen:</target>
 
-<source>Run a command after synchronization:</source>
-<target>Voer een opdracht uit na de synchronisatie:</target>
+<source>&Override default log path:</source>
+<target>&Overschrijf standaard logboekpad:</target>
+
+<source>Run a command:</source>
+<target>Voer een opdracht uit:</target>
 
 <source>OK</source>
 <target>OK</target>
 
-<source>Arrange folder pair</source>
-<target>Rangschik folder-paar</target>
-
-<source>Enter your login details:</source>
-<target>Logingegevens invoeren:</target>
-
 <source>Connection type:</source>
 <target>Verbindingstype:</target>
+
+<source>Connected user accounts:</source>
+<target>Verbonden gebruikersaccounts:</target>
+
+<source>&Add connection</source>
+<target>&Verbinding toevoegen</target>
+
+<source>&Disconnect</source>
+<target>&Verbreken</target>
+
+<source>Selected user account:</source>
+<target>Geselecteerde gebruikersaccount:</target>
 
 <source>Server name or IP address:</source>
 <target>Servernaam of IP-adres:</target>
@@ -1118,7 +1241,7 @@ De opdracht wordt geactiveerd als:
 <target>Gebruikersnaam:</target>
 
 <source>Private key file:</source>
-<target>Prive-sleutel bestand:</target>
+<target>Prive sleutelbestand:</target>
 
 <source>&Show password</source>
 <target>&Toon wachtwoord</target>
@@ -1126,14 +1249,8 @@ De opdracht wordt geactiveerd als:
 <source>Directory on server:</source>
 <target>Map op de server:</target>
 
-<source>Performance improvements:</source>
-<target>Prestatieverbeteringen:</target>
-
-<source>How to get best performance?</source>
-<target>Hoe kom je aan de beste prestaties?</target>
-
-<source>Connections for directory reading:</source>
-<target>Verbindingen voor het lezen van mappen:</target>
+<source>Access timeout (in seconds):</source>
+<target>Toegang timeout (in seconden):</target>
 
 <source>SFTP channels per connection:</source>
 <target>SFTP kanalen per verbinding:</target>
@@ -1141,14 +1258,8 @@ De opdracht wordt geactiveerd als:
 <source>Detect server limit</source>
 <target>Gedetecteerd server limiet</target>
 
-<source>Select a directory on the server:</source>
-<target>Selecteer een map op de server:</target>
-
 <source>Select Folder</source>
 <target>Selecteer map</target>
-
-<source>Start synchronization now?</source>
-<target>Synchronisatie nu starten?</target>
 
 <source>Variant:</source>
 <target>Variant:</target>
@@ -1177,11 +1288,11 @@ De opdracht wordt geactiveerd als:
 <source>Minimize to notification area</source>
 <target>Minimaliseren naar systeemvak</target>
 
-<source>Bytes copied:</source>
-<target>Gekopieerde bytes:</target>
-
 <source>When finished:</source>
-<target>Wanneer je gereed bent:</target>
+<target>Indien gereed:</target>
+
+<source>Auto-close</source>
+<target>Automatisch sluiten</target>
 
 <source>Close</source>
 <target>Sluiten</target>
@@ -1195,26 +1306,20 @@ De opdracht wordt geactiveerd als:
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
 <target>Maak een batch-bestand om zonder toezicht te synchroniseren. Om te starten, dubbelklik op het bestand of maak een opdracht in de taakplanner: %x</target>
 
+<source>Progress dialog:</source>
+<target>Voortgangsdialoog:</target>
+
 <source>Run minimized</source>
 <target>Geminimaliseerd uitvoeren</target>
 
-<source>&Show error dialog</source>
-<target>&Toon foutdialoog</target>
+<source>Show pop-up on errors or warnings</source>
+<target>Toon pop-up bij fouten of waarschuwingen</target>
 
 <source>&Cancel</source>
 <target>&Annuleer</target>
 
 <source>Stop synchronization at first error</source>
 <target>Synchronisatie bij eerste fout stoppen</target>
-
-<source>Save log:</source>
-<target>Logbestand opslaan:</target>
-
-<source>Limit:</source>
-<target>Limiet:</target>
-
-<source>Limit maximum number of log files</source>
-<target>Maximaal aantal logboekbestanden limiteren</target>
 
 <source>How can I schedule a batch job?</source>
 <target>Hoe kan ik een batchverwerking plannen?</target>
@@ -1249,14 +1354,14 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Transfer file and folder permissions.</source>
 <target>Overdracht van bestands- en mapmachtigingen.</target>
 
-<source>Automatic retry on error:</source>
-<target>Automatisch opnieuw proberen bij fouten:</target>
+<source>Show all permanently hidden dialogs and warning messages again</source>
+<target>Alle permanent verborgen dialogen en waarschuwingsberichten opnieuw weergeven</target>
 
-<source>Retry count:</source>
-<target>Probeer opnieuw te tellen:</target>
+<source>Default log path:</source>
+<target>Standaard logboek pad:</target>
 
-<source>Delay (in seconds):</source>
-<target>Vertraging (in seconden):</target>
+<source>&Delete logs after x days:</source>
+<target>&Verwijder logboeken na x dagen:</target>
 
 <source>Customize context menu:</source>
 <target>Contextmenu aanpassen:</target>
@@ -1264,17 +1369,20 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Description</source>
 <target>Beschrijving</target>
 
-<source>Show hidden dialogs again</source>
-<target>Verborgen dialoogvensters weergeven</target>
-
-<source>Show all permanently hidden dialogs and warning messages again</source>
-<target>Alle permanent verborgen dialogen en waarschuwingsberichten opnieuw weergeven</target>
-
 <source>&Default</source>
 <target>&Standaard</target>
 
-<source>Source code written in C++ using:</source>
-<target>Broncode werd in C++ geschreven met:</target>
+<source>Feedback and suggestions are welcome:</source>
+<target>Terugkoppeling en suggesties zijn welkom:</target>
+
+<source>Home page</source>
+<target>Startpagina</target>
+
+<source>FreeFileSync Forum</source>
+<target>FreeFileSync Forum</target>
+
+<source>Email</source>
+<target>Email</target>
 
 <source>If you like FreeFileSync:</source>
 <target>Als FreeFileSync je bevalt:</target>
@@ -1282,23 +1390,17 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Support with a donation</source>
 <target>Steunen met een donatie</target>
 
-<source>Donation details</source>
-<target>Donatie details</target>
-
 <source>The auto updater was disabled by the administrator.</source>
 <target>De automatische updater werd uitgeschakeld door de beheerder.</target>
 
-<source>Feedback and suggestions are welcome</source>
-<target>Terugkoppeling en suggesties zijn welkom</target>
+<source>Donation details</source>
+<target>Donatie details</target>
 
-<source>Home page</source>
-<target>Startpagina</target>
+<source>Source code written in C++ using:</source>
+<target>Broncode werd in C++ geschreven met:</target>
 
-<source>Email</source>
-<target>Email</target>
-
-<source>Published under the GNU General Public License</source>
-<target>Gepubliceerd onder de GNU General Public License</target>
+<source>Published under the GNU General Public License:</source>
+<target>Gepubliceerd onder de GNU General Public License:</target>
 
 <source>Many thanks for localization:</source>
 <target>Hartelijk dank voor de lokalisatie:</target>
@@ -1324,14 +1426,23 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Activate offline</source>
 <target>Activeer offline</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Markeer configuraties die niet meer dan het volgende aantal dagen zijn uitgevoerd:</target>
+
+<source>Synchronization Settings</source>
+<target>Synchronisatie instellingen</target>
+
+<source>Access Online Storage</source>
+<target>Toegang Online Opslag</target>
+
 <source>Save as a Batch Job</source>
 <target>Opslaan als een batchverwerking</target>
 
 <source>Delete Items</source>
 <target>Items verwijderen</target>
 
-<source>Copy items</source>
-<target>Kopieer items</target>
+<source>Copy Items</source>
+<target>Items kopiëren</target>
 
 <source>Options</source>
 <target>Opties</target>
@@ -1339,8 +1450,17 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Select Time Span</source>
 <target>Selecteer tijdsduur</target>
 
-<source>FreeFileSync Donation Edition</source>
-<target>FreeFileSync donatie Editie</target>
+<source>Highlight Configurations</source>
+<target>Markeer Configuraties</target>
+
+<source>Info</source>
+<target>Info</target>
+
+<source>No log entries</source>
+<target>Geen vermeldingen in het logboek</target>
+
+<source>Select all</source>
+<target>Alles selecteren</target>
 
 <source>&Options</source>
 <target>&Opties</target>
@@ -1363,6 +1483,9 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Overview</source>
 <target>Overzicht</target>
 
+<source>Swap sides</source>
+<target>Verwisselen van zijden</target>
+
 <source>Show "%x"</source>
 <target>Toon "%x"</target>
 
@@ -1371,9 +1494,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 
 <source>FreeFileSync %x is available!</source>
 <target>FreeFileSync %x is beschikbaar!</target>
-
-<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
-<target>Installatiebestanden zijn beschadigd. Installeer FreeFileSync opnieuw.</target>
 
 <source>Local path not available for %x.</source>
 <target>Lokaal pad niet beschikbaar voor %x.</target>
@@ -1426,17 +1546,20 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>multiple selection</source>
 <target>meervoudige selectie</target>
 
-<source>Include via filter:</source>
-<target>Inclusief via filter:</target>
+<source>&Include via filter:</source>
+<target>Via filter &Toevoegen:</target>
 
-<source>Exclude via filter:</source>
-<target>Uitsluiten via filter:</target>
+<source>&Exclude via filter:</source>
+<target>Via filter &Uitsluiten:</target>
 
 <source>Include temporarily</source>
 <target>Tijdelijk opnemen</target>
 
 <source>Exclude temporarily</source>
 <target>Tijdelijk uitsluiten</target>
+
+<source>&Synchronize selection</source>
+<target>Selectie &synchroniseren</target>
 
 <source>&Copy to...</source>
 <target>&Kopiëren naar...</target>
@@ -1465,8 +1588,8 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Select time span...</source>
 <target>Selecteer tijdsduur...</target>
 
-<source>Last session</source>
-<target>Laatste sessie</target>
+<source>Donation Edition</source>
+<target>Donatie Editie</target>
 
 <source>Folder Comparison and Synchronization</source>
 <target>Map vergelijken en synchroniseren</target>
@@ -1486,8 +1609,11 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Do&n't save</source>
 <target>&Niet opslaan</target>
 
-<source>Remove entry from list</source>
-<target>Vermelding verwijderen uit de lijst</target>
+<source>Hide configuration</source>
+<target>Verberg configuratie</target>
+
+<source>Highlight...</source>
+<target>Markeer...</target>
 
 <source>Clear filter</source>
 <target>Filter wissen</target>
@@ -1537,9 +1663,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Show filtered or temporarily excluded files</source>
 <target>Toon gefilterde of tijdelijk uitgesloten bestanden</target>
 
-<source>Save as default</source>
-<target>Opslaan als standaard</target>
-
 <source>Filter</source>
 <target>Filter</target>
 
@@ -1567,23 +1690,14 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Paused</source>
 <target>Onderbroken</target>
 
+<source>Stop requested...</source>
+<target>Stop gevraagd...</target>
+
 <source>Initializing...</source>
 <target>Initialiseren...</target>
 
-<source>Scanning...</source>
-<target>Scannen...</target>
-
 <source>Comparing content...</source>
 <target>Inhoud vergelijken...</target>
-
-<source>Completed</source>
-<target>Voltooid</target>
-
-<source>Info</source>
-<target>Info</target>
-
-<source>Select all</source>
-<target>Alles selecteren</target>
 
 <source>&Continue</source>
 <target>&Doorgaan</target>
@@ -1591,14 +1705,17 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Progress</source>
 <target>Voortgang</target>
 
-<source>Log</source>
-<target>Logboek</target>
-
 <source>Thank you, %x, for your donation and support!</source>
 <target>Dank u, %x, voor uw donatie en ondersteuning!</target>
 
+<source>Connections</source>
+<target>Verbindingen</target>
+
 <source>Recommended range:</source>
 <target>Aanbevolen bereik:</target>
+
+<source>Do you really want to disconnect from user account %x?</source>
+<target>Wilt u echt de verbinding verbreken met gebruikersaccount %x?</target>
 
 <source>Password:</source>
 <target>Wachtwoord:</target>
@@ -1642,6 +1759,12 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <pluralform>Wilt u de volgende %x items echt verwijderen?</pluralform>
 </target>
 
+<source>Start to synchronize the selection?</source>
+<target>De selectie nu synchroniseren?</target>
+
+<source>Start synchronization now?</source>
+<target>Synchronisatie nu starten?</target>
+
 <source>Copy DACL, SACL, Owner, Group</source>
 <target>Kopiëren DACL, SACL, Eigenaar, Groep</target>
 
@@ -1660,11 +1783,11 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Parameters for opposite side</source>
 <target>Parameters voor de andere kant</target>
 
-<source>Show hidden dialogs and warning messages again?</source>
-<target>Verborgen vensters en waarschuwingsberichten opnieuw weergeven?</target>
+<source>Show hidden dialogs again</source>
+<target>Verborgen dialoogvensters weergeven</target>
 
-<source>&Show</source>
-<target>&Toon</target>
+<source>All dialogs shown</source>
+<target>Alle dialoogvensters worden getoond</target>
 
 <source>Downloading update...</source>
 <target>Downloaden van update...</target>
@@ -1690,17 +1813,11 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Configure your own synchronization rules.</source>
 <target>Configureer uw eigen synchronisatie regels.</target>
 
-<source>Synchronization Settings</source>
-<target>Synchronisatie-instellingen</target>
-
 <source>Comparison</source>
 <target>Vergelijking</target>
 
 <source>Synchronization</source>
 <target>Synchronisatie</target>
-
-<source>Today</source>
-<target>Vandaag</target>
 
 <source>This week</source>
 <target>Deze week</target>
@@ -1710,9 +1827,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 
 <source>This year</source>
 <target>Dit jaar</target>
-
-<source>Last x days</source>
-<target>Laatste x dagen</target>
 
 <source>Byte</source>
 <target>Byte</target>
@@ -1729,9 +1843,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Delete and overwrite files permanently</source>
 <target>Verwijder en overschrijf bestanden permanent</target>
 
-<source>Move files to a user-defined folder</source>
-<target>Verplaats bestanden naar een door de gebruiker gedefinieerde map</target>
-
 <source>Replace</source>
 <target>Vervangen</target>
 
@@ -1740,6 +1851,12 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 
 <source>Time stamp</source>
 <target>Tijdstempel</target>
+
+<source>Move files into a time-stamped subfolder</source>
+<target>Verplaats bestanden naar een submap met tijdstempel</target>
+
+<source>File</source>
+<target>Bestand</target>
 
 <source>Append a time stamp to each file name</source>
 <target>Aan elke bestandsnaam een tijdstempel toevoegen</target>
@@ -1762,17 +1879,14 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Leave as unresolved conflict</source>
 <target>Laten als onopgelost conflict</target>
 
-<source>File</source>
-<target>Bestand</target>
-
 <source>YYYY-MM-DD hhmmss</source>
 <target>JJJJ-MM-DD hhmmss</target>
 
+<source>Minimum version count must be smaller than maximum count.</source>
+<target>Het minimum aantal versies moet kleiner zijn dan het maximale aantal.</target>
+
 <source>Files</source>
 <target>Bestanden</target>
-
-<source>Name</source>
-<target>Naam</target>
 
 <source>Percentage</source>
 <target>Percentage</target>
@@ -1782,9 +1896,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 
 <source>Automatic updates:</source>
 <target>Automatische updates:</target>
-
-<source>Requires FreeFileSync Donation Edition</source>
-<target>Vereist FreeFileSync donatie Editie</target>
 
 <source>Check for Program Updates</source>
 <target>Controleer voor programma-updates</target>
@@ -1820,7 +1931,7 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <target>Installatie was geregistreerd op een ander besturingssysteem.</target>
 
 <source>Failed to activate FreeFileSync Donation Edition.</source>
-<target>Kan de FreeFileSync donatie editie niet activeren.</target>
+<target>Kan de FreeFileSync Donatie Editie niet activeren.</target>
 
 <source>Incorrect activation key.</source>
 <target>Onjuiste activeringssleutel.</target>
@@ -1828,14 +1939,14 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Unable to register to receive system messages.</source>
 <target>Niet in staat om de ontvangen systeemberichten te registreren.</target>
 
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>De %x installatieoptie is alleen beschikbaar in de FreeFileSync Donatie Editie.</target>
+
 <source>Cannot find system function %x.</source>
 <target>Kan de systeemfunctie %x niet vinden.</target>
 
 <source>Unable to register device notifications for %x.</source>
 <target>Niet in staat om apparaat meldingen te registreren voor %x.</target>
-
-<source>Cannot monitor directory %x.</source>
-<target>Kan map %x niet bewaken.</target>
 
 <source>The file is locked by another process:</source>
 <target>Het bestand is vergrendeld door een ander proces:</target>
@@ -1854,9 +1965,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 
 <source>%x is not a regular directory name.</source>
 <target>%x is niet een normale mapnaam.</target>
-
-<source>Cannot copy file %x to %y.</source>
-<target>Kan bestand %x niet kopiëren naar %y.</target>
 
 <source>Cannot copy attributes from %x to %y.</source>
 <target>Kan de attributen van %x niet kopiëren naar %y.</target>
@@ -1885,15 +1993,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <pluralform>%x uren</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 dag</pluralform>
-<pluralform>%x dagen</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Kan geen privileges %x instellen.</target>
 
@@ -1909,12 +2008,6 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Checking recycle bin failed for folder %x.</source>
 <target>Controle van de prullenbak voor map %x is mislukt.</target>
 
-<source>The following XML elements could not be read:</source>
-<target>De volgende XML-elementen kunnen niet worden gelezen:</target>
-
-<source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>Configuratiebestand %x is onvolledig. De ontbrekende elementen worden ingesteld op hun standaardwaarden.</target>
-
 <source>Prepare installation</source>
 <target>Installatie voorbereiden</target>
 
@@ -1928,10 +2021,10 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <target>Lokaal</target>
 
 <source>Portable</source>
-<target>Draagbare</target>
+<target>Mobiele</target>
 
-<source>Save settings to "%APPDATA%\FreeFileSync"</source>
-<target>Instellingen opslaan in "%APPDATA%\FreeFileSync"</target>
+<source>Save settings in %x</source>
+<target>Instellingen opslaan in %x</target>
 
 <source>Register FreeFileSync file extensions</source>
 <target>Registreer FreeFileSync bestands-extensies</target>
@@ -1957,8 +2050,11 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Desktop</source>
 <target>Bureaublad</target>
 
-<source>Start menu</source>
+<source>Start Menu</source>
 <target>Startmenu</target>
+
+<source>Send To</source>
+<target>Verzenden Naar</target>
 
 <source>Registering FreeFileSync file extensions</source>
 <target>Registeren van de FreeFileSync bestands-extensies</target>
@@ -1981,12 +2077,15 @@ Dit garandeert een consistente status zelfs in het geval van een ernstige fout.
 <source>Edit with FreeFileSync</source>
 <target>Bewerken met FreeFileSync</target>
 
+<source>Instead of an ad, here's an animal.</source>
+<target>In plaats van een advertentie is hier een dier.</target>
+
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
-<target>De draagbare versie van FreeFileSync kan niet worden geïnstalleerd in een submap van %x.</target>
+<target>De mobiele versie van FreeFileSync kan niet worden geïnstalleerd in een submap van %x.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Kies voor een lokale installatie of selecteer een andere map voor de installatie.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>De stille installatie-modus is alleen beschikbaar in de FreeFileSync donatie editie.</target>
+<source>Get the Donation Edition with bonus features and help keep FreeFileSync ad-free.</source>
+<target>Ontvang de Donatie Editie met bonuseigenschappen en help FreeFileSync advertentie-vrij te houden.</target>
 

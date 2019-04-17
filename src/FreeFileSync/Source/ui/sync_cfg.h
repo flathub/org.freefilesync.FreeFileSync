@@ -8,7 +8,7 @@
 #define SYNC_CFG_H_31289470134253425
 
 #include <wx/window.h>
-#include "../lib/process_xml.h"
+#include "../base/structures.h"
 
 
 namespace fff
@@ -24,34 +24,39 @@ struct ReturnSyncConfig
 
 enum class SyncConfigPanel
 {
-    COMPARISON = 0, //
-    FILTER     = 1, //used as zero-based notebook page index!
-    SYNC       = 2, //
+    COMPARISON = 0, //used as zero-based notebook page index!
+    FILTER,
+    SYNC
 };
 
-struct LocalPairConfig
+struct MiscSyncConfig
 {
-    Zstring folderPairName; //read-only!
-    std::shared_ptr<const CompConfig> altCmpConfig;  //optional
-    std::shared_ptr<const SyncConfig> altSyncConfig; //
-    FilterConfig localFilter;
+    std::map<AfsDevice, size_t> deviceParallelOps;
+    bool ignoreErrors = false;
+    size_t automaticRetryCount = 0;
+    std::chrono::seconds automaticRetryDelay{0};
+    Zstring altLogFolderPathPhrase;
+    Zstring postSyncCommand;
+    PostSyncCondition postSyncCondition = PostSyncCondition::COMPLETION;
+    std::vector<Zstring> commandHistory;
+};
+
+struct GlobalPairConfig
+{
+    CompConfig     cmpCfg;
+    SyncConfig     syncCfg;
+    FilterConfig   filter;
+    MiscSyncConfig miscCfg;
 };
 
 
 ReturnSyncConfig::ButtonPressed showSyncConfigDlg(wxWindow* parent,
                                                   SyncConfigPanel panelToShow,
                                                   int localPairIndexToShow, //< 0 to show global config
+                                                  bool showMultipleCfgs,
 
-                                                  std::vector<LocalPairConfig>& folderPairConfig,
-
-                                                  CompConfig&   globalCmpConfig,
-                                                  SyncConfig&   globalSyncCfg,
-                                                  FilterConfig& globalFilter,
-
-                                                  bool& ignoreErrors,
-                                                  Zstring& postSyncCommand,
-                                                  PostSyncCondition& postSyncCondition,
-                                                  std::vector<Zstring>& commandHistory,
+                                                  GlobalPairConfig&             globalPairCfg,
+                                                  std::vector<LocalPairConfig>& localPairConfig,
 
                                                   size_t commandHistoryMax);
 }

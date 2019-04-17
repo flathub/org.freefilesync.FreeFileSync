@@ -10,122 +10,124 @@
 #include <functional>
 #include <zen/file_error.h>
 #include <zen/zstring.h>
-#include <zen/optional.h>
 #include <zen/serialize.h> //InputStream/OutputStream support buffered stream concept
-#include "../lib/icon_holder.h"
+#include <wx+/image_holder.h> //NOT a wxWidgets dependency!
 
 
 namespace fff
 {
-struct AbstractFileSystem;
-
 bool isValidRelPath(const Zstring& relPath);
 
+struct AbstractFileSystem;
+
 //==============================================================================================================
-struct AfsPath //= path relative (no leading/traling separator) to the file system root folder
+using AfsDevice = zen::SharedRef<const AbstractFileSystem>;
+
+struct AfsPath //= path relative to the file system root folder (no leading/traling separator)
 {
+    AfsPath() {}
     explicit AfsPath(const Zstring& p) : value(p) { assert(isValidRelPath(value)); }
     Zstring value;
 };
 
-class AbstractPath //THREAD-SAFETY: like an int!
+struct AbstractPath //THREAD-SAFETY: like an int!
 {
-public:
-    AbstractPath(const std::shared_ptr<const AbstractFileSystem>& afsIn, const AfsPath& afsPathIn) : afs(afsIn), afsPath(afsPathIn) {}
+    AbstractPath(const AfsDevice& afsIn, const AfsPath& afsPathIn) : afsDevice(afsIn), afsPath(afsPathIn) {}
 
-    //template <class T1, class T2> -> don't use forwarding constructor! => it circumvents AfsPath's explicit constructor
-    //AbstractPath(T1&& afsIn, T2&& afsPathIn) : afs(std::forward<T1>(afsIn)), afsPath(std::forward<T2>(afsPathIn)) { assert(isValidRelPath(afsPathIn)); }
+    //template <class T1, class T2> -> don't use forwarding constructor: it circumvents AfsPath's explicit constructor!
+    //AbstractPath(T1&& afsIn, T2&& afsPathIn) : afsDevice(std::forward<T1>(afsIn)), afsPath(std::forward<T2>(afsPathIn)) {}
 
-private:
-    friend struct AbstractFileSystem;
-
-    std::shared_ptr<const AbstractFileSystem> afs; //always bound; "const AbstractFileSystem" => all accesses expected to be thread-safe!!!
-    AfsPath afsPath;
+    AfsDevice afsDevice; //"const AbstractFileSystem" => all accesses expected to be thread-safe!!!
+    AfsPath afsPath; //relative to device root
 };
 //==============================================================================================================
 
 struct AbstractFileSystem //THREAD-SAFETY: "const" member functions must model thread-safe access!
 {
-    static int compareAbstractPath(const AbstractPath& lhs, const AbstractPath& rhs);
+    //=============== convenience =================
+    static Zstring getItemName(const AbstractPath& ap) { assert(getParentPath(ap)); return getItemName(ap.afsPath); }
+    static Zstring getItemName(const AfsPath& afsPath) { using namespace zen; return afterLast(afsPath.value, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL); }
 
-    struct LessAbstractPath
-    {
-        bool operator()(const AbstractPath& lhs, const AbstractPath& rhs) const { return compareAbstractPath(lhs, rhs) < 0; }
-    };
-
-    static bool equalAbstractPath(const AbstractPath& lhs, const AbstractPath& rhs) { return compareAbstractPath(lhs, rhs) == 0; }
-
-    static Zstring getInitPathPhrase(const AbstractPath& ap) { return ap.afs->getInitPathPhrase(ap.afsPath); }
-
-    static std::wstring getDisplayPath(const AbstractPath& ap) { return ap.afs->getDisplayPath(ap.afsPath); }
-
-    static bool isNullPath(const AbstractPath& ap) { return ap.afs->isNullFileSystem() /*&& ap.afsPath.value.empty()*/; }
+    static bool isNullPath(const AbstractPath& ap) { return isNullDevice(ap.afsDevice) /*&& ap.afsPath.value.empty()*/; }
 
     static AbstractPath appendRelPath(const AbstractPath& ap, const Zstring& relPath);
 
-    static Zstring getItemName(const AbstractPath& ap) { assert(getParentFolderPath(ap)); return getItemName(ap.afsPath); }
+    static std::optional<AbstractPath> getParentPath(const AbstractPath& ap);
+    static std::optional<AfsPath>      getParentPath(const AfsPath& afsPath);
+    //=============================================
 
-    static zen::Opt<Zstring> getNativeItemPath(const AbstractPath& ap) { return ap.afs->getNativeItemPath(ap.afsPath); }
+    static int compareDevice(const AbstractFileSystem& lhs, const AbstractFileSystem& rhs);
 
-    static zen::Opt<AbstractPath> getParentFolderPath(const AbstractPath& ap);
+    static int comparePath(const AbstractPath& lhs, const AbstractPath& rhs);
 
-    struct PathComponents
-    {
-        AbstractPath rootPath;       //itemPath =: rootPath + relPath
-        std::vector<Zstring> relPath;
-    };
-    static PathComponents getPathComponents(const AbstractPath& ap);
+    static bool isNullDevice(const AfsDevice& afsDevice) { return afsDevice.ref().isNullFileSystem(); }
+
+    static std::wstring getDisplayPath(const AbstractPath& ap) { return ap.afsDevice.ref().getDisplayPath(ap.afsPath); }
+
+    static Zstring getInitPathPhrase(const AbstractPath& ap) { return ap.afsDevice.ref().getInitPathPhrase(ap.afsPath); }
+
+    static std::optional<Zstring> getNativeItemPath(const AbstractPath& ap) { return ap.afsDevice.ref().getNativeItemPath(ap.afsPath); }
+
     //----------------------------------------------------------------------------------------------------------------
-    enum class ItemType
+    static void authenticateAccess(const AfsDevice& afsDevice, bool allowUserInteraction) //throw FileError
+    { return afsDevice.ref().authenticateAccess(allowUserInteraction); }
+
+    static int getAccessTimeout(const AbstractPath& ap) { return ap.afsDevice.ref().getAccessTimeout(); } //returns "0" if no timeout in force
+
+    static bool supportPermissionCopy(const AbstractPath& apSource, const AbstractPath& apTarget); //throw FileError
+
+    static bool hasNativeTransactionalCopy(const AbstractPath& ap) { return ap.afsDevice.ref().hasNativeTransactionalCopy(); }
+    //----------------------------------------------------------------------------------------------------------------
+
+    using FileId = zen::Zbase<char>; //AfsDevice-dependent unique ID
+
+    enum class ItemType : unsigned char
     {
         FILE,
         FOLDER,
         SYMLINK,
     };
-    struct PathStatus
-    {
-        ItemType existingType;
-        AbstractPath existingPath;    //itemPath =: existingPath + relPath
-        std::vector<Zstring> relPath; //
-    };
     //(hopefully) fast: does not distinguish between error/not existing
-    static ItemType getItemType(const AbstractPath& ap) { return ap.afs->getItemType(ap.afsPath); } //throw FileError
-    //execute potentially SLOW folder traversal but distinguish error/not existing
-    static zen::Opt<ItemType> getItemTypeIfExists(const AbstractPath& ap); //throw FileError
-    static PathStatus getPathStatus(const AbstractPath& ap); //throw FileError
+    //root path? => do access test
+    static ItemType getItemType(const AbstractPath& ap) { return ap.afsDevice.ref().getItemType(ap.afsPath); } //throw FileError
+
+    //assumes: - base path still exists
+    //         - all child item path parts must correspond to folder traversal
+    //    => we can conclude whether an item is *not* existing anymore by doing a *case-sensitive* name search => potentially SLOW!
+    //      root path? => do access test
+    static std::optional<ItemType> itemStillExists(const AbstractPath& ap) { return ap.afsDevice.ref().itemStillExists(ap.afsPath); } //throw FileError
     //----------------------------------------------------------------------------------------------------------------
 
-    //target existing: undefined behavior! (fail/overwrite)
+    //already existing: fail/ignore
     //does NOT create parent directories recursively if not existing
-    static void createFolderPlain(const AbstractPath& ap) { ap.afs->createFolderPlain(ap.afsPath); } //throw FileError
+    static void createFolderPlain(const AbstractPath& ap) { ap.afsDevice.ref().createFolderPlain(ap.afsPath); } //throw FileError
 
-    //no error if already existing
+    //already existing: ignore
     //creates parent directories recursively if not existing
     static void createFolderIfMissingRecursion(const AbstractPath& ap); //throw FileError
 
-    static bool removeFileIfExists   (const AbstractPath& ap); //throw FileError; return "false" if file is not existing
-    static bool removeSymlinkIfExists(const AbstractPath& ap); //
     static void removeFolderIfExistsRecursion(const AbstractPath& ap, //throw FileError
-                                              const std::function<void (const std::wstring& displayPath)>& onBeforeFileDeletion,    //optional
-                                              const std::function<void (const std::wstring& displayPath)>& onBeforeFolderDeletion); //one call for each *existing* object!
+                                              const std::function<void (const std::wstring& displayPath)>& onBeforeFileDeletion /*throw X*/, //optional
+                                              const std::function<void (const std::wstring& displayPath)>& onBeforeFolderDeletion)           //one call for each object!
+    { return ap.afsDevice.ref().removeFolderIfExistsRecursion(ap.afsPath, onBeforeFileDeletion, onBeforeFolderDeletion); }
 
-    static void removeFilePlain   (const AbstractPath& ap) { ap.afs->removeFilePlain   (ap.afsPath); } //throw FileError
-    static void removeSymlinkPlain(const AbstractPath& ap) { ap.afs->removeSymlinkPlain(ap.afsPath); } //throw FileError
-    static void removeFolderPlain (const AbstractPath& ap) { ap.afs->removeFolderPlain (ap.afsPath); } //throw FileError
+    static void removeFileIfExists   (const AbstractPath& ap); //throw FileError; return "false" if file is not existing
+    static void removeSymlinkIfExists(const AbstractPath& ap); //
+    static void removeEmptyFolderIfExists(const AbstractPath& ap); //throw FileError
+
+    static void removeFilePlain   (const AbstractPath& ap) { ap.afsDevice.ref().removeFilePlain   (ap.afsPath); } //throw FileError
+    static void removeSymlinkPlain(const AbstractPath& ap) { ap.afsDevice.ref().removeSymlinkPlain(ap.afsPath); } //throw FileError
+    static void removeFolderPlain (const AbstractPath& ap) { ap.afsDevice.ref().removeFolderPlain (ap.afsPath); } //throw FileError
     //----------------------------------------------------------------------------------------------------------------
-    static void setModTime(const AbstractPath& ap, time_t modTime) { ap.afs->setModTime(ap.afsPath, modTime); } //throw FileError, follows symlinks
+    //static void setModTime(const AbstractPath& ap, time_t modTime) { ap.afsDevice.ref().setModTime(ap.afsPath, modTime); } //throw FileError, follows symlinks
 
-    static AbstractPath getSymlinkResolvedPath(const AbstractPath& ap) { return ap.afs->getSymlinkResolvedPath(ap.afsPath); } //throw FileError
-    static std::string getSymlinkBinaryContent(const AbstractPath& ap) { return ap.afs->getSymlinkBinaryContent(ap.afsPath); } //throw FileError
+    static AbstractPath getSymlinkResolvedPath(const AbstractPath& ap) { return ap.afsDevice.ref().getSymlinkResolvedPath (ap.afsPath); } //throw FileError
+    static std::string getSymlinkBinaryContent(const AbstractPath& ap) { return ap.afsDevice.ref().getSymlinkBinaryContent(ap.afsPath); } //throw FileError
     //----------------------------------------------------------------------------------------------------------------
     //noexcept; optional return value:
-    static ImageHolder getFileIcon      (const AbstractPath& ap, int pixelSize) { return ap.afs->getFileIcon      (ap.afsPath, pixelSize); }
-    static ImageHolder getThumbnailImage(const AbstractPath& ap, int pixelSize) { return ap.afs->getThumbnailImage(ap.afsPath, pixelSize); }
-
-    static void connectNetworkFolder(const AbstractPath& ap, bool allowUserInteraction) { return ap.afs->connectNetworkFolder(ap.afsPath, allowUserInteraction); } //throw FileError
+    static zen::ImageHolder getFileIcon      (const AbstractPath& ap, int pixelSize) { return ap.afsDevice.ref().getFileIcon      (ap.afsPath, pixelSize); }
+    static zen::ImageHolder getThumbnailImage(const AbstractPath& ap, int pixelSize) { return ap.afsDevice.ref().getThumbnailImage(ap.afsPath, pixelSize); }
     //----------------------------------------------------------------------------------------------------------------
-
-    using FileId = zen::Zbase<char>;
 
     struct StreamAttributes
     {
@@ -142,67 +144,75 @@ struct AbstractFileSystem //THREAD-SAFETY: "const" member functions must model t
         virtual size_t getBlockSize() const = 0; //non-zero block size is AFS contract! it's implementer's job to always give a reasonable buffer size!
 
         //only returns attributes if they are already buffered within stream handle and determination would be otherwise expensive (e.g. FTP/SFTP):
-        virtual zen::Opt<StreamAttributes> getAttributesBuffered() = 0; //throw FileError
+        virtual std::optional<StreamAttributes> getAttributesBuffered() = 0; //throw FileError
+    };
+
+
+    struct FinalizeResult
+    {
+        FileId fileId;
+        std::optional<zen::FileError> errorModTime;
     };
 
     struct OutputStreamImpl
     {
         virtual ~OutputStreamImpl() {}
         virtual void write(const void* buffer, size_t bytesToWrite) = 0; //throw FileError, X
-        virtual FileId finalize() = 0;                                   //throw FileError, X
+        virtual FinalizeResult finalize() = 0;                           //throw FileError, X
     };
 
     //TRANSACTIONAL output stream! => call finalize when done!
     struct OutputStream
     {
-        OutputStream(std::unique_ptr<OutputStreamImpl>&& outStream, const AbstractPath& filePath, const uint64_t* streamSize);
+        OutputStream(std::unique_ptr<OutputStreamImpl>&& outStream, const AbstractPath& filePath, std::optional<uint64_t> streamSize);
         ~OutputStream();
         void write(const void* buffer, size_t bytesToWrite); //throw FileError, X
-        FileId finalize();                                   //throw FileError, X
+        FinalizeResult finalize();                           //throw FileError, X
 
     private:
         std::unique_ptr<OutputStreamImpl> outStream_; //bound!
         const AbstractPath filePath_;
         bool finalizeSucceeded_ = false;
-        zen::Opt<uint64_t> bytesExpected_;
+        const std::optional<uint64_t> bytesExpected_;
         uint64_t bytesWrittenTotal_ = 0;
     };
 
     //return value always bound:
-    static std::unique_ptr<InputStream> getInputStream(const AbstractPath& ap, const zen::IOCallback& notifyUnbufferedIO) //throw FileError, ErrorFileLocked, X
-    { return ap.afs->getInputStream(ap.afsPath, notifyUnbufferedIO); }
+    static std::unique_ptr<InputStream> getInputStream(const AbstractPath& ap, const zen::IOCallback& notifyUnbufferedIO /*throw X*/) //throw FileError, ErrorFileLocked
+    { return ap.afsDevice.ref().getInputStream(ap.afsPath, notifyUnbufferedIO); }
 
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
     static std::unique_ptr<OutputStream> getOutputStream(const AbstractPath& ap, //throw FileError
-                                                         const uint64_t* streamSize,           //optional
-                                                         const zen::IOCallback& notifyUnbufferedIO) //
-    { return std::make_unique<OutputStream>(ap.afs->getOutputStream(ap.afsPath, streamSize, notifyUnbufferedIO), ap, streamSize); }
+                                                         std::optional<uint64_t> streamSize,
+                                                         std::optional<time_t> modTime,
+                                                         const zen::IOCallback& notifyUnbufferedIO /*throw X*/)
+    { return std::make_unique<OutputStream>(ap.afsDevice.ref().getOutputStream(ap.afsPath, streamSize, modTime, notifyUnbufferedIO), ap, streamSize); }
     //----------------------------------------------------------------------------------------------------------------
+
+    struct SymlinkInfo
+    {
+        Zstring itemName;
+        time_t modTime; //number of seconds since Jan. 1st 1970 UTC
+    };
+
+    struct FileInfo
+    {
+        Zstring itemName;
+        uint64_t fileSize; //unit: bytes!
+        time_t modTime; //number of seconds since Jan. 1st 1970 UTC
+        FileId fileId; //optional: empty if not supported!
+        const SymlinkInfo* symlinkInfo; //only filled if file is a followed symlink
+    };
+
+    struct FolderInfo
+    {
+        Zstring itemName;
+        const SymlinkInfo* symlinkInfo; //only filled if folder is a followed symlink
+    };
 
     struct TraverserCallback
     {
         virtual ~TraverserCallback() {}
-
-        struct SymlinkInfo
-        {
-            Zstring itemName;
-            time_t modTime; //number of seconds since Jan. 1st 1970 UTC
-        };
-
-        struct FileInfo
-        {
-            Zstring itemName;
-            uint64_t fileSize; //unit: bytes!
-            time_t modTime; //number of seconds since Jan. 1st 1970 UTC
-            FileId fileId; //optional: empty if not supported!
-            const SymlinkInfo* symlinkInfo; //only filled if file is a followed symlink
-        };
-
-        struct FolderInfo
-        {
-            Zstring itemName;
-            const SymlinkInfo* symlinkInfo; //only filled if folder is a followed symlink
-        };
 
         enum HandleLink
         {
@@ -218,21 +228,27 @@ struct AbstractFileSystem //THREAD-SAFETY: "const" member functions must model t
 
         virtual void                               onFile   (const FileInfo&    fi) = 0; //
         virtual HandleLink                         onSymlink(const SymlinkInfo& si) = 0; //throw X
-        virtual std::unique_ptr<TraverserCallback> onFolder (const FolderInfo&  fi) = 0; //
+        virtual std::shared_ptr<TraverserCallback> onFolder (const FolderInfo&  fi) = 0; //
         //nullptr: ignore directory, non-nullptr: traverse into, using the (new) callback
 
         virtual HandleError reportDirError (const std::wstring& msg, size_t retryNumber) = 0; //failed directory traversal -> consider directory data at current level as incomplete!
         virtual HandleError reportItemError(const std::wstring& msg, size_t retryNumber, const Zstring& itemName) = 0; //failed to get data for single file/dir/symlink only!
     };
 
+    using TraverserWorkload = std::vector<std::pair<AfsPath, std::shared_ptr<TraverserCallback> /*throw X*/>>;
+
     //- client needs to handle duplicate file reports! (FilePlusTraverser fallback, retrying to read directory contents, ...)
-    static void traverseFolder(const AbstractPath& ap, TraverserCallback& sink /*throw X*/) { ap.afs->traverseFolder(ap.afsPath, sink); } //throw X
+    static void traverseFolderRecursive(const AfsDevice& afsDevice, const TraverserWorkload& workload /*throw X*/, size_t parallelOps) { afsDevice.ref().traverseFolderRecursive(workload, parallelOps); }
+
+    static void traverseFolderFlat(const AbstractPath& ap, //throw FileError
+                                   const std::function<void (const FileInfo&    fi)>& onFile,     //
+                                   const std::function<void (const FolderInfo&  fi)>& onFolder,   //optional
+                                   const std::function<void (const SymlinkInfo& si)>& onSymlink) //
+    { ap.afsDevice.ref().traverseFolderFlat(ap.afsPath, onFile, onFolder, onSymlink); }
     //----------------------------------------------------------------------------------------------------------------
 
-    static bool supportPermissionCopy(const AbstractPath& apSource, const AbstractPath& apTarget); //throw FileError
-
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
-    static void renameItem(const AbstractPath& apSource, const AbstractPath& apTarget); //throw FileError, ErrorDifferentVolume
+    static void moveAndRenameItem(const AbstractPath& pathFrom, const AbstractPath& pathTo); //throw FileError, ErrorMoveUnsupported
 
     //Note: it MAY happen that copyFileTransactional() leaves temp files behind, e.g. temporary network drop.
     // => clean them up at an appropriate time (automatically set sync directions to delete them). They have the following ending:
@@ -244,23 +260,23 @@ struct AbstractFileSystem //THREAD-SAFETY: "const" member functions must model t
         time_t modTime = 0; //number of seconds since Jan. 1st 1970 UTC
         FileId sourceFileId;
         FileId targetFileId;
-        zen::Opt<zen::FileError> errorModTime; //failure to set modification time
+        std::optional<zen::FileError> errorModTime; //failure to set modification time
     };
 
     //symlink handling: follow
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
     //returns current attributes at the time of copy
-    static FileCopyResult copyFileTransactional(const AbstractPath& apSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked
+    static FileCopyResult copyFileTransactional(const AbstractPath& apSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked, X
                                                 const AbstractPath& apTarget,
                                                 bool copyFilePermissions,
                                                 bool transactionalCopy,
                                                 //if target is existing user *must* implement deletion to avoid undefined behavior
                                                 //if transactionalCopy == true, full read access on source had been proven at this point, so it's safe to delete it.
-                                                const std::function<void()>& onDeleteTargetFile,
+                                                const std::function<void()>& onDeleteTargetFile /*throw X*/,
                                                 //accummulated delta != file size! consider ADS, sparse, compressed files
-                                                const zen::IOCallback& notifyUnbufferedIO);
+                                                const zen::IOCallback& notifyUnbufferedIO /*throw X*/);
 
-    //target existing: undefined behavior! (fail/overwrite)
+    //already existing: fail/ignore
     //symlink handling: follow link!
     static void copyNewFolder(const AbstractPath& apSource, const AbstractPath& apTarget, bool copyFilePermissions); //throw FileError
 
@@ -268,50 +284,50 @@ struct AbstractFileSystem //THREAD-SAFETY: "const" member functions must model t
 
     //----------------------------------------------------------------------------------------------------------------
 
-    static uint64_t getFreeDiskSpace(const AbstractPath& ap) { return ap.afs->getFreeDiskSpace(ap.afsPath); } //throw FileError, returns 0 if not available
+    static uint64_t getFreeDiskSpace(const AbstractPath& ap) { return ap.afsDevice.ref().getFreeDiskSpace(ap.afsPath); } //throw FileError, returns 0 if not available
 
-    static bool supportsRecycleBin(const AbstractPath& ap, const std::function<void ()>& onUpdateGui) { return ap.afs->supportsRecycleBin(ap.afsPath, onUpdateGui); } //throw FileError
+    static bool supportsRecycleBin(const AbstractPath& ap, const std::function<void ()>& onUpdateGui) { return ap.afsDevice.ref().supportsRecycleBin(ap.afsPath, onUpdateGui); } //throw FileError
 
     struct RecycleSession
     {
         virtual ~RecycleSession() {}
-        virtual bool recycleItem(const AbstractPath& itemPath, const Zstring& logicalRelPath) = 0; //throw FileError; return true if item existed
+        //- multi-threaded access: internally synchronized!
+        virtual void recycleItemIfExists(const AbstractPath& itemPath, const Zstring& logicalRelPath) = 0; //throw FileError;
+
         virtual void tryCleanup(const std::function<void (const std::wstring& displayPath)>& notifyDeletionStatus /*optional; currentItem may be empty*/) = 0; //throw FileError
     };
 
     //precondition: supportsRecycleBin() must return true!
-    static std::unique_ptr<RecycleSession> createRecyclerSession(const AbstractPath& ap) { return ap.afs->createRecyclerSession(ap.afsPath); } //throw FileError, return value must be bound!
+    static std::unique_ptr<RecycleSession> createRecyclerSession(const AbstractPath& ap) { return ap.afsDevice.ref().createRecyclerSession(ap.afsPath); } //throw FileError, return value must be bound!
 
-    static void recycleItemIfExists(const AbstractPath& ap) { ap.afs->recycleItemIfExists(ap.afsPath); } //throw FileError
+    static void recycleItemIfExists(const AbstractPath& ap) { ap.afsDevice.ref().recycleItemIfExists(ap.afsPath); } //throw FileError
 
     //================================================================================================================
 
     //no need to protect access:
-    static Zstring appendPaths(const Zstring& basePath, const Zstring& relPath, Zchar pathSep);
-
     virtual ~AbstractFileSystem() {}
 
-protected: //grant derived classes access to AbstractPath:
-    static const AbstractFileSystem& getAfs    (const AbstractPath& ap) { return *ap.afs; }
-    static AfsPath                   getAfsPath(const AbstractPath& ap) { return ap.afsPath; }
 
-    static Zstring getItemName(const AfsPath& afsPath) { using namespace zen; return afterLast(afsPath.value, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL); }
-    static zen::Opt<AfsPath> getParentAfsPath(const AfsPath& afsPath);
+protected:
+    //default implementation: folder traversal
+    virtual std::optional<ItemType> itemStillExists(const AfsPath& afsPath) const = 0; //throw FileError
 
-    struct PathStatusImpl
-    {
-        ItemType existingType;
-        AfsPath existingAfsPath;      //afsPath =: existingAfsPath + relPath
-        std::vector<Zstring> relPath; //
-    };
-    PathStatusImpl getPathStatusViaFolderTraversal(const AfsPath& afsPath) const; //throw FileError
+    //default implementation: folder traversal
+    virtual void removeFolderIfExistsRecursion(const AfsPath& afsPath, //throw FileError
+                                               const std::function<void (const std::wstring& displayPath)>& onBeforeFileDeletion,              //optional
+                                               const std::function<void (const std::wstring& displayPath)>& onBeforeFolderDeletion) const = 0; //one call for each object!
+
+    void traverseFolderFlat(const AfsPath& afsPath, //throw FileError
+                            const std::function<void (const FileInfo&    fi)>& onFile,           //
+                            const std::function<void (const FolderInfo&  fi)>& onFolder,         //optional
+                            const std::function<void (const SymlinkInfo& si)>& onSymlink) const; //
 
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
-    FileCopyResult copyFileAsStream(const AfsPath& afsPathSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked
-                                    const AbstractPath& apTarget, const zen::IOCallback& notifyUnbufferedIO) const; //may be nullptr; throw X!
+    FileCopyResult copyFileAsStream(const AfsPath& afsPathSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked, X
+                                    const AbstractPath& apTarget, const zen::IOCallback& notifyUnbufferedIO /*throw X*/) const;
 
 private:
-    virtual zen::Opt<Zstring> getNativeItemPath(const AfsPath& afsPath) const { return zen::NoValue(); };
+    virtual std::optional<Zstring> getNativeItemPath(const AfsPath& afsPath) const { return {}; };
 
     virtual Zstring getInitPathPhrase(const AfsPath& afsPath) const = 0;
 
@@ -319,59 +335,64 @@ private:
 
     virtual bool isNullFileSystem() const = 0;
 
-    virtual int compareDeviceRootSameAfsType(const AbstractFileSystem& afsRhs) const = 0;
+    virtual int compareDeviceSameAfsType(const AbstractFileSystem& afsRhs) const = 0;
 
     //----------------------------------------------------------------------------------------------------------------
     virtual ItemType getItemType(const AfsPath& afsPath) const = 0; //throw FileError
-    virtual PathStatusImpl getPathStatus(const AfsPath& afsPath) const = 0; //throw FileError
     //----------------------------------------------------------------------------------------------------------------
 
-    //target existing: undefined behavior! (fail/overwrite)
+    //already existing: fail/ignore
     virtual void createFolderPlain(const AfsPath& afsPath) const = 0; //throw FileError
 
     //non-recursive folder deletion:
     virtual void removeFilePlain   (const AfsPath& afsPath) const = 0; //throw FileError
     virtual void removeSymlinkPlain(const AfsPath& afsPath) const = 0; //throw FileError
     virtual void removeFolderPlain (const AfsPath& afsPath) const = 0; //throw FileError
+
     //----------------------------------------------------------------------------------------------------------------
-    virtual void setModTime(const AfsPath& afsPath, time_t modTime) const = 0; //throw FileError, follows symlinks
+    //virtual void setModTime(const AfsPath& afsPath, time_t modTime) const = 0; //throw FileError, follows symlinks
 
     virtual AbstractPath getSymlinkResolvedPath(const AfsPath& afsPath) const = 0; //throw FileError
     virtual std::string getSymlinkBinaryContent(const AfsPath& afsPath) const = 0; //throw FileError
     //----------------------------------------------------------------------------------------------------------------
-    virtual std::unique_ptr<InputStream> getInputStream (const AfsPath& afsPath, const zen::IOCallback& notifyUnbufferedIO) const = 0; //throw FileError, ErrorFileLocked, X
+    virtual std::unique_ptr<InputStream> getInputStream(const AfsPath& afsPath, const zen::IOCallback& notifyUnbufferedIO /*throw X*/) const = 0; //throw FileError, ErrorFileLocked
 
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
     virtual std::unique_ptr<OutputStreamImpl> getOutputStream(const AfsPath& afsPath, //throw FileError
-                                                              const uint64_t* streamSize,                      //optional
-                                                              const zen::IOCallback& notifyUnbufferedIO) const = 0; //
+                                                              std::optional<uint64_t> streamSize,
+                                                              std::optional<time_t> modTime,
+                                                              const zen::IOCallback& notifyUnbufferedIO /*throw X*/) const = 0;
     //----------------------------------------------------------------------------------------------------------------
-    virtual void traverseFolder(const AfsPath& afsPath, TraverserCallback& sink /*throw X*/) const = 0; //throw X
+    virtual void traverseFolderRecursive(const TraverserWorkload& workload /*throw X*/, size_t parallelOps) const = 0;
     //----------------------------------------------------------------------------------------------------------------
     virtual bool supportsPermissions(const AfsPath& afsPath) const = 0; //throw FileError
 
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
-    virtual void renameItemForSameAfsType(const AfsPath& afsPathSource, const AbstractPath& apTarget) const = 0; //throw FileError, ErrorDifferentVolume
+    virtual void moveAndRenameItemForSameAfsType(const AfsPath& pathFrom, const AbstractPath& pathTo) const = 0; //throw FileError, ErrorMoveUnsupported
 
     //symlink handling: follow link!
     //target existing: undefined behavior! (fail/overwrite/auto-rename)
-    virtual FileCopyResult copyFileForSameAfsType(const AfsPath& afsPathSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked
+    virtual FileCopyResult copyFileForSameAfsType(const AfsPath& afsPathSource, const StreamAttributes& attrSource, //throw FileError, ErrorFileLocked, X
                                                   const AbstractPath& apTarget, bool copyFilePermissions,
                                                   //accummulated delta != file size! consider ADS, sparse, compressed files
-                                                  const zen::IOCallback& notifyUnbufferedIO) const = 0; //may be nullptr; throw X!
+                                                  const zen::IOCallback& notifyUnbufferedIO /*throw X*/) const = 0;
 
 
-    //target existing: undefined behavior! (fail/overwrite)
+    //target existing: fail/ignore
     //symlink handling: follow link!
     virtual void copyNewFolderForSameAfsType(const AfsPath& afsPathSource, const AbstractPath& apTarget, bool copyFilePermissions) const = 0; //throw FileError
 
     virtual void copySymlinkForSameAfsType(const AfsPath& afsPathSource, const AbstractPath& apTarget, bool copyFilePermissions) const = 0; //throw FileError
 
     //----------------------------------------------------------------------------------------------------------------
-    virtual ImageHolder getFileIcon      (const AfsPath& afsPath, int pixelSize) const = 0; //noexcept; optional return value
-    virtual ImageHolder getThumbnailImage(const AfsPath& afsPath, int pixelSize) const = 0; //
+    virtual zen::ImageHolder getFileIcon      (const AfsPath& afsPath, int pixelSize) const = 0; //noexcept; optional return value
+    virtual zen::ImageHolder getThumbnailImage(const AfsPath& afsPath, int pixelSize) const = 0; //
 
-    virtual void connectNetworkFolder(const AfsPath& afsPath, bool allowUserInteraction) const = 0; //throw FileError
+    virtual void authenticateAccess(bool allowUserInteraction) const = 0; //throw FileError
+
+    virtual int getAccessTimeout() const = 0; //returns "0" if no timeout in force
+
+    virtual bool hasNativeTransactionalCopy() const = 0;
     //----------------------------------------------------------------------------------------------------------------
 
     virtual uint64_t getFreeDiskSpace(const AfsPath& afsPath) const = 0; //throw FileError, returns 0 if not available
@@ -381,49 +402,13 @@ private:
 };
 
 
-//implement "retry" in a generic way:
-template <class Command> inline //function object expecting to throw FileError if operation fails
-bool tryReportingDirError(Command cmd, AbstractFileSystem::TraverserCallback& callback) //throw X, return "true" on success, "false" if error was ignored
-{
-    for (size_t retryNumber = 0;; ++retryNumber)
-        try
-        {
-            cmd(); //throw FileError
-            return true;
-        }
-        catch (const zen::FileError& e)
-        {
-            switch (callback.reportDirError(e.toString(), retryNumber)) //throw X
-            {
-                case AbstractFileSystem::TraverserCallback::ON_ERROR_RETRY:
-                    break;
-                case AbstractFileSystem::TraverserCallback::ON_ERROR_CONTINUE:
-                    return false;
-            }
-        }
-}
+inline bool operator< (const AfsDevice& lhs, const AfsDevice& rhs) { return AbstractFileSystem::compareDevice(lhs.ref(), rhs.ref()) < 0; }
+inline bool operator==(const AfsDevice& lhs, const AfsDevice& rhs) { return AbstractFileSystem::compareDevice(lhs.ref(), rhs.ref()) == 0; }
+inline bool operator!=(const AfsDevice& lhs, const AfsDevice& rhs) { return !(lhs == rhs); }
 
-
-template <class Command> inline //function object expecting to throw FileError if operation fails
-bool tryReportingItemError(Command cmd, AbstractFileSystem::TraverserCallback& callback, const Zstring& itemName) //throw X, return "true" on success, "false" if error was ignored
-{
-    for (size_t retryNumber = 0;; ++retryNumber)
-        try
-        {
-            cmd(); //throw FileError
-            return true;
-        }
-        catch (const zen::FileError& e)
-        {
-            switch (callback.reportItemError(e.toString(), retryNumber, itemName)) //throw X
-            {
-                case AbstractFileSystem::TraverserCallback::ON_ERROR_RETRY:
-                    break;
-                case AbstractFileSystem::TraverserCallback::ON_ERROR_CONTINUE:
-                    return false;
-            }
-        }
-}
+inline bool operator< (const AbstractPath& lhs, const AbstractPath& rhs) { return AbstractFileSystem::comparePath(lhs, rhs) < 0; }
+inline bool operator==(const AbstractPath& lhs, const AbstractPath& rhs) { return AbstractFileSystem::comparePath(lhs, rhs) == 0; }
+inline bool operator!=(const AbstractPath& lhs, const AbstractPath& rhs) { return !(lhs == rhs); }
 
 
 
@@ -436,51 +421,17 @@ bool tryReportingItemError(Command cmd, AbstractFileSystem::TraverserCallback& c
 inline
 AbstractPath AbstractFileSystem::appendRelPath(const AbstractPath& ap, const Zstring& relPath)
 {
-    using namespace zen;
-
     assert(isValidRelPath(relPath));
-    return AbstractPath(ap.afs, AfsPath(appendPaths(ap.afsPath.value, relPath, FILE_NAME_SEPARATOR)));
-}
-
-
-inline
-Zstring AbstractFileSystem::appendPaths(const Zstring& basePath, const Zstring& relPath, Zchar pathSep)
-{
-    using namespace zen;
-
-    assert(!startsWith(relPath, pathSep) && !endsWith(relPath, pathSep));
-    if (relPath.empty())
-        return basePath;
-    if (basePath.empty())
-        return relPath;
-
-    if (startsWith(relPath, pathSep))
-    {
-        if (relPath.size() == 1)
-            return basePath;
-
-        if (endsWith(basePath, pathSep))
-            return basePath + (relPath.c_str() + 1);
-    }
-    else if (!endsWith(basePath, pathSep))
-    {
-        Zstring output = basePath;
-        output.reserve(basePath.size() + 1 + relPath.size()); //append all three strings using a single memory allocation
-        return std::move(output) + pathSep + relPath;         //
-    }
-
-    return basePath + relPath;
+    return AbstractPath(ap.afsDevice, AfsPath(nativeAppendPaths(ap.afsPath.value, relPath)));
 }
 
 //--------------------------------------------------------------------------
 
 inline
-AbstractFileSystem::OutputStream::OutputStream(std::unique_ptr<OutputStreamImpl>&& outStream, const AbstractPath& filePath, const uint64_t* streamSize) :
-    outStream_(std::move(outStream)), filePath_(filePath)
-{
-    if (streamSize)
-        bytesExpected_ = *streamSize;
-}
+AbstractFileSystem::OutputStream::OutputStream(std::unique_ptr<OutputStreamImpl>&& outStream, const AbstractPath& filePath, std::optional<uint64_t> streamSize) :
+    outStream_(std::move(outStream)),
+    filePath_(filePath),
+    bytesExpected_(streamSize) {}
 
 
 inline
@@ -492,6 +443,7 @@ AbstractFileSystem::OutputStream::~OutputStream()
     outStream_.reset(); //close file handle *before* remove!
 
     if (!finalizeSucceeded_) //transactional output stream! => clean up!
+        //even needed for Google Drive: e.g. user might cancel during OutputStreamImpl::finalize(), just after file was written transactionally
         try { AbstractFileSystem::removeFilePlain(filePath_); /*throw FileError*/ }
         catch (FileError& e) { (void)e; }
 }
@@ -506,7 +458,7 @@ void AbstractFileSystem::OutputStream::write(const void* data, size_t len) //thr
 
 
 inline
-AbstractFileSystem::FileId AbstractFileSystem::OutputStream::finalize() //throw FileError, X
+AbstractFileSystem::FinalizeResult AbstractFileSystem::OutputStream::finalize() //throw FileError, X
 {
     using namespace zen;
 
@@ -517,9 +469,9 @@ AbstractFileSystem::FileId AbstractFileSystem::OutputStream::finalize() //throw 
                                               L"%x", numberTo<std::wstring>(*bytesExpected_)),
                                    L"%y", numberTo<std::wstring>(bytesWrittenTotal_)));
 
-    const FileId fileId = outStream_->finalize(); //throw FileError, X
+    const FinalizeResult result = outStream_->finalize(); //throw FileError, X
     finalizeSucceeded_ = true;
-    return fileId;
+    return result;
 }
 
 //--------------------------------------------------------------------------
@@ -527,25 +479,25 @@ AbstractFileSystem::FileId AbstractFileSystem::OutputStream::finalize() //throw 
 inline
 bool AbstractFileSystem::supportPermissionCopy(const AbstractPath& apSource, const AbstractPath& apTarget) //throw FileError
 {
-    if (typeid(*apSource.afs) != typeid(*apTarget.afs))
+    if (typeid(apSource.afsDevice.ref()) != typeid(apTarget.afsDevice.ref()))
         return false;
 
-    return apSource.afs->supportsPermissions(apSource.afsPath) && //throw FileError
-           apTarget.afs->supportsPermissions(apTarget.afsPath);
+    return apSource.afsDevice.ref().supportsPermissions(apSource.afsPath) && //throw FileError
+           apTarget.afsDevice.ref().supportsPermissions(apTarget.afsPath);
 }
 
 
 inline
-void AbstractFileSystem::renameItem(const AbstractPath& apSource, const AbstractPath& apTarget) //throw FileError, ErrorDifferentVolume
+void AbstractFileSystem::moveAndRenameItem(const AbstractPath& pathFrom, const AbstractPath& pathTo) //throw FileError, ErrorMoveUnsupported
 {
     using namespace zen;
 
-    if (typeid(*apSource.afs) == typeid(*apTarget.afs))
-        return apSource.afs->renameItemForSameAfsType(apSource.afsPath, apTarget); //throw FileError, ErrorDifferentVolume
+    if (typeid(pathFrom.afsDevice.ref()) == typeid(pathTo.afsDevice.ref()))
+        return pathFrom.afsDevice.ref().moveAndRenameItemForSameAfsType(pathFrom.afsPath, pathTo); //throw FileError, ErrorMoveUnsupported
 
-    throw ErrorDifferentVolume(replaceCpy(replaceCpy(_("Cannot move file %x to %y."),
-                                                     L"%x", L"\n" + fmtPath(getDisplayPath(apSource))),
-                                          L"%y", L"\n" + fmtPath(getDisplayPath(apTarget))), _("Operation not supported for different base folder types."));
+    throw ErrorMoveUnsupported(replaceCpy(replaceCpy(_("Cannot move file %x to %y."),
+                                                     L"%x", L"\n" + fmtPath(getDisplayPath(pathFrom))),
+                                          L"%y", L"\n" + fmtPath(getDisplayPath(pathTo))), _("Operation not supported between different devices."));
 }
 
 
@@ -555,15 +507,15 @@ void AbstractFileSystem::copyNewFolder(const AbstractPath& apSource, const Abstr
 {
     using namespace zen;
 
-    if (typeid(*apSource.afs) == typeid(*apTarget.afs))
-        return apSource.afs->copyNewFolderForSameAfsType(apSource.afsPath, apTarget, copyFilePermissions); //throw FileError
+    if (typeid(apSource.afsDevice.ref()) == typeid(apTarget.afsDevice.ref()))
+        return apSource.afsDevice.ref().copyNewFolderForSameAfsType(apSource.afsPath, apTarget, copyFilePermissions); //throw FileError
 
     //fall back:
     if (copyFilePermissions)
         throw FileError(replaceCpy(_("Cannot write permissions of %x."), L"%x", fmtPath(getDisplayPath(apTarget))),
-                        _("Operation not supported for different base folder types."));
+                        _("Operation not supported between different devices."));
 
-    //target existing: undefined behavior! (fail/overwrite)
+    //already existing: fail/ignore
     createFolderPlain(apTarget); //throw FileError
 }
 
@@ -573,12 +525,12 @@ void AbstractFileSystem::copySymlink(const AbstractPath& apSource, const Abstrac
 {
     using namespace zen;
 
-    if (typeid(*apSource.afs) == typeid(*apTarget.afs))
-        return apSource.afs->copySymlinkForSameAfsType(apSource.afsPath, apTarget, copyFilePermissions); //throw FileError
+    if (typeid(apSource.afsDevice.ref()) == typeid(apTarget.afsDevice.ref()))
+        return apSource.afsDevice.ref().copySymlinkForSameAfsType(apSource.afsPath, apTarget, copyFilePermissions); //throw FileError
 
     throw FileError(replaceCpy(replaceCpy(_("Cannot copy symbolic link %x to %y."),
                                           L"%x", L"\n" + fmtPath(getDisplayPath(apSource))),
-                               L"%y", L"\n" + fmtPath(getDisplayPath(apTarget))), _("Operation not supported for different base folder types."));
+                               L"%y", L"\n" + fmtPath(getDisplayPath(apTarget))), _("Operation not supported between different devices."));
 }
 }
 

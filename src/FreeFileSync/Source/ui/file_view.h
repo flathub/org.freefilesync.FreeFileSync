@@ -9,8 +9,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <zen/stl_tools.h>
 #include "file_grid_attr.h"
-#include "../file_hierarchy.h"
+#include "../base/file_hierarchy.h"
 
 
 namespace fff
@@ -42,24 +43,24 @@ public:
         bool existsRightNewer = false;
         bool existsDifferent  = false;
 
-        unsigned int filesOnLeftView    = 0;
-        unsigned int foldersOnLeftView  = 0;
-        unsigned int filesOnRightView   = 0;
-        unsigned int foldersOnRightView = 0;
+        unsigned int fileCountLeft    = 0;
+        unsigned int folderCountLeft  = 0;
+        uint64_t     bytesLeft        = 0;
 
-        uint64_t filesizeLeftView  = 0;
-        uint64_t filesizeRightView = 0;
+        unsigned int fileCountRight   = 0;
+        unsigned int folderCountRight = 0;
+        uint64_t     bytesRight       = 0;
     };
 
     //comparison results view
     StatusCmpResult updateCmpResult(bool showExcluded,
-                                    bool leftOnlyFilesActive,
-                                    bool rightOnlyFilesActive,
-                                    bool leftNewerFilesActive,
-                                    bool rightNewerFilesActive,
-                                    bool differentFilesActive,
-                                    bool equalFilesActive,
-                                    bool conflictFilesActive);
+                                    bool showLeftOnly,
+                                    bool showRightOnly,
+                                    bool showLeftNewer,
+                                    bool showRightNewer,
+                                    bool showDifferent,
+                                    bool showEqual,
+                                    bool showConflict);
 
     struct StatusSyncPreview
     {
@@ -75,26 +76,26 @@ public:
         bool existsSyncDirRight    = false;
         bool existsSyncDirNone     = false;
 
-        unsigned int filesOnLeftView    = 0;
-        unsigned int foldersOnLeftView  = 0;
-        unsigned int filesOnRightView   = 0;
-        unsigned int foldersOnRightView = 0;
+        unsigned int fileCountLeft    = 0;
+        unsigned int folderCountLeft  = 0;
+        uint64_t     bytesLeft        = 0;
 
-        uint64_t filesizeLeftView  = 0;
-        uint64_t filesizeRightView = 0;
+        unsigned int fileCountRight   = 0;
+        unsigned int folderCountRight = 0;
+        uint64_t     bytesRight       = 0;
     };
 
     //synchronization preview
     StatusSyncPreview updateSyncPreview(bool showExcluded,
-                                        bool syncCreateLeftActive,
-                                        bool syncCreateRightActive,
-                                        bool syncDeleteLeftActive,
-                                        bool syncDeleteRightActive,
-                                        bool syncDirOverwLeftActive,
-                                        bool syncDirOverwRightActive,
-                                        bool syncDirNoneActive,
-                                        bool syncEqualActive,
-                                        bool conflictFilesActive);
+                                        bool showCreateLeft,
+                                        bool showCreateRight,
+                                        bool showDeleteLeft,
+                                        bool showDeleteRight,
+                                        bool showUpdateLeft,
+                                        bool showUpdateRight,
+                                        bool showDoNothing,
+                                        bool showEqual,
+                                        bool showConflict);
 
     void setData(FolderComparison& newData);
     void removeInvalidRows(); //remove references to rows that have been deleted meanwhile: call after manual deletion and synchronization!
@@ -108,7 +109,7 @@ public:
         bool onLeft    = false;
         bool ascending = false;
     };
-    const SortInfo* getSortInfo() const { return currentSort_.get(); } //return nullptr if currently not sorted
+    const SortInfo* getSortInfo() const { return zen::get(currentSort_); } //return nullptr if currently not sorted
 
     ptrdiff_t findRowDirect(FileSystemObject::ObjectIdConst objId) const; // find an object's row position on view list directly, return < 0 if not found
     ptrdiff_t findRowFirstChild(const ContainerObject* hierObj)    const; // find first child of FolderPair or BaseFolderPair *on sorted sub view*
@@ -172,7 +173,7 @@ private:
     template <bool ascending>
     struct LessSyncDirection;
 
-    zen::Opt<SortInfo> currentSort_;
+    std::optional<SortInfo> currentSort_;
 };
 
 

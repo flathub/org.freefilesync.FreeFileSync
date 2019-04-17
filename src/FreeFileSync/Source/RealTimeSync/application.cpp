@@ -8,18 +8,19 @@
 #include "main_dlg.h"
 #include <zen/file_access.h>
 #include <zen/thread.h>
+#include <zen/shutdown.h>
 #include <wx/event.h>
 #include <wx/log.h>
 #include <wx/tooltip.h>
 #include <wx+/popup_dlg.h>
 #include <wx+/image_resources.h>
 #include "xml_proc.h"
-#include "../lib/localization.h"
-#include "../lib/ffs_paths.h"
-#include "../lib/return_codes.h"
-#include "../lib/error_log.h"
-#include "../lib/help_provider.h"
-#include "../lib/resolve_path.h"
+#include "../base/localization.h"
+#include "../base/ffs_paths.h"
+#include "../base/return_codes.h"
+#include "../base/fatal_error.h"
+#include "../base/help_provider.h"
+#include "../base/resolve_path.h"
 
     #include <gtk/gtk.h>
 
@@ -32,7 +33,6 @@ IMPLEMENT_APP(Application);
 
 namespace
 {
-
 const wxEventType EVENT_ENTER_EVENT_LOOP = wxNewEventType();
 }
 
@@ -41,7 +41,7 @@ bool Application::OnInit()
 {
     //do not call wxApp::OnInit() to avoid using wxWidgets command line parser
 
-    ::gtk_rc_parse((fff::getResourceDirPf() + "styles.gtk_rc").c_str()); //remove inner border from bitmap buttons
+    ::gtk_rc_parse((fff::getResourceDirPf() + Zstr("Misc") + FILE_NAME_SEPARATOR + "styles.gtk_rc").c_str()); //remove inner border from bitmap buttons
 
     //Windows User Experience Interaction Guidelines: tool tips should have 5s timeout, info tips no timeout => compromise:
     wxToolTip::Enable(true); //yawn, a wxWidgets screw-up: wxToolTip::SetAutoPop is no-op if global tooltip window is not yet constructed: wxToolTip::Enable creates it
@@ -76,7 +76,6 @@ bool Application::OnInit()
 
 int Application::OnExit()
 {
-    fff::uninitializeHelp();
     fff::releaseWxLocale();
     cleanupResourceImages();
     return wxApp::OnExit();
@@ -126,8 +125,8 @@ int Application::OnRun()
     {
         fff::logFatalError(e.what()); //it's not always possible to display a message box, e.g. corrupted stack, however low-level file output works!
 
-        const auto title = copyStringTo<std::wstring>(wxTheApp->GetAppDisplayName()) + SPACED_DASH + _("An exception occurred");
-        wxSafeShowMessage(title, e.what());
+        const auto titleFmt = copyStringTo<std::wstring>(wxTheApp->GetAppDisplayName()) + SPACED_DASH + _("An exception occurred");
+        std::cerr << utfTo<std::string>(titleFmt + SPACED_DASH) << e.what() << "\n";
         return fff::FFS_RC_EXCEPTION;
     }
     //catch (...) -> let it crash and create mini dump!!!
@@ -142,5 +141,5 @@ void Application::onQueryEndSession(wxEvent& event)
     if (auto mainWin = dynamic_cast<MainDialog*>(GetTopWindow()))
         mainWin->onQueryEndSession();
     //it's futile to try and clean up while the process is in full swing (CRASH!) => just terminate!
-    std::abort(); //on Windows calls ::ExitProcess() which can still internally process Window messages and crash!
+    zen::terminateProcess(fff::FFS_RC_ABORTED);
 }

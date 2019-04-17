@@ -58,8 +58,8 @@
 <source>An exception occurred</source>
 <target>A apărut o excepție</target>
 
-<source>A directory path is expected after %x.</source>
-<target>Este așteptată o cale de dosar după %x.</target>
+<source>A left and a right directory path are expected after %x.</source>
+<target>O cale pentru dosarul stîng și cel drept e așteptată după %x.</target>
 
 <source>Syntax error</source>
 <target>Eroare de sintaxă</target>
@@ -72,9 +72,6 @@
 
 <source>File %x does not contain a valid configuration.</source>
 <target>Fila %x nu conține o configurație validă.</target>
-
-<source>Unequal number of left and right directories specified.</source>
-<target>Numărul de dosare specificat pentru părțile stîngă și dreaptă este inegal.</target>
 
 <source>The config file must not contain settings at directory pair level when directories are set via command line.</source>
 <target>Fila de configurare nu trebuie să conțină setări la nivelul perechii de dosare, cînd dosarele sînt setate prin linia de comandă.</target>
@@ -97,23 +94,51 @@
 <source>global config file:</source>
 <target>filă de configurare globală:</target>
 
-<source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>Orice număr de file de configurare pentru FreeFileSync, de tipul .ffs_gui sau/și .ffs_batch.</target>
+<source>Any number of FreeFileSync "ffs_gui" and/or "ffs_batch" configuration files.</source>
+<target>Orice număr de file de configurare pentru FreeFileSync, de tipul "ffs_gui" sau/și "ffs_batch".</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>Orice număr de perechi alternative de dosare pentru cel mult o filă de configurare.</target>
 
-<source>Open the selected configuration for editing only without executing it.</source>
+<source>Open the selected configuration for editing only, without executing it.</source>
 <target>Deschide configurația selectată doar pentru editare, fără a o executa.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
 <target>Calea către o filă GlobalSettings.xml alternativă.</target>
 
+<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
+<target>Filele de instalare sînt stricate (corupte). Reinstalează FreeFileSync.</target>
+
+<source>Cannot load file %x.</source>
+<target>Nu pot deschide fila %x.</target>
+
 <source>Cannot find the following folders:</source>
 <target>Nu pot găsi dosarele următoare:</target>
 
-<source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
-<target>Dacă această eroare este ignorată, dosarele lipsă vor fi considerate goale. Dosarele lipsă vor fi create automat la nevoie.</target>
+<source>The following folders do not yet exist:</source>
+<target>Dosarele următoare nu există încă:</target>
+
+<source>The folders are created automatically when needed.</source>
+<target>Dosarele sînt create automat la nevoie.</target>
+
+<source>The following folder paths differ in case. Please use a single form in order to avoid duplicate accesses.</source>
+<target>La căile următoare diferă caseta literelor (majuscule/minuscule). Folosește o singură formă de casetă pt. a evita duplicarea acceselor.</target>
+
+<source>Scanning:</source>
+<target>Scanez:</target>
+
+<source>Comparison finished:</source>
+<target>Comparare terminată:</target>
+
+<source>
+<pluralform>1 item found</pluralform>
+<pluralform>%x items found</pluralform>
+</source>
+<target>
+<pluralform>1 element găsit</pluralform>
+<pluralform>%x elemente găsite</pluralform>
+<pluralform>%x de elemente găsite</pluralform>
+</target>
 
 <source>File %x has an invalid date.</source>
 <target>Fila %x are o dată nevalidă.</target>
@@ -132,6 +157,9 @@
 
 <source>Items differ in attributes only</source>
 <target>Elementele diferă doar prin atributele lor</target>
+
+<source>The name %x is used by more than one item in the folder.</source>
+<target>Numele %x e folosit de mai multe elemente din dosar.</target>
 
 <source>Resolving symbolic link %x</source>
 <target>Rezolv legătura simbolică %x</target>
@@ -160,9 +188,6 @@
 <source>File time tolerance</source>
 <target>Toleranța timpului filei</target>
 
-<source>Folder access timeout</source>
-<target>Expirarea accesului la dosar</target>
-
 <source>Run with background priority</source>
 <target>Rulează cu prioritate de fundal [background]</target>
 
@@ -174,9 +199,6 @@
 
 <source>Using non-default global settings:</source>
 <target>Folosirea de setări globale non-implicite:</target>
-
-<source>Starting comparison</source>
-<target>Pornesc compararea</target>
 
 <source>A folder input field is empty.</source>
 <target>Un cîmp de introducere a dosarului este gol.</target>
@@ -198,6 +220,64 @@
 
 <source>Out of memory.</source>
 <target>Memorie epuizată.</target>
+
+<source>Database file %x is incompatible.</source>
+<target>Fila cu baza de date %x este incompatibilă.</target>
+
+<source>Initial synchronization:</source>
+<target>Sincronizare inițială:</target>
+
+<source>Database file %x does not yet exist.</source>
+<target>Fila cu baza de date %x nu există încă.</target>
+
+<source>Database file is corrupted:</source>
+<target>Fila bazei de date este stricată (coruptă):</target>
+
+<source>Cannot write file %x.</source>
+<target>Nu pot scrie fila %x.</target>
+
+<source>Cannot read file %x.</source>
+<target>Nu pot citi fila %x.</target>
+
+<source>The database files do not yet contain information about the last synchronization.</source>
+<target>Filele cu baze de date nu conțin încă informații despre ultima sincornizare.</target>
+
+<source>Loading file %x...</source>
+<target>Deschid fila %x...</target>
+
+<source>Saving file %x...</source>
+<target>Salvez fila %x...</target>
+
+<source>Searching for folder %x...</source>
+<target>Caut dosarul %x...</target>
+
+<source>Timeout while searching for folder %x.</source>
+<target>Timp expirat la căutarea dosarului %x.</target>
+
+<source>Cannot get process information.</source>
+<target>Nu pot obține informații despre proces.</target>
+
+<source>Cannot read file attributes of %x.</source>
+<target>Nu pot citi atributele filei %x.</target>
+
+<source>Waiting while directory is locked:</source>
+<target>Aștept ca dosarul să fie zăvorît [locked]:</target>
+
+<source>Lock owner:</source>
+<target>Zăvorăște proprietarul:</target>
+
+<source>Detecting abandoned lock...</source>
+<target>Detectez zăvorîrea [lock] abandonată...</target>
+
+<source>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+</source>
+<target>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+<pluralform>%x de sec</pluralform>
+</target>
 
 <source>Item exists on left side only</source>
 <target>Elementul există doar în partea stîngă</target>
@@ -253,8 +333,240 @@
 <source>Update attributes on right</source>
 <target>Actualizează atributele în partea dreaptă</target>
 
-<source>Cannot read file %x.</source>
-<target>Nu pot citi fila %x.</target>
+<source>Errors:</source>
+<target>Erori:</target>
+
+<source>Warnings:</source>
+<target>Avertizări:</target>
+
+<source>Items processed:</source>
+<target>Elemente Procesate:</target>
+
+<source>Items remaining:</source>
+<target>Elemente Rămase:</target>
+
+<source>Total time:</source>
+<target>Timp Total:</target>
+
+<source>Warning</source>
+<target>Atenție</target>
+
+<source>Stopped</source>
+<target>Oprită</target>
+
+<source>Cleaning up log files:</source>
+<target>Curăț filele de jurnalizare:</target>
+
+<source>Error parsing file %x, row %y, column %z.</source>
+<target>Eroare la parsarea filei %x, rîndul %y, coloana %z.</target>
+
+<source>Services</source>
+<target>Servicii</target>
+
+<source>Show All</source>
+<target>Arată Tot</target>
+
+<source>Hide Others</source>
+<target>Ascunde Restul</target>
+
+<source>Hide %x</source>
+<target>Ascunde %x</target>
+
+<source>Quit %x</source>
+<target>Închide %x</target>
+
+<source>Cannot set directory locks for the following folders:</source>
+<target>Nu pot seta zăvorîrea [lock] pentru dosarele următoare:</target>
+
+<source>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</source>
+<target>
+<pluralform>1 fir</pluralform>
+<pluralform>%x fire</pluralform>
+<pluralform>%x de fire</pluralform>
+</target>
+
+<source>Cannot read directory %x.</source>
+<target>Nu pot citi dosarul %x.</target>
+
+<source>%x/sec</source>
+<target>%x/sec</target>
+
+<source>%x items</source>
+<target>%x elemente</target>
+
+<source>Show in Explorer</source>
+<target>Arată în Exploratorul de File</target>
+
+<source>Open with default application</source>
+<target>Deschide cu Aplicația Implicită</target>
+
+<source>Browse directory</source>
+<target>Explorează Dosarul</target>
+
+<source>Unable to connect to %x.</source>
+<target>Nu mă pot conecta la %x.</target>
+
+<source>Completed successfully</source>
+<target>Realizată cu succes</target>
+
+<source>Completed with warnings</source>
+<target>Realizată cu atenționări</target>
+
+<source>Completed with errors</source>
+<target>Realizată cu erori</target>
+
+<source>Cannot access the Volume Shadow Copy Service.</source>
+<target>Nu pot accesa Serviciul de Conservare a Volumelor [Volume Shadow Copy].</target>
+
+<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
+<target>Folosește versiunea pe 64-biți a FreeFileSync pentru a crea conservări (copii de rezervă) pe acest sistem.</target>
+
+<source>Volume name %x is not part of file path %y.</source>
+<target>Numele volumului %x nu face parte din calea filei %y.</target>
+
+<source>File time and size</source>
+<target>Timpul și Mărimea Filelor</target>
+
+<source>File content</source>
+<target>Conținutul Filelor</target>
+
+<source>File size</source>
+<target>Mărimea Filelor</target>
+
+<source>Two way</source>
+<target>Ambele Direcții</target>
+
+<source>Mirror</source>
+<target>Clonare</target>
+
+<source>Update</source>
+<target>Actualizare</target>
+
+<source>Custom</source>
+<target>Personalizat</target>
+
+<source>Multiple...</source>
+<target>Multiplu...</target>
+
+<source>Cannot write file attributes of %x.</source>
+<target>Nu pot scrie atributele de filă ale lui %x.</target>
+
+<source>Cannot open file %x.</source>
+<target>Nu pot deschide fila %x.</target>
+
+<source>%x and %y have different content.</source>
+<target>%x și %y au conținut diferit.</target>
+
+<source>Data verification error:</source>
+<target>Eroare de verificare a datei:</target>
+
+<source>Moving file %x to %y</source>
+<target>Mut fila %x în %y</target>
+
+<source>Moving folder %x to %y</source>
+<target>Mut dosarul %x în %y</target>
+
+<source>Moving symbolic link %x to %y</source>
+<target>Mut legătura simbolică %x în %y</target>
+
+<source>Updating file %x</source>
+<target>Actualizez fila %x</target>
+
+<source>Updating symbolic link %x</source>
+<target>Actualizez legătura simbolică %x</target>
+
+<source>Verifying file %x</source>
+<target>Verific fila %x</target>
+
+<source>Updating attributes of %x</source>
+<target>Actualizez atributele lui %x</target>
+
+<source>Source item %x not found</source>
+<target>Elementul sursă %x n-a fost găsit</target>
+
+<source>Cannot move file %x to %y.</source>
+<target>Nu pot muta fila %x în %y.</target>
+
+<source>Parent folder %x is not existing.</source>
+<target>Dosarul părinte %x nu există.</target>
+
+<source>The name %x is already used by another item.</source>
+<target>Numele %x este deja utilizat de alt element.</target>
+
+<source>Cannot copy file %x to %y.</source>
+<target>Nu pot copia fila %x în %y.</target>
+
+<source>Cannot copy symbolic link %x to %y.</source>
+<target>Nu pot copia legătura simbolică %x în %y.</target>
+
+<source>Creating a Volume Shadow Copy for %x...</source>
+<target>Creez o Conservare a Volumului [Volume Shadow Copy] pentru %x...</target>
+
+<source>Cannot find folder %x.</source>
+<target>Nu pot găsi dosarul %x.</target>
+
+<source>Target folder %x already existing.</source>
+<target>Dosarul țintă %x există deja.</target>
+
+<source>Target folder input field must not be empty.</source>
+<target>Cîmpul de introducere a dosarului țintă nu trebuie să fie gol.</target>
+
+<source>Source folder %x not found.</source>
+<target>Dosarul sursă %x nu a fost găsit.</target>
+
+<source>Please enter a target folder for versioning.</source>
+<target>Introdu dosarul țintă pentru versionare.</target>
+
+<source>The following items have unresolved conflicts and will not be synchronized:</source>
+<target>Există conflicte nerezolvate la elementele listate mai jos, deci ele nu vor fi sincronizate:</target>
+
+<source>Folder pair:</source>
+<target>Perechea de Dosare:</target>
+
+<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
+<target>Dosarele următoare au diferențe semnificative. Asigură-te că ai selectat dosarele corecte pentru sincronizare.</target>
+
+<source>Not enough free disk space available in:</source>
+<target>Spațiu de stocare insuficient pe:</target>
+
+<source>Required:</source>
+<target>Necesar:</target>
+
+<source>Available:</source>
+<target>Disponibil:</target>
+
+<source>Some files will be synchronized as part of multiple base folders.</source>
+<target>Anumite file vor fi sincronizate ca parte din dosare de bază multiple.</target>
+
+<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
+<target>Pentru a evita conflictele, setează filtrele de excludere astfel ca fiecare filă actualizată e considerată ca aparținînd unui singur dosar de bază.</target>
+
+<source>Versioning folder:</source>
+<target>Dosar de Versionare:</target>
+
+<source>Base folder:</source>
+<target>Dosar de Bază:</target>
+
+<source>The versioning folder is contained in a base folder.</source>
+<target>Dosarul de versionare este conținut într-un dosar de bază.</target>
+
+<source>Synchronizing folder pair:</source>
+<target>Sincronizez perechea de dosare:</target>
+
+<source>Generating database...</source>
+<target>Generez baza de date...</target>
+
+<source>Searching for old file versions:</source>
+<target>Caut versiuni mai vechi ale filelor:</target>
+
+<source>Removing old file versions:</source>
+<target>Înlătur versiunile vechi ale filelor:</target>
+
+<source>Unable to create time stamp for versioning:</source>
+<target>Nu pot crea marcajul de timp pentru versionare:</target>
 
 <source>
 Unexpected size of data stream.
@@ -270,47 +582,32 @@ Actuală: %y baiți
 <source>Cannot write permissions of %x.</source>
 <target>Nu pot scrie permisiunile lui %x.</target>
 
-<source>Operation not supported for different base folder types.</source>
-<target>Operație nesuportată pentru tipuri diferite de dosare bază (rădăcină).</target>
-
-<source>Cannot write file %x.</source>
-<target>Nu pot scrie fila %x.</target>
-
-<source>Cannot move file %x to %y.</source>
-<target>Nu pot muta fila %x în %y.</target>
-
-<source>Cannot copy symbolic link %x to %y.</source>
-<target>Nu pot copia legătura simbolică %x în %y.</target>
-
-<source>Unable to connect to %x.</source>
-<target>Nu mă pot conecta la %x.</target>
-
-<source>Failed to get information about server %x.</source>
-<target>N-am putut obține informații despre serverul %x.</target>
-
-<source>Cannot open directory %x.</source>
-<target>Nu pot deschide dosarul %x.</target>
-
-<source>Cannot read directory %x.</source>
-<target>Nu pot citi dosarul %x.</target>
-
-<source>Cannot read file attributes of %x.</source>
-<target>Nu pot citi atributele filei %x.</target>
-
-<source>Cannot create directory %x.</source>
-<target>Nu pot crea dosarul %x.</target>
+<source>Operation not supported between different devices.</source>
+<target>Operația nu-i suportată între dispozitive de stocare diferite.</target>
 
 <source>Cannot delete file %x.</source>
 <target>Nu pot șterge fila %x.</target>
 
+<source>Cannot delete symbolic link %x.</source>
+<target>Nu pot șterge legătura simbolică %x.</target>
+
 <source>Cannot delete directory %x.</source>
 <target>Nu pot șterge dosarul %x.</target>
+
+<source>Error Code %x</source>
+<target>Cod de Eroare %x.</target>
 
 <source>Cannot write modification time of %x.</source>
 <target>Nu pot scrie modificarea timpului pentru %x.</target>
 
+<source>Cannot create directory %x.</source>
+<target>Nu pot crea dosarul %x.</target>
+
 <source>Cannot determine final path for %x.</source>
 <target>Nu pot determina calea finală pentru %x.</target>
+
+<source>Operation not supported by device.</source>
+<target>Operația nu-i suportată de dispozitivul de stocare.</target>
 
 <source>Cannot resolve symbolic link %x.</source>
 <target>Nu pot rezolva legătura simbolică %x.</target>
@@ -318,38 +615,50 @@ Actuală: %y baiți
 <source>Unable to move %x to the recycle bin.</source>
 <target>Nu pot muta %x în Reciclator.</target>
 
-<source>Cannot open file %x.</source>
-<target>Nu pot deschide fila %x.</target>
+<source>Authentication completed.</source>
+<target>Autentificare realizată.</target>
 
-<source>Cannot find device %x.</source>
-<target>Nu pot găsi dispozitivul %x.</target>
+<source>You may close this page now and continue with FreeFileSync.</source>
+<target>Poți închide pagina asta acum și continua cu FreeFileSync.</target>
+
+<source>Authentication failed.</source>
+<target>Autentificare eșuată.</target>
 
 <source>Cannot find %x.</source>
 <target>Nu pot găsi %x.</target>
 
-<source>Type of item %x is not supported:</source>
-<target>Tipul de element %x nu e suportat:</target>
-
-<source>Cannot delete symbolic link %x.</source>
-<target>Nu pot șterge legătura simbolică %x.</target>
+<source>Please authorize access to user account %x.</source>
+<target>Autorizează accesul la contul de utilizator %x.</target>
 
 <source>Cannot determine free disk space for %x.</source>
 <target>Nu pot determina spațiul liber de stocare pentru %x.</target>
 
-<source>Incorrect command line:</source>
-<target>Linie de comandă incorectă:</target>
-
-<source>Error Code %x</source>
-<target>Cod de Eroare %x.</target>
-
-<source>The server does not support authentication via %x.</source>
-<target>Serverul nu suportă autentificarea prin %x.</target>
-
-<source>Required:</source>
-<target>Necesar:</target>
+<source>Unable to disconnect from %x.</source>
+<target>Nu pot face deconectarea de la %x.</target>
 
 <source>Unable to access %x.</source>
 <target>Nu pot accesa %x.</target>
+
+<source>Failed to get information about server %x.</source>
+<target>N-am putut obține informații despre serverul %x.</target>
+
+<source>Cannot monitor directory %x.</source>
+<target>Nu pot monitoriza dosarul %x.</target>
+
+<source>Cannot find device %x.</source>
+<target>Nu pot găsi dispozitivul %x.</target>
+
+<source>Cannot open directory %x.</source>
+<target>Nu pot deschide dosarul %x.</target>
+
+<source>Unsupported item type.</source>
+<target>Tip de element nesuportat.</target>
+
+<source>Incorrect command line:</source>
+<target>Linie de comandă incorectă:</target>
+
+<source>The server does not support authentication via %x.</source>
+<target>Serverul nu suportă autentificarea prin %x.</target>
 
 <source>
 <pluralform>Operation timed out after 1 second.</pluralform>
@@ -377,146 +686,14 @@ Actuală: %y baiți
 <source>Failed to open SFTP channel number %x.</source>
 <target>N-am putut deschide canalul SFTP cu numărul %x.</target>
 
-<source>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</source>
-<target>
-<pluralform>1 bait</pluralform>
-<pluralform>%x baiți</pluralform>
-<pluralform>%x de baiți</pluralform>
-</target>
-
-<source>%x MB</source>
-<target>%x MB</target>
-
-<source>%x KB</source>
-<target>%x KB</target>
-
-<source>%x GB</source>
-<target>%x GB</target>
-
-<source>Cannot load file %x.</source>
-<target>Nu pot deschide fila %x.</target>
-
-<source>Database file %x is incompatible.</source>
-<target>Fila cu baza de date %x este incompatibilă.</target>
-
-<source>Initial synchronization:</source>
-<target>Sincronizare inițială:</target>
-
-<source>Database file %x does not yet exist.</source>
-<target>Fila cu baza de date %x nu există încă.</target>
-
-<source>Database file is corrupted:</source>
-<target>Fila bazei de date este stricată (coruptă):</target>
-
-<source>The database files do not yet contain information about the last synchronization.</source>
-<target>Filele cu baze de date nu conțin încă informații despre ultima sincornizare.</target>
-
-<source>Loading file %x...</source>
-<target>Deschid fila %x...</target>
-
-<source>Saving file %x...</source>
-<target>Salvez fila %x...</target>
-
-<source>Searching for folder %x...</source>
-<target>Caut dosarul %x...</target>
-
-<source>Timeout while searching for folder %x.</source>
-<target>Timp expirat la căutarea dosarului %x.</target>
-
-<source>Cannot get process information.</source>
-<target>Nu pot obține informații despre proces.</target>
-
-<source>Waiting while directory is locked:</source>
-<target>Aștept ca dosarul să fie zăvorît [locked]:</target>
-
-<source>Lock owner:</source>
-<target>Zăvorăște proprietarul:</target>
-
-<source>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-</source>
-<target>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-<pluralform>%x de sec</pluralform>
-</target>
-
-<source>Detecting abandoned lock...</source>
-<target>Detectez zăvorîrea [lock] abandonată...</target>
-
-<source>Items processed:</source>
-<target>Elemente Procesate:</target>
-
-<source>Items remaining:</source>
-<target>Elemente Rămase:</target>
-
-<source>Total time:</source>
-<target>Timp Total:</target>
-
-<source>Error parsing file %x, row %y, column %z.</source>
-<target>Eroare la parsarea filei %x, rîndul %y, coloana %z.</target>
-
-<source>Cannot set directory lock for %x.</source>
-<target>Nu pot face zăvorîrea dosarului %x.</target>
-
-<source>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</source>
-<target>
-<pluralform>1 fir</pluralform>
-<pluralform>%x fire</pluralform>
-<pluralform>%x de fire</pluralform>
-</target>
-
-<source>Scanning:</source>
-<target>Scanez:</target>
-
-<source>/sec</source>
-<target>/sec</target>
-
-<source>%x items/sec</source>
-<target>%x elemente/sec</target>
-
-<source>Show in Explorer</source>
-<target>Arată în Exploratorul de File</target>
-
-<source>Open with default application</source>
-<target>Deschide cu Aplicația Implicită</target>
-
-<source>Browse directory</source>
-<target>Explorează Dosarul</target>
-
-<source>Cannot access the Volume Shadow Copy Service.</source>
-<target>Nu pot accesa Serviciul de Conservare a Volumelor [Volume Shadow Copy].</target>
-
-<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
-<target>Folosește versiunea pe 64-biți a FreeFileSync pentru a crea conservări (copii de rezervă) pe acest sistem.</target>
-
-<source>Cannot determine volume name for %x.</source>
-<target>Nu pot determina numele volumului pentru %x.</target>
-
-<source>Volume name %x is not part of file path %y.</source>
-<target>Numele volumului %x nu face parte din calea filei %y.</target>
-
-<source>Stop requested: Waiting for current operation to finish...</source>
-<target>Oprire solicitată: Aștept terminarea operației în curs...</target>
-
-<source>Unable to create time stamp for versioning:</source>
-<target>Nu pot crea marcajul de timp pentru versionare:</target>
-
 <source>Drag && drop</source>
 <target>Trage și pune un dosar mai jos sau explorează către el</target>
 
-<source>Cannot find folder %x.</source>
-<target>Nu pot găsi dosarul %x.</target>
-
 <source>Select a folder</source>
 <target>Selectează un Dosar</target>
+
+<source>&New</source>
+<target>Configurație &Nouă</target>
 
 <source>&Open...</source>
 <target>&Deschide...</target>
@@ -551,8 +728,8 @@ Actuală: %y baiți
 <source>3. Press 'Start'.</source>
 <target>3. Apasă pe 'Pornește'.</target>
 
-<source>To get started just import a .ffs_batch file.</source>
-<target>Pentru a începe, importă o filă de tipul .ffs_batch.</target>
+<source>To get started just import a "ffs_batch" file.</source>
+<target>Pentru a începe, importă o filă de tipul "ffs_batch".</target>
 
 <source>Folders to watch:</source>
 <target>Dosare de Monitorizat:</target>
@@ -607,14 +784,14 @@ Comanda este declanșată dacă:
 <source>Directory monitoring active</source>
 <target>Monitorizarea dosarelor este activă</target>
 
-<source>Waiting until all directories are available...</source>
-<target>Aștept pînă cînd toate dosarele vor fi disponibile...</target>
+<source>Waiting until directory is available:</source>
+<target>Aștept pînă cînd dosarul va fi disponibil:</target>
 
 <source>&Restore</source>
 <target>&Restaurează</target>
 
-<source>&Show error</source>
-<target>A&rată eroarea</target>
+<source>&Show error message</source>
+<target>A&rată mesajele de eroare</target>
 
 <source>&Quit</source>
 <target>&Ieși</target>
@@ -622,152 +799,45 @@ Comanda este declanșată dacă:
 <source>&Retry</source>
 <target>&Reîncearcă</target>
 
-<source>File time and size</source>
-<target>Timpul și Mărimea Filelor</target>
+<source>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</source>
+<target>
+<pluralform>1 bait</pluralform>
+<pluralform>%x baiți</pluralform>
+<pluralform>%x de baiți</pluralform>
+</target>
 
-<source>File content</source>
-<target>Conținutul Filelor</target>
+<source>%x MB</source>
+<target>%x MB</target>
 
-<source>File size</source>
-<target>Mărimea Filelor</target>
+<source>%x KB</source>
+<target>%x KB</target>
 
-<source>Two way</source>
-<target>Ambele Direcții</target>
-
-<source>Mirror</source>
-<target>Clonare</target>
-
-<source>Update</source>
-<target>Actualizare</target>
-
-<source>Custom</source>
-<target>Personalizat</target>
-
-<source>Multiple...</source>
-<target>Multiplu...</target>
-
-<source>Moving file %x to %y</source>
-<target>Mut fila %x în %y</target>
-
-<source>Moving folder %x to %y</source>
-<target>Mut dosarul %x în %y</target>
-
-<source>Moving symbolic link %x to %y</source>
-<target>Mut legătura simbolică %x în %y</target>
-
-<source>Removing old versions...</source>
-<target>Înlătur versiunile vechi...</target>
-
-<source>Updating file %x</source>
-<target>Actualizez fila %x</target>
-
-<source>Updating symbolic link %x</source>
-<target>Actualizez legătura simbolică %x</target>
-
-<source>Verifying file %x</source>
-<target>Verific fila %x</target>
-
-<source>Updating attributes of %x</source>
-<target>Actualizez atributele lui %x</target>
-
-<source>Cannot write file attributes of %x.</source>
-<target>Nu pot scrie atributele de filă ale lui %x.</target>
-
-<source>%x and %y have different content.</source>
-<target>%x și %y au conținut diferit.</target>
-
-<source>Data verification error:</source>
-<target>Eroare de verificare a datei:</target>
-
-<source>Creating a Volume Shadow Copy for %x...</source>
-<target>Creez o Conservare a Volumului [Volume Shadow Copy] pentru %x...</target>
-
-<source>Target folder %x already existing.</source>
-<target>Dosarul țintă %x există deja.</target>
-
-<source>Target folder input field must not be empty.</source>
-<target>Cîmpul de introducere a dosarului țintă nu trebuie să fie gol.</target>
-
-<source>Source folder %x not found.</source>
-<target>Dosarul sursă %x nu a fost găsit.</target>
-
-<source>Please enter a target folder for versioning.</source>
-<target>Introdu dosarul țintă pentru versionare.</target>
-
-<source>The following items have unresolved conflicts and will not be synchronized:</source>
-<target>Există conflicte nerezolvate la elementele listate mai jos, deci ele nu vor fi sincronizate:</target>
-
-<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
-<target>Dosarele următoare au diferențe semnificative. Asigură-te că ai selectat dosarele corecte pentru sincronizare.</target>
-
-<source>Not enough free disk space available in:</source>
-<target>Spațiu de stocare insuficient pe:</target>
-
-<source>Available:</source>
-<target>Disponibil:</target>
-
-<source>Some files will be synchronized as part of multiple base folders.</source>
-<target>Anumite file vor fi sincronizate ca parte din dosare de bază multiple.</target>
-
-<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
-<target>Pentru a evita conflictele, setează filtrele de excludere astfel ca fiecare filă actualizată e considerată ca aparținînd unui singur dosar de bază.</target>
-
-<source>Versioning folder:</source>
-<target>Dosar de Versionare:</target>
-
-<source>Base folder:</source>
-<target>Dosar de Bază:</target>
-
-<source>The versioning folder is contained in a base folder.</source>
-<target>Dosarul de versionare este conținut într-un dosar de bază.</target>
-
-<source>Synchronizing folder pair:</source>
-<target>Sincronizez perechea de dosare:</target>
-
-<source>Generating database...</source>
-<target>Generez baza de date...</target>
+<source>%x GB</source>
+<target>%x GB</target>
 
 <source>Loading...</source>
 <target>Deschid...</target>
 
+<source>Scanning...</source>
+<target>Scanez...</target>
+
 <source>job name</source>
 <target>numele sarcinii</target>
 
-<source>Show summary</source>
-<target>Arată sumarul (rezumatul)</target>
+<source>System: Sleep</source>
+<target>Sistem: Pune în Repaus [Sleep]</target>
 
-<source>Sleep</source>
-<target>Pune în repaus [sleep]</target>
-
-<source>Shut down</source>
-<target>Închide PC-ul [Shut down]</target>
-
-<source>Synchronization stopped</source>
-<target>Sincronizare oprită</target>
-
-<source>Stopped</source>
-<target>Oprită</target>
-
-<source>Synchronization completed with errors</source>
-<target>Sincronizare terminată cu erori</target>
-
-<source>Synchronization completed with warnings</source>
-<target>Sincronizare realizată, dar cu avertismente</target>
-
-<source>Warning</source>
-<target>Atenție</target>
+<source>System: Shut down</source>
+<target>Sistem: Închide PC-ul [Shut down]</target>
 
 <source>Nothing to synchronize</source>
 <target>Nu e nimic de sincronizat</target>
 
-<source>Synchronization completed successfully</source>
-<target>Sincronizare realizată cu succes</target>
-
 <source>Executing command %x</source>
 <target>Execut comanda %x</target>
-
-<source>Cleaning up old log files...</source>
-<target>Curăț filele de jurnalizare vechi...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
 <target>Poți comuta la fereastra principală FreeFileSync pentru a rezolva această problemă.</target>
@@ -784,15 +854,8 @@ Comanda este declanșată dacă:
 <source>Switching to FreeFileSync's main window</source>
 <target>Comut la fereastra principală FreeFileSync</target>
 
-<source>
-<pluralform>Automatic retry in 1 second...</pluralform>
-<pluralform>Automatic retry in %x seconds...</pluralform>
-</source>
-<target>
-<pluralform>Reîncercare automată în 1 secundă...</pluralform>
-<pluralform>Reîncercare automată în %x secunde...</pluralform>
-<pluralform>Reîncercare automată în %x de secunde...</pluralform>
-</target>
+<source>Automatic retry</source>
+<target>Reîncearcă Automat</target>
 
 <source>Ignore &all</source>
 <target>Ignoră &Tot</target>
@@ -802,6 +865,31 @@ Comanda este declanșată dacă:
 
 <source>Serious Error</source>
 <target>Eroare Serioasă</target>
+
+<source>Last session</source>
+<target>Ultima Sesiune</target>
+
+<source>Today</source>
+<target>Azi</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 zi</pluralform>
+<pluralform>%x zile</pluralform>
+<pluralform>%x de zile</pluralform>
+</target>
+
+<source>Name</source>
+<target>Nume</target>
+
+<source>Last sync</source>
+<target>Ultima Sincr.</target>
+
+<source>Log</source>
+<target>Jurnal</target>
 
 <source>Folder</source>
 <target>Dosar</target>
@@ -813,7 +901,7 @@ Comanda este declanșată dacă:
 <target>Cale Completă</target>
 
 <source>Relative path</source>
-<target>Calea Relativă</target>
+<target>Cale Relativă</target>
 
 <source>Item name</source>
 <target>Numele Elementului</target>
@@ -866,14 +954,20 @@ Comanda este declanșată dacă:
 <source>Please select a folder on a local file system, network or an MTP device.</source>
 <target>Selectează un dosar de pe un sistem de file local, din rețea sau de pe un dispozitiv MTP (dispozitiv media portabil).</target>
 
-<source>&New</source>
-<target>Configurație &Nouă</target>
+<source>Defined by context of use</source>
+<target>Definit de contextul utilizării</target>
+
+<source>Requires FreeFileSync Donation Edition</source>
+<target>Necesită FreeFileSync Ediția pentru Donatori</target>
 
 <source>&Save</source>
 <target>&Salvează</target>
 
 <source>Save as &batch job...</source>
 <target>Salvea&ză ca Sarcină Set...</target>
+
+<source>Show &log</source>
+<target>Arată &Jurnalul</target>
 
 <source>Start &comparison</source>
 <target>Pornește &Compararea</target>
@@ -935,9 +1029,6 @@ Comanda este declanșată dacă:
 <source>Access online storage</source>
 <target>Accesează stocarea de pe internet [online]</target>
 
-<source>Swap sides</source>
-<target>Schimbă compartimentele stîng și drept între ele</target>
-
 <source>Close search bar</source>
 <target>Închide bara de căutare</target>
 
@@ -965,6 +1056,9 @@ Comanda este declanșată dacă:
 <source>Select view:</source>
 <target>Selectează Vederea:</target>
 
+<source>Save as default</source>
+<target>Salvează ca implicit</target>
+
 <source>Statistics:</source>
 <target>Statistici:</target>
 
@@ -980,8 +1074,8 @@ Comanda este declanșată dacă:
 <source>Total bytes to copy</source>
 <target>Numărul total de baiți copiați</target>
 
-<source>Folder pair:</source>
-<target>Perechea de Dosare:</target>
+<source>Arrange folder pair</source>
+<target>Aranjează perechea de dosare</target>
 
 <source>Main settings:</source>
 <target>Setările Principale:</target>
@@ -1016,6 +1110,24 @@ Comanda este declanșată dacă:
 <source>Handle daylight saving time</source>
 <target>Gestionarea timpului de vară (DST)</target>
 
+<source>Ignore errors</source>
+<target>Ignoră erorile</target>
+
+<source>Retry count:</source>
+<target>Numărul reîncercărilor:</target>
+
+<source>Delay (in seconds):</source>
+<target>Întîrziere (în secunde):</target>
+
+<source>Performance improvements:</source>
+<target>Îmbunătățiri de Performanță:</target>
+
+<source>Parallel file operations:</source>
+<target>Operațiuni paralele cu file:</target>
+
+<source>How to get best performance?</source>
+<target>Cum obții cea mai bună performanță?</target>
+
 <source>Local settings:</source>
 <target>Setări Locale:</target>
 
@@ -1025,8 +1137,8 @@ Comanda este declanșată dacă:
 <source>Show examples</source>
 <target>Arată exemple</target>
 
-<source>Time span:</source>
-<target>Intervalul de Timp:</target>
+<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
+<target>Selectează regulile filtrului pentru a exclude anumite file de la sincronizare. Introdu căile filelor relative la perechea lor de dosare corespondentă.</target>
 
 <source>File size:</source>
 <target>Mărimea Filei:</target>
@@ -1037,8 +1149,8 @@ Comanda este declanșată dacă:
 <source>Maximum:</source>
 <target>Maxim:</target>
 
-<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
-<target>Selectează regulile filtrului pentru a exclude anumite file de la sincronizare. Introdu căile filelor relative la perechea lor de dosare corespondentă.</target>
+<source>Time span:</source>
+<target>Intervalul de Timp:</target>
 
 <source>C&lear</source>
 <target>C&urăță</target>
@@ -1069,29 +1181,41 @@ Comanda este declanșată dacă:
 <source>&Versioning</source>
 <target>&Versionare</target>
 
+<source>Move files to a user-defined folder</source>
+<target>Mută filele într-un dosar stabilit de utilizator</target>
+
 <source>Naming convention:</source>
 <target>Convenție de numire:</target>
 
-<source>&Ignore errors</source>
-<target>&Ignoră Erorile</target>
+<source>Limit file versions:</source>
+<target>Limitează versiunile filelor:</target>
 
-<source>Show pop-up on errors or warnings</source>
-<target>În caz de erori sau avertizări este arătată o fereastră popîc [popup]</target>
+<source>Last x days:</source>
+<target>Ultimele x zile:</target>
 
-<source>Run a command after synchronization:</source>
-<target>Rulează o comandă după sincronizare:</target>
+<source>&Override default log path:</source>
+<target>Ign&oră calea implicită a jurnalului:</target>
+
+<source>Run a command:</source>
+<target>Rulează o comandă:</target>
 
 <source>OK</source>
 <target>OK</target>
 
-<source>Arrange folder pair</source>
-<target>Aranjează perechea de dosare</target>
-
-<source>Enter your login details:</source>
-<target>Introdu detaliile de logare:</target>
-
 <source>Connection type:</source>
 <target>Tip de Conexiune:</target>
+
+<source>Connected user accounts:</source>
+<target>Conturi de utilizator conectate:</target>
+
+<source>&Add connection</source>
+<target>&Adaugă Conexiune</target>
+
+<source>&Disconnect</source>
+<target>&Deconectează</target>
+
+<source>Selected user account:</source>
+<target>Contul de utilizator selectat:</target>
 
 <source>Server name or IP address:</source>
 <target>Numele Serverului sau Adresa IP:</target>
@@ -1132,14 +1256,8 @@ Comanda este declanșată dacă:
 <source>Directory on server:</source>
 <target>Dosarul de pe server:</target>
 
-<source>Performance improvements:</source>
-<target>Îmbunătățiri de Performanță:</target>
-
-<source>How to get best performance?</source>
-<target>Cum obții cea mai bună performanță?</target>
-
-<source>Connections for directory reading:</source>
-<target>Conexiuni pentru citirea dosarelor:</target>
+<source>Access timeout (in seconds):</source>
+<target>Timp de expirare a accesului (în sec.):</target>
 
 <source>SFTP channels per connection:</source>
 <target>Canale SFTP per conexiune:</target>
@@ -1147,14 +1265,8 @@ Comanda este declanșată dacă:
 <source>Detect server limit</source>
 <target>Detectează limita serverului</target>
 
-<source>Select a directory on the server:</source>
-<target>Selectează un dosar de pe server:</target>
-
 <source>Select Folder</source>
 <target>Selectează Dosarul</target>
-
-<source>Start synchronization now?</source>
-<target>Pornesc sincronizarea acum?</target>
 
 <source>Variant:</source>
 <target>Variantă:</target>
@@ -1183,11 +1295,11 @@ Comanda este declanșată dacă:
 <source>Minimize to notification area</source>
 <target>Minimizează în aria de notificare (sertar)</target>
 
-<source>Bytes copied:</source>
-<target>Baiți copiați:</target>
-
 <source>When finished:</source>
 <target>La terminare:</target>
+
+<source>Auto-close</source>
+<target>Închide Automat</target>
 
 <source>Close</source>
 <target>Închide</target>
@@ -1201,26 +1313,20 @@ Comanda este declanșată dacă:
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
 <target>Creează o filă set [batch file] pentru sincronizarea neasistată. Pentru efectuarea sincronizării, dublu-clichează această filă sau programează rularea ei folosind un Planificator de Sarcini [Task Scheduler]: %x</target>
 
+<source>Progress dialog:</source>
+<target>Dialogul Progresului:</target>
+
 <source>Run minimized</source>
 <target>Rulează minimizat</target>
 
-<source>&Show error dialog</source>
-<target>Arată dialo&gul erorilor</target>
+<source>Show pop-up on errors or warnings</source>
+<target>În caz de erori sau avertizări este arătată o fereastră popîc [popup]</target>
 
 <source>&Cancel</source>
 <target>&Anulează</target>
 
 <source>Stop synchronization at first error</source>
 <target>Oprește sincronizarea la prima eroare întîlnită</target>
-
-<source>Save log:</source>
-<target>Salvează jurnalul:</target>
-
-<source>Limit:</source>
-<target>Limită:</target>
-
-<source>Limit maximum number of log files</source>
-<target>Limitează numărul maxim de file jurnal</target>
 
 <source>How can I schedule a batch job?</source>
 <target>Cum pot planifica o sarcină set?</target>
@@ -1255,14 +1361,14 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Transfer file and folder permissions.</source>
 <target>Sînt transferate și permisiunile de accesare NTFS ale filelor și dosarelor (Atenție: doar pentru utilizatorii avansați!).</target>
 
-<source>Automatic retry on error:</source>
-<target>Reîncearcă automat în caz de eroare:</target>
+<source>Show all permanently hidden dialogs and warning messages again</source>
+<target>Sînt arătate din nou dialogurile și mesajele de eroare care au fost ascunse permanent</target>
 
-<source>Retry count:</source>
-<target>Numărul reîncercărilor:</target>
+<source>Default log path:</source>
+<target>Calea implicită a jurnalului:</target>
 
-<source>Delay (in seconds):</source>
-<target>Întîrziere (în secunde):</target>
+<source>&Delete logs after x days:</source>
+<target>Șter&ge jurnalul după x zile:</target>
 
 <source>Customize context menu:</source>
 <target>Personalizează meniul contextual:</target>
@@ -1270,17 +1376,20 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Description</source>
 <target>Descriere</target>
 
-<source>Show hidden dialogs again</source>
-<target>Arată din nou dialogurile ascunse</target>
-
-<source>Show all permanently hidden dialogs and warning messages again</source>
-<target>Sînt arătate din nou dialogurile și mesajele de eroare care au fost ascunse permanent</target>
-
 <source>&Default</source>
 <target>Coloanele &Implicite</target>
 
-<source>Source code written in C++ using:</source>
-<target>Cod sursă scris în C++ folosind:</target>
+<source>Feedback and suggestions are welcome:</source>
+<target>Părerile și sugestiile sînt binevenite:</target>
+
+<source>Home page</source>
+<target>Pagina Sitului</target>
+
+<source>FreeFileSync Forum</source>
+<target>Forumul FreeFileSync</target>
+
+<source>Email</source>
+<target>Adresa Autorului</target>
 
 <source>If you like FreeFileSync:</source>
 <target>Donează pentru FreeFileSync:</target>
@@ -1288,23 +1397,17 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Support with a donation</source>
 <target>Sprijină cu o donație</target>
 
-<source>Donation details</source>
-<target>Detaliile Donăriii</target>
-
 <source>The auto updater was disabled by the administrator.</source>
 <target>Actualizatorul automat a fost dezactivat de administrator.</target>
 
-<source>Feedback and suggestions are welcome</source>
-<target>Opiniile și sugestiile despre program sînt binevenite.</target>
+<source>Donation details</source>
+<target>Detaliile Donăriii</target>
 
-<source>Home page</source>
-<target>Pagina Sitului</target>
+<source>Source code written in C++ using:</source>
+<target>Cod sursă scris în C++ folosind:</target>
 
-<source>Email</source>
-<target>Adresa Autorului</target>
-
-<source>Published under the GNU General Public License</source>
-<target>Publicat sub licența GNU GPL</target>
+<source>Published under the GNU General Public License:</source>
+<target>Publicat sub Licența Publică Generală GNU:</target>
 
 <source>Many thanks for localization:</source>
 <target>Multe mulțumiri pentru localizare:</target>
@@ -1330,13 +1433,22 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Activate offline</source>
 <target>Activează neconectat [offline]</target>
 
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Evidențiază configurațiile care n-au fost rulate de mai multă vreme decît numărul de zile următor:</target>
+
+<source>Synchronization Settings</source>
+<target>Setările Sincronizării</target>
+
+<source>Access Online Storage</source>
+<target>Accesează Stocarea pe Internet</target>
+
 <source>Save as a Batch Job</source>
 <target>Salvează ca Sarcină Set</target>
 
 <source>Delete Items</source>
 <target>Șterge Elementele</target>
 
-<source>Copy items</source>
+<source>Copy Items</source>
 <target>Copiază Elementele</target>
 
 <source>Options</source>
@@ -1345,8 +1457,17 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Select Time Span</source>
 <target>Selectează Intervalul de Timp</target>
 
-<source>FreeFileSync Donation Edition</source>
-<target>FreeFileSync Ediție pentru Donatori</target>
+<source>Highlight Configurations</source>
+<target>Evidențiază Configurațiile</target>
+
+<source>Info</source>
+<target>Informații</target>
+
+<source>No log entries</source>
+<target>Nu există intrări în jurnal</target>
+
+<source>Select all</source>
+<target>Selectează Tot</target>
 
 <source>&Options</source>
 <target>&Opțiuni</target>
@@ -1369,6 +1490,9 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Overview</source>
 <target>Panoramă</target>
 
+<source>Swap sides</source>
+<target>Schimbă compartimentele stîng și drept între ele</target>
+
 <source>Show "%x"</source>
 <target>Arată "%x"</target>
 
@@ -1377,9 +1501,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>FreeFileSync %x is available!</source>
 <target>FreeFileSync %x este disponibil!</target>
-
-<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
-<target>Filele de instalare sînt stricate (corupte). Reinstalează FreeFileSync.</target>
 
 <source>Local path not available for %x.</source>
 <target>Calea locală nu este disponibilă pentru %x.</target>
@@ -1436,17 +1557,20 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>multiple selection</source>
 <target>selectare multiplă</target>
 
-<source>Include via filter:</source>
-<target>Include prin Filtrul:</target>
+<source>&Include via filter:</source>
+<target>&Include prin filtru:</target>
 
-<source>Exclude via filter:</source>
-<target>Exclude prin Filtrul:</target>
+<source>&Exclude via filter:</source>
+<target>&Exclude prin filtru:</target>
 
 <source>Include temporarily</source>
 <target>Include Temporar</target>
 
 <source>Exclude temporarily</source>
 <target>Exclude Temporar</target>
+
+<source>&Synchronize selection</source>
+<target>&Sincronizează Selecția</target>
 
 <source>&Copy to...</source>
 <target>&Copiază în...</target>
@@ -1473,10 +1597,10 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <target>Mari</target>
 
 <source>Select time span...</source>
-<target>Selectează intervalul de timp...</target>
+<target>Selectează Intervalul de Timp...</target>
 
-<source>Last session</source>
-<target>Ultima Sesiune</target>
+<source>Donation Edition</source>
+<target>Ediția pentru Donatori</target>
 
 <source>Folder Comparison and Synchronization</source>
 <target>Comparare și Sincronizare de Dosare</target>
@@ -1496,8 +1620,11 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Do&n't save</source>
 <target>&Nu salva</target>
 
-<source>Remove entry from list</source>
-<target>Înlătură intrarea din listă</target>
+<source>Hide configuration</source>
+<target>Ascunde Configurația</target>
+
+<source>Highlight...</source>
+<target>Evidențiază...</target>
 
 <source>Clear filter</source>
 <target>Curăță Filtrul</target>
@@ -1547,9 +1674,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Show filtered or temporarily excluded files</source>
 <target>Arată filele filtrate sau excluse temporar</target>
 
-<source>Save as default</source>
-<target>Salvează ca implicit</target>
-
 <source>Filter</source>
 <target>Filtrare</target>
 
@@ -1577,23 +1701,14 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Paused</source>
 <target>Sincronizare Pauzată</target>
 
+<source>Stop requested...</source>
+<target>Oprire cerută...</target>
+
 <source>Initializing...</source>
 <target>Inițializez...</target>
 
-<source>Scanning...</source>
-<target>Scanez...</target>
-
 <source>Comparing content...</source>
 <target>Compar conținutul...</target>
-
-<source>Completed</source>
-<target>Sincronizare Terminată</target>
-
-<source>Info</source>
-<target>Informații</target>
-
-<source>Select all</source>
-<target>Selectează Tot</target>
 
 <source>&Continue</source>
 <target>&Continuă</target>
@@ -1601,14 +1716,17 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Progress</source>
 <target>Progres</target>
 
-<source>Log</source>
-<target>Jurnal</target>
-
 <source>Thank you, %x, for your donation and support!</source>
 <target>Mulțumesc %x, pentru donație și sprijin!</target>
 
+<source>Connections</source>
+<target>Conexiuni</target>
+
 <source>Recommended range:</source>
 <target>Interval recomandat:</target>
+
+<source>Do you really want to disconnect from user account %x?</source>
+<target>Sigur vrei să te deconectezi de la contul de utilizator %x?</target>
 
 <source>Password:</source>
 <target>Parolă:</target>
@@ -1655,6 +1773,12 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <pluralform>Sigur vrei să ștergi definitiv următoarele %x de elemente?</pluralform>
 </target>
 
+<source>Start to synchronize the selection?</source>
+<target>Pornești sinconizarea selecției?</target>
+
+<source>Start synchronization now?</source>
+<target>Pornesc sincronizarea acum?</target>
+
 <source>Copy DACL, SACL, Owner, Group</source>
 <target>Copiază permisiunile DACL, SACL, Proprietar, Grup</target>
 
@@ -1673,11 +1797,11 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Parameters for opposite side</source>
 <target>Parametrii pentru partea opusă</target>
 
-<source>Show hidden dialogs and warning messages again?</source>
-<target>Arăt din nou dialogurile și mesajele de eroare ascunse?</target>
+<source>Show hidden dialogs again</source>
+<target>Arată din nou dialogurile ascunse</target>
 
-<source>&Show</source>
-<target>&Arată</target>
+<source>All dialogs shown</source>
+<target>Toate dialogurile arătate</target>
 
 <source>Downloading update...</source>
 <target>Descarc actualizarea...</target>
@@ -1703,17 +1827,11 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Configure your own synchronization rules.</source>
 <target>Reguli de sincronizare definite de utilizator pentru fiecare situație.</target>
 
-<source>Synchronization Settings</source>
-<target>Setările Sincronizării</target>
-
 <source>Comparison</source>
 <target>Comparare</target>
 
 <source>Synchronization</source>
 <target>Sincronizare</target>
-
-<source>Today</source>
-<target>Azi</target>
 
 <source>This week</source>
 <target>Săptămîna asta</target>
@@ -1723,9 +1841,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>This year</source>
 <target>Anul ăsta</target>
-
-<source>Last x days</source>
-<target>Ultimele x zile</target>
 
 <source>Byte</source>
 <target>Baiți</target>
@@ -1742,9 +1857,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Delete and overwrite files permanently</source>
 <target>Șterge și suprascrie filele în mod definitiv</target>
 
-<source>Move files to a user-defined folder</source>
-<target>Mută filele într-un dosar stabilit de utilizator</target>
-
 <source>Replace</source>
 <target>Înlocuiește</target>
 
@@ -1753,6 +1865,12 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>Time stamp</source>
 <target>Marcaj Temporal</target>
+
+<source>Move files into a time-stamped subfolder</source>
+<target>Mută filele într-un dosar cu marcaj temporal</target>
+
+<source>File</source>
+<target>Filă</target>
 
 <source>Append a time stamp to each file name</source>
 <target>Adaugă un marcaj temporal la numele fiecărei file</target>
@@ -1775,17 +1893,14 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Leave as unresolved conflict</source>
 <target>Lasă ca conflict nerezolvat</target>
 
-<source>File</source>
-<target>Filă</target>
-
 <source>YYYY-MM-DD hhmmss</source>
 <target>AAAA-LL-ZZ hhmmss</target>
 
+<source>Minimum version count must be smaller than maximum count.</source>
+<target>Numărul minim al versiunii trebuie să fie mai mic decît numărul maxim.</target>
+
 <source>Files</source>
 <target>File</target>
-
-<source>Name</source>
-<target>Nume</target>
 
 <source>Percentage</source>
 <target>Procent</target>
@@ -1795,9 +1910,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>Automatic updates:</source>
 <target>Actualizări Automate:</target>
-
-<source>Requires FreeFileSync Donation Edition</source>
-<target>Necesită FreeFileSync Ediția pentru Donatori</target>
 
 <source>Check for Program Updates</source>
 <target>Caută Actualizări ale Programului</target>
@@ -1812,7 +1924,7 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <target>&Situl Softului</target>
 
 <source>Download now?</source>
-<target>Vrei s-o descarci acum ?</target>
+<target>Vrei s-o descarci acum?</target>
 
 <source>&Download</source>
 <target>&Descarcă</target>
@@ -1841,14 +1953,14 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Unable to register to receive system messages.</source>
 <target>Nu pot înregistra softul pentru a primi mesaje de la sistemul de operare.</target>
 
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>Opțiunea de instalare %x e disponibilă doar pentru FreeFileSync Ediția pentru Donatori.</target>
+
 <source>Cannot find system function %x.</source>
 <target>Nu pot găsi funcția de sistem %x.</target>
 
 <source>Unable to register device notifications for %x.</source>
 <target>Nu pot înregistra notificările dispozitivului pentru %x.</target>
-
-<source>Cannot monitor directory %x.</source>
-<target>Nu pot monitoriza dosarul %x.</target>
 
 <source>The file is locked by another process:</source>
 <target>Fila este zăvorîtă [locked] de alt proces:</target>
@@ -1867,9 +1979,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>%x is not a regular directory name.</source>
 <target>%x nu este un nume regulamentar de dosar.</target>
-
-<source>Cannot copy file %x to %y.</source>
-<target>Nu pot copia fila %x în %y.</target>
 
 <source>Cannot copy attributes from %x to %y.</source>
 <target>Nu pot copia atributele de pe %x pe %y.</target>
@@ -1900,16 +2009,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <pluralform>%x de ore</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 zi</pluralform>
-<pluralform>%x zile</pluralform>
-<pluralform>%x de zile</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Nu pot seta privilegiul %x.</target>
 
@@ -1924,12 +2023,6 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 
 <source>Checking recycle bin failed for folder %x.</source>
 <target>Verificarea disponibilității Reciclatorului a eșuat pentru dosarul %x.</target>
-
-<source>The following XML elements could not be read:</source>
-<target>Elementele XML următoare nu pot fi citite:</target>
-
-<source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>Fila configurație %x este incompletă. Elementele lipsă vor fi setate la valorile implicite.</target>
 
 <source>Prepare installation</source>
 <target>Pregătirea Instalării</target>
@@ -1946,8 +2039,8 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Portable</source>
 <target>Portabilă</target>
 
-<source>Save settings to "%APPDATA%\FreeFileSync"</source>
-<target>Salvează setările în "%APPDATA%\FreeFileSync"</target>
+<source>Save settings in %x</source>
+<target>Salvează setările în %x</target>
 
 <source>Register FreeFileSync file extensions</source>
 <target>Înregistrează extensiile de file FreeFileSync</target>
@@ -1973,8 +2066,11 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Desktop</source>
 <target>Birou [Desktop]</target>
 
-<source>Start menu</source>
-<target>Meniul de Start</target>
+<source>Start Menu</source>
+<target>Meniu de Start [Start Menu]</target>
+
+<source>Send To</source>
+<target>Trimite La [Send To]</target>
 
 <source>Registering FreeFileSync file extensions</source>
 <target>Înregistrez extensiile de file FreeFileSync</target>
@@ -1997,12 +2093,15 @@ Aceasta garantează consecvența stării filelor chiar și în cazul apariției 
 <source>Edit with FreeFileSync</source>
 <target>Editează cu FreeFileSync</target>
 
+<source>Instead of an ad, here's an animal.</source>
+<target>În loc de o publicitate, uite un animal.</target>
+
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
 <target>Versiunea portabilă de FreeFileSync nu poate fi instalată într-un subdosar al %x.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Alege instalarea locală sau selectează un dosar diferit pentru instalare.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>Modul de instalare silențios e disponibil doar pentru FreeFileSync Ediția pentru Donatori.</target>
+<source>Get the Donation Edition with bonus features and help keep FreeFileSync ad-free.</source>
+<target>Obține Ediția pentru Donatori cu funcții suplimentare și ajută la menținerea FreeFileSync fără publicitate.</target>
 

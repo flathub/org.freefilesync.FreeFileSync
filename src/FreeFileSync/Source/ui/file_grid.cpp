@@ -18,7 +18,7 @@
 #include <wx+/dc.h>
 #include <wx+/image_tools.h>
 #include <wx+/image_resources.h>
-#include "../file_hierarchy.h"
+#include "../base/file_hierarchy.h"
 
 using namespace zen;
 using namespace fff;
@@ -42,6 +42,7 @@ inline wxColor getColorNotActive() { return { 228, 228, 228 }; } //light grey
 inline wxColor getColorGridLine () { return { 192, 192, 192 }; } //light grey
 
 const size_t ROW_COUNT_IF_NO_DATA = 0;
+const int FILE_GRID_GAP_SIZE_DIP = 2;
 
 /*
 class hierarchy:
@@ -51,7 +52,7 @@ class hierarchy:
                     |                                |
                GridDataRim                           |
                    /|\                               |
-          __________|__________                      |
+          __________|_________                       |
          |                    |                      |
    GridDataLeft         GridDataRight          GridDataCenter
 */
@@ -70,7 +71,6 @@ std::pair<ptrdiff_t, ptrdiff_t> getVisibleRows(const Grid& grid) //returns range
         if (rowFrom >= 0 && rowTo >= 0)
             return { rowFrom, std::min(rowTo + 1, rowCount) };
     }
-    assert(false);
     return {};
 }
 
@@ -197,7 +197,7 @@ public:
 
     void setIconManager(const std::shared_ptr<IconManager>& iconMgr) { iconMgr_ = iconMgr; }
 
-    void setItemPathForm(ItemPathFormat fmt) { itemPathFormat = fmt; }
+    void setItemPathForm(ItemPathFormat fmt) { itemPathFormat_ = fmt; }
 
     void getUnbufferedIconsForPreload(std::vector<std::pair<ptrdiff_t, AbstractPath>>& newLoad) //return (priority, filepath) list
     {
@@ -256,15 +256,15 @@ public:
     }
 
 private:
-    bool isFailedLoad(size_t row) const { return row < failedLoads.size() ? failedLoads[row] != 0 : false; }
+    bool isFailedLoad(size_t row) const { return row < failedLoads_.size() ? failedLoads_[row] != 0 : false; }
 
     void setFailedLoad(size_t row, bool failed = true)
     {
-        if (failedLoads.size() != refGrid().getRowCount())
-            failedLoads.resize(refGrid().getRowCount());
+        if (failedLoads_.size() != refGrid().getRowCount())
+            failedLoads_.resize(refGrid().getRowCount());
 
-        if (row < failedLoads.size())
-            failedLoads[row] = failed;
+        if (row < failedLoads_.size())
+            failedLoads_[row] = failed;
     }
 
     //icon buffer will load reversely, i.e. if we want to go from inside out, we need to start from outside in
@@ -280,7 +280,7 @@ protected:
         if (enabled)
         {
             if (selected)
-                dc.GradientFillLinear(rect, Grid::getColorSelectionGradientFrom(), Grid::getColorSelectionGradientTo(), wxEAST);
+                dc.GradientFillLinear(rect, getColorSelectionGradientFrom(), getColorSelectionGradientTo(), wxEAST);
             //ignore focus
             else
             {
@@ -371,7 +371,7 @@ private:
                     switch (colTypeRim)
                     {
                         case ColumnTypeRim::ITEM_PATH:
-                            switch (itemPathFormat)
+                            switch (itemPathFormat_)
                             {
                                 case ItemPathFormat::FULL_PATH:
                                     return AFS::getDisplayPath(folder.getAbstractPath<side>());
@@ -403,7 +403,7 @@ private:
                     switch (colTypeRim)
                     {
                         case ColumnTypeRim::ITEM_PATH:
-                            switch (itemPathFormat)
+                            switch (itemPathFormat_)
                             {
                                 case ItemPathFormat::FULL_PATH:
                                     return AFS::getDisplayPath(file.getAbstractPath<side>());
@@ -436,7 +436,7 @@ private:
                     switch (colTypeRim)
                     {
                         case ColumnTypeRim::ITEM_PATH:
-                            switch (itemPathFormat)
+                            switch (itemPathFormat_)
                             {
                                 case ItemPathFormat::FULL_PATH:
                                     return AFS::getDisplayPath(symlink.getAbstractPath<side>());
@@ -463,8 +463,6 @@ private:
         return std::wstring();
     }
 
-    static const int GAP_SIZE = 2;
-
     void renderCell(wxDC& dc, const wxRect& rect, size_t row, ColumnType colType, bool enabled, bool selected, HoverArea rowHover) override
     {
         //don't forget to harmonize with getBestSize()!!!
@@ -486,8 +484,8 @@ private:
 
         auto drawTextBlock = [&](const std::wstring& text)
         {
-            rectTmp.x     += GAP_SIZE;
-            rectTmp.width -= GAP_SIZE;
+            rectTmp.x     += gridGap_;
+            rectTmp.width -= gridGap_;
             const wxSize extent = drawCellText(dc, rectTmp, text, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
             rectTmp.x     += extent.GetWidth();
             rectTmp.width -= extent.GetWidth();
@@ -524,8 +522,8 @@ private:
                         drawTextBlock(pathPrefix);
 
                     //draw file icon
-                    rectTmp.x     += GAP_SIZE;
-                    rectTmp.width -= GAP_SIZE;
+                    rectTmp.x     += gridGap_;
+                    rectTmp.width -= gridGap_;
 
                     const int iconSize = iconMgr_->refIconBuffer().getSize();
                     if (rectTmp.GetWidth() >= iconSize)
@@ -546,7 +544,7 @@ private:
                                 break;
 
                             case IconInfo::ICON_PATH:
-                                if (Opt<wxBitmap> tmpIco = iconMgr_->refIconBuffer().retrieveFileIcon(ii.fsObj->template getAbstractPath<side>()))
+                                if (std::optional<wxBitmap> tmpIco = iconMgr_->refIconBuffer().retrieveFileIcon(ii.fsObj->template getAbstractPath<side>()))
                                     fileIcon = *tmpIco;
                                 else
                                 {
@@ -592,7 +590,7 @@ private:
             case ColumnTypeRim::SIZE:
                 if (refGrid().GetLayoutDirection() != wxLayout_RightToLeft)
                 {
-                    rectTmp.width -= GAP_SIZE; //have file size right-justified (but don't change for RTL languages)
+                    rectTmp.width -= gridGap_; //have file size right-justified (but don't change for RTL languages)
                     drawCellText(dc, rectTmp, cellValue, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
                 }
                 else
@@ -632,14 +630,14 @@ private:
 
             int bestSize = 0;
             if (!pathPrefix.empty())
-                bestSize += GAP_SIZE + dc.GetTextExtent(pathPrefix).GetWidth();
+                bestSize += gridGap_ + dc.GetTextExtent(pathPrefix).GetWidth();
 
-            bestSize += GAP_SIZE + iconMgr_->refIconBuffer().getSize();
-            bestSize += GAP_SIZE + dc.GetTextExtent(itemName).GetWidth() + GAP_SIZE;
+            bestSize += gridGap_ + iconMgr_->refIconBuffer().getSize();
+            bestSize += gridGap_ + dc.GetTextExtent(itemName).GetWidth() + gridGap_;
             return bestSize;
         }
         else
-            return GAP_SIZE + dc.GetTextExtent(cellValue).GetWidth() + GAP_SIZE;
+            return gridGap_ + dc.GetTextExtent(cellValue).GetWidth() + gridGap_;
         // + 1 pix for cell border line ? -> not used anymore!
     }
 
@@ -648,7 +646,7 @@ private:
         switch (static_cast<ColumnTypeRim>(colType))
         {
             case ColumnTypeRim::ITEM_PATH:
-                switch (itemPathFormat)
+                switch (itemPathFormat_)
                 {
                     case ItemPathFormat::FULL_PATH:
                         return _("Full path");
@@ -672,26 +670,21 @@ private:
 
     void renderColumnLabel(Grid& tree, wxDC& dc, const wxRect& rect, ColumnType colType, bool highlighted) override
     {
-        wxRect rectInside = drawColumnLabelBorder(dc, rect);
-        drawColumnLabelBackground(dc, rectInside, highlighted);
+        const wxRect rectInner = drawColumnLabelBackground(dc, rect, highlighted);
+        wxRect rectRemain = rectInner;
 
-        rectInside.x     += COLUMN_GAP_LEFT;
-        rectInside.width -= COLUMN_GAP_LEFT;
-        drawColumnLabelText(dc, rectInside, getColumnLabel(colType));
+        rectRemain.x     += getColumnGapLeft();
+        rectRemain.width -= getColumnGapLeft();
+        drawColumnLabelText(dc, rectRemain, getColumnLabel(colType));
 
         //draw sort marker
         if (getGridDataView())
-        {
-            auto sortInfo = getGridDataView()->getSortInfo();
-            if (sortInfo)
-            {
+            if (auto sortInfo = getGridDataView()->getSortInfo())
                 if (colType == static_cast<ColumnType>(sortInfo->type) && (side == LEFT_SIDE) == sortInfo->onLeft)
                 {
-                    const wxBitmap& marker = getResourceImage(sortInfo->ascending ? L"sortAscending" : L"sortDescending");
-                    drawBitmapRtlNoMirror(dc, marker, rectInside, wxALIGN_CENTER_HORIZONTAL);
+                    const wxBitmap& marker = getResourceImage(sortInfo->ascending ? L"sort_ascending" : L"sort_descending");
+                    drawBitmapRtlNoMirror(dc, marker, rectInner, wxALIGN_CENTER_HORIZONTAL);
                 }
-            }
-        }
     }
 
     struct IconInfo
@@ -765,11 +758,13 @@ private:
         return toolTip;
     }
 
-    std::shared_ptr<IconManager> iconMgr_; //optional
-    ItemPathFormat itemPathFormat = ItemPathFormat::FULL_PATH;
+    const int gridGap_ = fastFromDIP(FILE_GRID_GAP_SIZE_DIP);
 
-    std::vector<char> failedLoads; //effectively a vector<bool> of size "number of rows"
-    Opt<wxBitmap> renderBuf; //avoid costs of recreating this temporary variable
+    std::shared_ptr<IconManager> iconMgr_; //optional
+    ItemPathFormat itemPathFormat_ = ItemPathFormat::FULL_PATH;
+
+    std::vector<char> failedLoads_; //effectively a vector<bool> of size "number of rows"
+    std::optional<wxBitmap> renderBuf_; //avoid costs of recreating this temporary variable
 };
 
 
@@ -826,7 +821,7 @@ private:
             {
                 wxRect rectTmp = rect;
                 rectTmp.width /= 20;
-                dc.GradientFillLinear(rectTmp, Grid::getColorSelectionGradientFrom(), GridDataRim<LEFT_SIDE>::getBackGroundColor(row), wxEAST);
+                dc.GradientFillLinear(rectTmp, getColorSelectionGradientFrom(), GridDataRim<LEFT_SIDE>::getBackGroundColor(row), wxEAST);
             }
         }
     }
@@ -855,13 +850,13 @@ public:
     void onSelectBegin()
     {
         selectionInProgress_ = true;
-        refGrid().clearSelection(DENY_GRID_EVENT); //don't emit event, prevent recursion!
+        refGrid().clearSelection(GridEventPolicy::DENY); //don't emit event, prevent recursion!
         toolTip_.hide(); //handle custom tooltip
     }
 
     void onSelectEnd(size_t rowFirst, size_t rowLast, HoverArea rowHover, ptrdiff_t clickInitRow)
     {
-        refGrid().clearSelection(DENY_GRID_EVENT); //don't emit event, prevent recursion!
+        refGrid().clearSelection(GridEventPolicy::DENY); //don't emit event, prevent recursion!
 
         //issue custom event
         if (selectionInProgress_) //don't process selections initiated by right-click
@@ -956,7 +951,7 @@ private:
         if (enabled)
         {
             if (selected)
-                dc.GradientFillLinear(rect, Grid::getColorSelectionGradientFrom(), Grid::getColorSelectionGradientTo(), wxEAST);
+                dc.GradientFillLinear(rect, getColorSelectionGradientFrom(), getColorSelectionGradientTo(), wxEAST);
             else
             {
                 if (const FileSystemObject* fsObj = getRawData(row))
@@ -1089,9 +1084,9 @@ private:
             case ColumnTypeCenter::CHECKBOX:
                 break;
             case ColumnTypeCenter::CMP_CATEGORY:
-                return _("Category") + L" (F10)";
+                return _("Category") + L" (F11)";
             case ColumnTypeCenter::SYNC_ACTION:
-                return _("Action")   + L" (F10)";
+                return _("Action")   + L" (F11)";
         }
         return std::wstring();
     }
@@ -1103,26 +1098,24 @@ private:
         switch (static_cast<ColumnTypeCenter>(colType))
         {
             case ColumnTypeCenter::CHECKBOX:
-                drawColumnLabelBackground(dc, rect, false);
+                drawColumnLabelBackground(dc, rect, false /*highlighted*/);
                 break;
 
             case ColumnTypeCenter::CMP_CATEGORY:
             {
-                wxRect rectInside = drawColumnLabelBorder(dc, rect);
-                drawColumnLabelBackground(dc, rectInside, highlighted);
+                const wxRect rectInner = drawColumnLabelBackground(dc, rect, highlighted);
 
-                const wxBitmap& cmpIcon = getResourceImage(L"compare_small");
-                drawBitmapRtlNoMirror(dc, highlightSyncAction_ ? greyScale(cmpIcon) : cmpIcon, rectInside, wxALIGN_CENTER);
+                const wxBitmap& cmpIcon = getResourceImage(L"compare_sicon");
+                drawBitmapRtlNoMirror(dc, highlightSyncAction_ ? greyScale(cmpIcon) : cmpIcon, rectInner, wxALIGN_CENTER);
             }
             break;
 
             case ColumnTypeCenter::SYNC_ACTION:
             {
-                wxRect rectInside = drawColumnLabelBorder(dc, rect);
-                drawColumnLabelBackground(dc, rectInside, highlighted);
+                const wxRect rectInner = drawColumnLabelBackground(dc, rect, highlighted);
 
-                const wxBitmap& syncIcon = getResourceImage(L"sync_small");
-                drawBitmapRtlNoMirror(dc, highlightSyncAction_ ? syncIcon : greyScale(syncIcon), rectInside, wxALIGN_CENTER);
+                const wxBitmap& syncIcon = getResourceImage(L"file_sync_sicon");
+                drawBitmapRtlNoMirror(dc, highlightSyncAction_ ? syncIcon : greyScale(syncIcon), rectInner, wxALIGN_CENTER);
             }
             break;
         }
@@ -1287,7 +1280,7 @@ private:
     bool highlightSyncAction_ = false;
     bool selectionInProgress_ = false;
 
-    Opt<wxBitmap> renderBuf_; //avoid costs of recreating this temporary variable
+    std::optional<wxBitmap> renderBuf_; //avoid costs of recreating this temporary variable
     Tooltip toolTip_;
     wxImage notch_ = getResourceImage(L"notch").ConvertToImage();
 };
@@ -1358,7 +1351,10 @@ public:
         Connect(EVENT_ALIGN_SCROLLBARS, wxEventHandler(GridEventManager::onAlignScrollBars), NULL, this);
     }
 
-    ~GridEventManager() { assert(!scrollbarUpdatePending_); }
+    ~GridEventManager()
+    {
+        //assert(!scrollbarUpdatePending_); => false-positives: e.g. start ffs, right-click on grid, close by clicking X
+    }
 
     void setScrollMaster(const Grid& grid) { scrollMaster_ = &grid; }
 
@@ -1373,8 +1369,8 @@ private:
     {
         if (event.positive_)
         {
-            if (event.mouseSelect_)
-                provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, event.mouseSelect_->click.hoverArea_, event.mouseSelect_->click.row_);
+            if (event.mouseClick_)
+                provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, event.mouseClick_->hoverArea_, event.mouseClick_->row_);
             else
                 provCenter_.onSelectEnd(event.rowFirst_, event.rowLast_, HoverArea::NONE, -1);
         }
@@ -1399,7 +1395,7 @@ private:
     void onGridSelection(const Grid& grid, Grid& other)
     {
         if (!wxGetKeyState(WXK_CONTROL)) //clear other grid unless user is holding CTRL
-            other.clearSelection(DENY_GRID_EVENT); //don't emit event, prevent recursion!
+            other.clearSelection(GridEventPolicy::DENY); //don't emit event, prevent recursion!
     }
 
     void onKeyDownL(wxKeyEvent& event) {  onKeyDown(event, gridL_); }
@@ -1429,7 +1425,7 @@ private:
             {
                 case WXK_LEFT:
                 case WXK_NUMPAD_LEFT:
-                    gridL_.setGridCursor(row);
+                    gridL_.setGridCursor(row, GridEventPolicy::ALLOW);
                     gridL_.SetFocus();
                     //since key event is likely originating from right grid, we need to set scrollMaster manually!
                     scrollMaster_ = &gridL_; //onKeyDown is called *after* onGridAccessL()!
@@ -1437,7 +1433,7 @@ private:
 
                 case WXK_RIGHT:
                 case WXK_NUMPAD_RIGHT:
-                    gridR_.setGridCursor(row);
+                    gridR_.setGridCursor(row, GridEventPolicy::ALLOW);
                     gridR_.SetFocus();
                     scrollMaster_ = &gridR_;
                     return; //swallow event
@@ -1506,6 +1502,8 @@ private:
             target.GetViewStart(nullptr, &yOld);
             if (yOld != y)
                 target.Scroll(-1, y); //empirical test Windows/Ubuntu: this call does NOT trigger a wxEVT_SCROLLWIN event, which would incorrectly set "scrollMaster" to "&target"!
+            //CAVEAT: wxScrolledWindow::Scroll() internally calls wxWindow::Update(), leading to immediate WM_PAINT handling in the target grid!
+            //        an this while we're still in our WM_PAINT handler! => no recursion, fine (hopefully)
         };
         int y = 0;
         lead->GetViewStart(nullptr, &y);
@@ -1527,8 +1525,8 @@ private:
 
     void onAlignScrollBars(wxEvent& event)
     {
-        ZEN_ON_SCOPE_EXIT(scrollbarUpdatePending_ = false);
         assert(scrollbarUpdatePending_);
+        ZEN_ON_SCOPE_EXIT(scrollbarUpdatePending_ = false);
 
         auto needsHorizontalScrollbars = [](const Grid& grid) -> bool
         {
@@ -1536,7 +1534,7 @@ private:
             return mainWin.GetVirtualSize().GetWidth() > mainWin.GetClientSize().GetWidth();
             //assuming Grid::updateWindowSizes() does its job well, this should suffice!
             //CAVEAT: if horizontal and vertical scrollbar are circular dependent from each other
-            //(h-scrollbar is shown due to v-scrollbar consuming horizontal width, ect...)
+            //(h-scrollbar is shown due to v-scrollbar consuming horizontal width, etc...)
             //while in fact both are NOT needed, this special case results in a bogus need for scrollbars!
             //see https://sourceforge.net/tracker/?func=detail&aid=3514183&group_id=234430&atid=1093083
             // => since we're outside the Grid abstraction, we should not duplicate code to handle this special case as it seems to be insignificant
@@ -1590,9 +1588,9 @@ void filegrid::init(Grid& gridLeft, Grid& gridCenter, Grid& gridRight)
     //gridLeft  .showScrollBars(Grid::SB_SHOW_AUTOMATIC, Grid::SB_SHOW_NEVER); -> redundant: configuration happens in GridEventManager::onAlignScrollBars()
     //gridCenter.showScrollBars(Grid::SB_SHOW_NEVER,     Grid::SB_SHOW_NEVER);
 
-    const int widthCheckbox = getResourceImage(L"checkbox_true").GetWidth() + 4 + getResourceImage(L"notch").GetWidth();
-    const int widthCategory = 30;
-    const int widthAction   = 45;
+    const int widthCheckbox = getResourceImage(L"checkbox_true").GetWidth() + fastFromDIP(3);
+    const int widthCategory = 2 * getResourceImage(L"cat_left_only_sicon").GetWidth() + getResourceImage(L"notch").GetWidth();
+    const int widthAction   = 3 * getResourceImage(L"so_create_left_sicon").GetWidth();
     gridCenter.SetSize(widthCategory + widthCheckbox + widthAction, -1);
 
     gridCenter.setColumnConfig(
@@ -1641,8 +1639,8 @@ private:
 
         //last inserted items are processed first in icon buffer:
         std::vector<AbstractPath> newLoad;
-        for (const auto& item : prefetchLoad)
-            newLoad.push_back(item.second);
+        for (const auto& [priority, filePath] : prefetchLoad)
+            newLoad.push_back(filePath);
 
         provRight_.updateNewAndGetUnbufferedIcons(newLoad);
         provLeft_ .updateNewAndGetUnbufferedIcons(newLoad);
@@ -1688,7 +1686,7 @@ void filegrid::setupIcons(Grid& gridLeft, Grid& gridCenter, Grid& gridRight, boo
             iconHeight = IconBuffer::getSize(IconBuffer::SIZE_SMALL);
         }
 
-        const int newRowHeight = std::max(iconHeight, gridLeft.getMainWin().GetCharHeight()) + 1; //add some space
+        const int newRowHeight = std::max(iconHeight, gridLeft.getMainWin().GetCharHeight()) + fastFromDIP(1); //add some space
 
         gridLeft  .setRowHeight(newRowHeight);
         gridCenter.setRowHeight(newRowHeight);
@@ -1758,33 +1756,33 @@ wxBitmap fff::getSyncOpImage(SyncOperation syncOp)
     switch (syncOp) //evaluate comparison result and sync direction
     {
         case SO_CREATE_NEW_LEFT:
-            return getResourceImage(L"so_create_left_small");
+            return getResourceImage(L"so_create_left_sicon");
         case SO_CREATE_NEW_RIGHT:
-            return getResourceImage(L"so_create_right_small");
+            return getResourceImage(L"so_create_right_sicon");
         case SO_DELETE_LEFT:
-            return getResourceImage(L"so_delete_left_small");
+            return getResourceImage(L"so_delete_left_sicon");
         case SO_DELETE_RIGHT:
-            return getResourceImage(L"so_delete_right_small");
+            return getResourceImage(L"so_delete_right_sicon");
         case SO_MOVE_LEFT_FROM:
-            return getResourceImage(L"so_move_left_source_small");
+            return getResourceImage(L"so_move_left_source_sicon");
         case SO_MOVE_LEFT_TO:
-            return getResourceImage(L"so_move_left_target_small");
+            return getResourceImage(L"so_move_left_target_sicon");
         case SO_MOVE_RIGHT_FROM:
-            return getResourceImage(L"so_move_right_source_small");
+            return getResourceImage(L"so_move_right_source_sicon");
         case SO_MOVE_RIGHT_TO:
-            return getResourceImage(L"so_move_right_target_small");
+            return getResourceImage(L"so_move_right_target_sicon");
         case SO_OVERWRITE_LEFT:
-            return getResourceImage(L"so_update_left_small");
+            return getResourceImage(L"so_update_left_sicon");
         case SO_OVERWRITE_RIGHT:
-            return getResourceImage(L"so_update_right_small");
+            return getResourceImage(L"so_update_right_sicon");
         case SO_COPY_METADATA_TO_LEFT:
-            return getResourceImage(L"so_move_left_small");
+            return getResourceImage(L"so_move_left_sicon");
         case SO_COPY_METADATA_TO_RIGHT:
-            return getResourceImage(L"so_move_right_small");
+            return getResourceImage(L"so_move_right_sicon");
         case SO_DO_NOTHING:
-            return getResourceImage(L"so_none_small");
+            return getResourceImage(L"so_none_sicon");
         case SO_EQUAL:
-            return getResourceImage(L"cat_equal_small");
+            return getResourceImage(L"cat_equal_sicon");
         case SO_UNRESOLVED_CONFLICT:
             return getResourceImage(L"cat_conflict_small");
     }
@@ -1798,18 +1796,18 @@ wxBitmap fff::getCmpResultImage(CompareFilesResult cmpResult)
     switch (cmpResult)
     {
         case FILE_LEFT_SIDE_ONLY:
-            return getResourceImage(L"cat_left_only_small");
+            return getResourceImage(L"cat_left_only_sicon");
         case FILE_RIGHT_SIDE_ONLY:
-            return getResourceImage(L"cat_right_only_small");
+            return getResourceImage(L"cat_right_only_sicon");
         case FILE_LEFT_NEWER:
-            return getResourceImage(L"cat_left_newer_small");
+            return getResourceImage(L"cat_left_newer_sicon");
         case FILE_RIGHT_NEWER:
-            return getResourceImage(L"cat_right_newer_small");
+            return getResourceImage(L"cat_right_newer_sicon");
         case FILE_DIFFERENT_CONTENT:
-            return getResourceImage(L"cat_different_small");
+            return getResourceImage(L"cat_different_sicon");
         case FILE_EQUAL:
         case FILE_DIFFERENT_METADATA: //= sub-category of equal
-            return getResourceImage(L"cat_equal_small");
+            return getResourceImage(L"cat_equal_sicon");
         case FILE_CONFLICT:
             return getResourceImage(L"cat_conflict_small");
     }

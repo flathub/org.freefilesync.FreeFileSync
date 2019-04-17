@@ -5,10 +5,10 @@
 // *****************************************************************************
 
 #include "file_view.h"
-#include "sorting.h"
-#include "../synchronization.h"
 #include <zen/stl_tools.h>
 #include <zen/perf.h>
+#include "sorting.h"
+#include "../base/synchronization.h"
 
 using namespace zen;
 using namespace fff;
@@ -20,33 +20,33 @@ void addNumbers(const FileSystemObject& fsObj, StatusResult& result)
     visitFSObject(fsObj, [&](const FolderPair& folder)
     {
         if (!folder.isEmpty<LEFT_SIDE>())
-            ++result.foldersOnLeftView;
+            ++result.folderCountLeft;
 
         if (!folder.isEmpty<RIGHT_SIDE>())
-            ++result.foldersOnRightView;
+            ++result.folderCountRight;
     },
 
     [&](const FilePair& file)
     {
         if (!file.isEmpty<LEFT_SIDE>())
         {
-            result.filesizeLeftView += file.getFileSize<LEFT_SIDE>();
-            ++result.filesOnLeftView;
+            result.bytesLeft += file.getFileSize<LEFT_SIDE>();
+            ++result.fileCountLeft;
         }
         if (!file.isEmpty<RIGHT_SIDE>())
         {
-            result.filesizeRightView += file.getFileSize<RIGHT_SIDE>();
-            ++result.filesOnRightView;
+            result.bytesRight += file.getFileSize<RIGHT_SIDE>();
+            ++result.fileCountRight;
         }
     },
 
     [&](const SymlinkPair& symlink)
     {
         if (!symlink.isEmpty<LEFT_SIDE>())
-            ++result.filesOnLeftView;
+            ++result.fileCountLeft;
 
         if (!symlink.isEmpty<RIGHT_SIDE>())
-            ++result.filesOnRightView;
+            ++result.fileCountRight;
     });
 }
 
@@ -64,15 +64,15 @@ void FileView::updateView(Predicate pred)
             if (pred(*fsObj))
             {
                 //save row position for direct random access to FilePair or FolderPair
-                this->rowPositions_.emplace(ref.objId, viewRef_.size()); //costs: 0.28 µs per call - MSVC based on std::set
+                this->rowPositions_.emplace(ref.objId, viewRef_.size()); //costs: 0.28 Âµs per call - MSVC based on std::set
                 //"this->" required by two-pass lookup as enforced by GCC 4.7
 
                 //save row position to identify first child *on sorted subview* of FolderPair or BaseFolderPair in case latter are filtered out
                 const ContainerObject* parent = &fsObj->parent();
                 for (;;) //map all yet unassociated parents to this row
                 {
-                    const auto rv = this->rowPositionsFirstChild_.emplace(parent, viewRef_.size());
-                    if (!rv.second)
+                    const auto [it, inserted] = this->rowPositionsFirstChild_.emplace(parent, viewRef_.size());
+                    if (!inserted)
                         break;
 
                     if (auto folder = dynamic_cast<const FolderPair*>(parent))
@@ -103,59 +103,53 @@ ptrdiff_t FileView::findRowFirstChild(const ContainerObject* hierObj) const
 
 
 FileView::StatusCmpResult FileView::updateCmpResult(bool showExcluded, //maps sortedRef to viewRef
-                                                    bool leftOnlyFilesActive,
-                                                    bool rightOnlyFilesActive,
-                                                    bool leftNewerFilesActive,
-                                                    bool rightNewerFilesActive,
-                                                    bool differentFilesActive,
-                                                    bool equalFilesActive,
-                                                    bool conflictFilesActive)
+                                                    bool showLeftOnly,
+                                                    bool showRightOnly,
+                                                    bool showLeftNewer,
+                                                    bool showRightNewer,
+                                                    bool showDifferent,
+                                                    bool showEqual,
+                                                    bool showConflict)
 {
     StatusCmpResult output;
 
     updateView([&](const FileSystemObject& fsObj) -> bool
     {
-        if (!fsObj.isActive())
+        auto categorize = [&](bool showCategory, bool& existsCategory)
         {
-            output.existsExcluded = true;
-            if (!showExcluded)
+            if (!fsObj.isActive())
+            {
+                output.existsExcluded = true;
+                if (!showExcluded)
+                    return false;
+            }
+            existsCategory = true;
+            if (!showCategory)
                 return false;
-        }
+
+            addNumbers(fsObj, output); //calculate total number of bytes for each side
+            return true;
+        };
 
         switch (fsObj.getCategory())
         {
             case FILE_LEFT_SIDE_ONLY:
-                output.existsLeftOnly = true;
-                if (!leftOnlyFilesActive) return false;
-                break;
+                return categorize(showLeftOnly, output.existsLeftOnly);
             case FILE_RIGHT_SIDE_ONLY:
-                output.existsRightOnly = true;
-                if (!rightOnlyFilesActive) return false;
-                break;
+                return categorize(showRightOnly, output.existsRightOnly);
             case FILE_LEFT_NEWER:
-                output.existsLeftNewer = true;
-                if (!leftNewerFilesActive) return false;
-                break;
+                return categorize(showLeftNewer, output.existsLeftNewer);
             case FILE_RIGHT_NEWER:
-                output.existsRightNewer = true;
-                if (!rightNewerFilesActive) return false;
-                break;
+                return categorize(showRightNewer, output.existsRightNewer);
             case FILE_DIFFERENT_CONTENT:
-                output.existsDifferent = true;
-                if (!differentFilesActive) return false;
-                break;
+                return categorize(showDifferent, output.existsDifferent);
             case FILE_EQUAL:
             case FILE_DIFFERENT_METADATA: //= sub-category of equal
-                output.existsEqual = true;
-                if (!equalFilesActive) return false;
-                break;
+                return categorize(showEqual, output.existsEqual);
             case FILE_CONFLICT:
-                output.existsConflict = true;
-                if (!conflictFilesActive) return false;
-                break;
+                return categorize(showConflict, output.existsConflict);
         }
-        //calculate total number of bytes for each side
-        addNumbers(fsObj, output);
+        assert(false);
         return true;
     });
 
@@ -164,75 +158,64 @@ FileView::StatusCmpResult FileView::updateCmpResult(bool showExcluded, //maps so
 
 
 FileView::StatusSyncPreview FileView::updateSyncPreview(bool showExcluded, //maps sortedRef to viewRef
-                                                        bool syncCreateLeftActive,
-                                                        bool syncCreateRightActive,
-                                                        bool syncDeleteLeftActive,
-                                                        bool syncDeleteRightActive,
-                                                        bool syncDirOverwLeftActive,
-                                                        bool syncDirOverwRightActive,
-                                                        bool syncDirNoneActive,
-                                                        bool syncEqualActive,
-                                                        bool conflictFilesActive)
+                                                        bool showCreateLeft,
+                                                        bool showCreateRight,
+                                                        bool showDeleteLeft,
+                                                        bool showDeleteRight,
+                                                        bool showUpdateLeft,
+                                                        bool showUpdateRight,
+                                                        bool showDoNothing,
+                                                        bool showEqual,
+                                                        bool showConflict)
 {
     StatusSyncPreview output;
 
-    updateView([&](const FileSystemObject& fsObj) -> bool
+    updateView([&](const FileSystemObject& fsObj)
     {
-        if (!fsObj.isActive())
+        auto categorize = [&](bool showCategory, bool& existsCategory)
         {
-            output.existsExcluded = true;
-            if (!showExcluded)
+            if (!fsObj.isActive())
+            {
+                output.existsExcluded = true;
+                if (!showExcluded)
+                    return false;
+            }
+            existsCategory = true;
+            if (!showCategory)
                 return false;
-        }
+
+            addNumbers(fsObj, output); //calculate total number of bytes for each side
+            return true;
+        };
 
         switch (fsObj.getSyncOperation()) //evaluate comparison result and sync direction
         {
             case SO_CREATE_NEW_LEFT:
-                output.existsSyncCreateLeft = true;
-                if (!syncCreateLeftActive) return false;
-                break;
+                return categorize(showCreateLeft, output.existsSyncCreateLeft);
             case SO_CREATE_NEW_RIGHT:
-                output.existsSyncCreateRight = true;
-                if (!syncCreateRightActive) return false;
-                break;
+                return categorize(showCreateRight, output.existsSyncCreateRight);
             case SO_DELETE_LEFT:
-                output.existsSyncDeleteLeft = true;
-                if (!syncDeleteLeftActive) return false;
-                break;
+                return categorize(showDeleteLeft, output.existsSyncDeleteLeft);
             case SO_DELETE_RIGHT:
-                output.existsSyncDeleteRight = true;
-                if (!syncDeleteRightActive) return false;
-                break;
+                return categorize(showDeleteRight, output.existsSyncDeleteRight);
             case SO_OVERWRITE_RIGHT:
             case SO_COPY_METADATA_TO_RIGHT: //no extra button on screen
             case SO_MOVE_RIGHT_FROM:
             case SO_MOVE_RIGHT_TO:
-                output.existsSyncDirRight = true;
-                if (!syncDirOverwRightActive) return false;
-                break;
+                return categorize(showUpdateRight, output.existsSyncDirRight);
             case SO_OVERWRITE_LEFT:
             case SO_COPY_METADATA_TO_LEFT: //no extra button on screen
             case SO_MOVE_LEFT_TO:
             case SO_MOVE_LEFT_FROM:
-                output.existsSyncDirLeft = true;
-                if (!syncDirOverwLeftActive) return false;
-                break;
+                return categorize(showUpdateLeft, output.existsSyncDirLeft);
             case SO_DO_NOTHING:
-                output.existsSyncDirNone = true;
-                if (!syncDirNoneActive) return false;
-                break;
+                return categorize(showDoNothing, output.existsSyncDirNone);
             case SO_EQUAL:
-                output.existsEqual = true;
-                if (!syncEqualActive) return false;
-                break;
+                return categorize(showEqual, output.existsEqual);
             case SO_UNRESOLVED_CONFLICT:
-                output.existsConflict = true;
-                if (!conflictFilesActive) return false;
-                break;
+                return categorize(showConflict, output.existsConflict);
         }
-
-        //calculate total number of bytes for each side
-        addNumbers(fsObj, output);
+        assert(false);
         return true;
     });
 
@@ -262,7 +245,7 @@ void FileView::removeInvalidRows()
     rowPositionsFirstChild_.clear();
 
     //remove rows that have been deleted meanwhile
-    erase_if(sortedRef_, [&](const RefIndex& refIdx) { return !FileSystemObject::retrieve(refIdx.objId); });
+    eraseIf(sortedRef_, [&](const RefIndex& refIdx) { return !FileSystemObject::retrieve(refIdx.objId); });
 }
 
 
@@ -282,18 +265,18 @@ private:
         Test case: 690.000 item pairs, Windows 7 x64 (C:\ vs I:\)
         ----------------------
         CmpNaturalSort: 850 ms
-        CmpFilePath:    233 ms
+        CmpLocalPath:   233 ms
         CmpAsciiNoCase: 189 ms
         No sorting:      30 ms
     */
     template <class ItemPair>
-    static std::vector<ItemPair*> getItemsSorted(FixedList<ItemPair>& itemList)
+    static std::vector<ItemPair*> getItemsSorted(std::list<ItemPair>& itemList)
     {
         std::vector<ItemPair*> output;
         for (ItemPair& item : itemList)
             output.push_back(&item);
 
-        std::sort(output.begin(), output.end(), [](const ItemPair* lhs, const ItemPair* rhs) { return LessNaturalSort()(lhs->getPairItemName(), rhs->getPairItemName()); });
+        std::sort(output.begin(), output.end(), [](const ItemPair* lhs, const ItemPair* rhs) { return LessNaturalSort()(lhs->getItemNameAny(), rhs->getItemNameAny()); });
         return output;
     }
 #endif
@@ -322,7 +305,7 @@ void FileView::setData(FolderComparison& folderCmp)
     //clear everything
     std::vector<FileSystemObject::ObjectId>().swap(viewRef_); //free mem
     std::vector<RefIndex>().swap(sortedRef_);                 //
-    currentSort_ = NoValue();
+    currentSort_ = {};
 
     folderPairCount_ = std::count_if(begin(folderCmp), end(folderCmp),
                                      [](const BaseFolderPair& baseObj) //count non-empty pairs to distinguish single/multiple folder pair cases
@@ -482,8 +465,8 @@ struct FileView::LessSyncDirection
 
 void FileView::sortView(ColumnTypeRim type, ItemPathFormat pathFmt, bool onLeft, bool ascending)
 {
-    viewRef_.clear();
-    rowPositions_.clear();
+    viewRef_               .clear();
+    rowPositions_          .clear();
     rowPositionsFirstChild_.clear();
     currentSort_ = SortInfo({ type, onLeft, ascending });
 

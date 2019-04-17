@@ -22,7 +22,7 @@ enum class ImageStackLayout
     VERTICAL
 };
 
-enum class ImageStackAlignment
+enum class ImageStackAlignment //one-dimensional unlike wxAlignment
 {
     CENTER,
     LEFT,
@@ -34,7 +34,7 @@ wxImage stackImages(const wxImage& img1, const wxImage& img2, ImageStackLayout d
 
 wxImage createImageFromText(const wxString& text, const wxFont& font, const wxColor& col, ImageStackAlignment textAlign = ImageStackAlignment::LEFT); //CENTER/LEFT/RIGHT
 
-wxBitmap layOver(const wxBitmap& background, const wxBitmap& foreground); //merge
+wxBitmap layOver(const wxBitmap& back, const wxBitmap& front, int alignment = wxALIGN_CENTER);
 
 wxImage greyScale(const wxImage& img); //greyscale + brightness adaption
 wxBitmap greyScale(const wxBitmap& bmp); //
@@ -52,11 +52,17 @@ void convertToVanillaImage(wxImage& img); //add alpha channel if missing + remov
 
 //wxColor hsvColor(double h, double s, double v); //h within [0, 360), s, v within [0, 1]
 
+wxImage shrinkImage(const wxImage& img, int requestedSize);
 
 
-
-
-
+inline
+wxImage getTransparentPixel()
+{
+    wxImage dummyImage(1, 1);
+    dummyImage.SetAlpha();
+    ::memset(dummyImage.GetAlpha(), 1 /*opacity*/, 1 * 1); //suprise: can't use wxIMAGE_ALPHA_TRANSPARENT(0), painted black on Windows!
+    return dummyImage;
+}
 
 
 
@@ -147,23 +153,6 @@ void adjustBrightness(wxImage& img, int targetLevel)
 
 
 inline
-wxBitmap layOver(const wxBitmap& background, const wxBitmap& foreground)
-{
-    assert(foreground.HasAlpha() == background.HasAlpha()); //we don't support mixed-mode brittleness!
-
-    wxBitmap output(background.ConvertToImage()); //attention: wxBitmap/wxImage use ref-counting without copy on write!
-    {
-        wxMemoryDC dc(output);
-
-        const int offsetX = (background.GetWidth () - foreground.GetWidth ()) / 2;
-        const int offsetY = (background.GetHeight() - foreground.GetHeight()) / 2;
-        dc.DrawBitmap(foreground, offsetX, offsetY);
-    }
-    return output;
-}
-
-
-inline
 bool isEqual(const wxBitmap& lhs, const wxBitmap& rhs)
 {
     if (lhs.IsOk() != rhs.IsOk())
@@ -191,6 +180,21 @@ bool isEqual(const wxBitmap& lhs, const wxBitmap& rhs)
 
     return true;
 }
+
+
+inline
+wxImage shrinkImage(const wxImage& img, int requestedSize)
+{
+    const int maxExtent = std::max(img.GetWidth(), img.GetHeight());
+    assert(requestedSize <= maxExtent);
+
+    if (requestedSize >= maxExtent)
+        return img;
+
+    return img.Scale(img.GetWidth () * requestedSize / maxExtent,
+                     img.GetHeight() * requestedSize / maxExtent, wxIMAGE_QUALITY_BILINEAR); //looks sharper than wxIMAGE_QUALITY_HIGH!
+}
+
 
 /*
 inline

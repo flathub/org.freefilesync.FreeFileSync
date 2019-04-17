@@ -23,15 +23,13 @@ struct PathComponents
     Zstring rootPath; //itemPath = rootPath + (FILE_NAME_SEPARATOR?) + relPath
     Zstring relPath;  //
 };
-Opt<PathComponents> parsePathComponents(const Zstring& itemPath); //no value on failure
+std::optional<PathComponents> parsePathComponents(const Zstring& itemPath); //no value on failure
 
-Opt<Zstring> getParentFolderPath(const Zstring& itemPath);
+std::optional<Zstring> getParentFolderPath(const Zstring& itemPath);
 
 //POSITIVE existence checks; if false: 1. item not existing 2. different type 3.device access error or similar
 bool fileAvailable(const Zstring& filePath); //noexcept
 bool dirAvailable (const Zstring& dirPath ); //
-//NEGATIVE existence checks; if false: 1. item existing 2.device access error or similar
-bool itemNotExisting(const Zstring& itemPath);
 
 enum class ItemType
 {
@@ -40,17 +38,12 @@ enum class ItemType
     SYMLINK,
 };
 //(hopefully) fast: does not distinguish between error/not existing
-ItemType      getItemType        (const Zstring& itemPath); //throw FileError
+ItemType getItemType(const Zstring& itemPath); //throw FileError
 //execute potentially SLOW folder traversal but distinguish error/not existing
-Opt<ItemType> getItemTypeIfExists(const Zstring& itemPath); //throw FileError
-
-struct PathStatus
-{
-    ItemType existingType;
-    Zstring existingPath;         //itemPath =: existingPath + relPath
-    std::vector<Zstring> relPath; //
-};
-PathStatus getPathStatus(const Zstring& itemPath); //throw FileError
+//  assumes: - base path still exists
+//           - all child item path parts must correspond to folder traversal
+//  => we can conclude whether an item is *not* existing anymore by doing a *case-sensitive* name search => potentially SLOW!
+std::optional<ItemType> itemStillExists(const Zstring& itemPath); //throw FileError
 
 enum class ProcSymlink
 {
@@ -59,10 +52,11 @@ enum class ProcSymlink
 };
 void setFileTime(const Zstring& filePath, time_t modTime, ProcSymlink procSl); //throw FileError
 
-//symlink handling: always evaluate target
-uint64_t getFileSize(const Zstring& filePath); //throw FileError
+//symlink handling: always follow:
 uint64_t getFreeDiskSpace(const Zstring& path); //throw FileError, returns 0 if not available
 VolumeId getVolumeId(const Zstring& itemPath); //throw FileError
+uint64_t getFileSize(const Zstring& filePath); //throw FileError
+
 //get per-user directory designated for temporary files:
 Zstring getTempFolderPath(); //throw FileError
 
@@ -71,8 +65,7 @@ void removeSymlinkPlain  (const Zstring& linkPath);         //throw FileError; E
 void removeDirectoryPlain(const Zstring& dirPath );         //throw FileError; ERROR if not existing
 void removeDirectoryPlainRecursion(const Zstring& dirPath); //throw FileError; ERROR if not existing
 
-//rename file or directory: no copying!!!
-void renameFile(const Zstring& itemPathOld, const Zstring& itemPathNew); //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
+void moveAndRenameItem(const Zstring& pathFrom, const Zstring& pathTo, bool replaceExisting); //throw FileError, ErrorMoveUnsupported, ErrorTargetExisting
 
 bool supportsPermissions(const Zstring& dirPath); //throw FileError, follows symlinks
 //copy permissions for files, directories or symbolic links: requires admin rights
@@ -89,7 +82,7 @@ void createDirectoryIfMissingRecursion(const Zstring& dirPath); //throw FileErro
 //reports note-worthy errors only
 void tryCopyDirectoryAttributes(const Zstring& sourcePath, const Zstring& targetPath); //throw FileError
 
-void copySymlink(const Zstring& sourceLink, const Zstring& targetLink, bool copyFilePermissions); //throw FileError
+void copySymlink(const Zstring& sourcePath, const Zstring& targetPath, bool copyFilePermissions); //throw FileError
 
 struct FileCopyResult
 {
@@ -97,12 +90,12 @@ struct FileCopyResult
     time_t modTime = 0; //number of seconds since Jan. 1st 1970 UTC
     FileId sourceFileId;
     FileId targetFileId;
-    Opt<FileError> errorModTime; //failure to set modification time
+    std::optional<FileError> errorModTime; //failure to set modification time
 };
 
-FileCopyResult copyNewFile(const Zstring& sourceFile, const Zstring& targetFile, bool copyFilePermissions, //throw FileError, ErrorTargetExisting, ErrorFileLocked
+FileCopyResult copyNewFile(const Zstring& sourceFile, const Zstring& targetFile, bool copyFilePermissions, //throw FileError, ErrorTargetExisting, ErrorFileLocked, X
                            //accummulated delta != file size! consider ADS, sparse, compressed files
-                           const IOCallback& notifyUnbufferedIO); //may be nullptr; throw X!
+                           const IOCallback& notifyUnbufferedIO /*throw X*/);
 }
 
 #endif //FILE_ACCESS_H_8017341345614857

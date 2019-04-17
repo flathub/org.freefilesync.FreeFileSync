@@ -10,9 +10,8 @@
 #include <thread>
 #include <future>
 #include "scope_guard.h"
-#include "type_traits.h"
-#include "optional.h"
-    #include <sys/prctl.h>
+#include "ring_buffer.h"
+#include "string_tools.h"
 
 
 namespace zen
@@ -23,8 +22,8 @@ class InterruptibleThread
 {
 public:
     InterruptibleThread() {}
-    InterruptibleThread           (InterruptibleThread&& tmp) = default;
-    InterruptibleThread& operator=(InterruptibleThread&& tmp) = default;
+    InterruptibleThread           (InterruptibleThread&&) noexcept = default;
+    InterruptibleThread& operator=(InterruptibleThread&&) noexcept = default;
 
     template <class Function>
     InterruptibleThread(Function&& f);
@@ -37,17 +36,16 @@ public:
     template <class Rep, class Period>
     bool tryJoinFor(const std::chrono::duration<Rep, Period>& relTime)
     {
-        if (threadCompleted_.wait_for(relTime) == std::future_status::ready)
-        {
-            stdThread_.join(); //runs thread-local destructors => this better be fast!!!
-            return true;
-        }
-        return false;
+        if (threadCompleted_.wait_for(relTime) != std::future_status::ready)
+            return false;
+
+        stdThread_.join(); //runs thread-local destructors => this better be fast!!!
+        return true;
     }
 
 private:
     std::thread stdThread_;
-    std::shared_ptr<InterruptionStatus> intStatus_{ std::make_shared<InterruptionStatus>() };
+    std::shared_ptr<InterruptionStatus> intStatus_ = std::make_shared<InterruptionStatus>();
     std::future<void> threadCompleted_;
 };
 
@@ -63,7 +61,9 @@ void interruptibleSleep(const std::chrono::duration<Rep, Period>& relTime); //th
 void setCurrentThreadName(const char* threadName);
 
 uint64_t getThreadId(); //simple integer thread id, unlike boost::thread::id: https://svn.boost.org/trac/boost/ticket/5754
+uint64_t getMainThreadId();
 
+inline bool runningMainThread() { return getThreadId() == getMainThreadId(); }
 //------------------------------------------------------------------------------------------
 
 /*
@@ -72,8 +72,8 @@ std::async replacement without crappy semantics:
     2. does not follow C++11 [futures.async], Paragraph 5, where std::future waits for thread in destructor
 
 Example:
-        Zstring dirpath = ...
-        auto ft = zen::runAsync([=]{ return zen::dirExists(dirpath); });
+        Zstring dirPath = ...
+        auto ft = zen::runAsync([=]{ return zen::dirExists(dirPath); });
         if (ft.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && ft.get())
             //dir exising
 */
@@ -90,19 +90,19 @@ bool isReady(const std::future<T>& f) { return f.wait_for(std::chrono::seconds(0
 
 //wait until first job is successful or all failed: substitute until std::when_any is available
 template <class T>
-class GetFirstResult
+class AsyncFirstResult
 {
 public:
-    GetFirstResult();
+    AsyncFirstResult();
 
     template <class Fun>
-    void addJob(Fun&& f); //f must return a zen::Opt<T> containing a value if successful
+    void addJob(Fun&& f); //f must return a std::optional<T> containing a value if successful
 
     template <class Duration>
     bool timedWait(const Duration& duration) const; //true: "get()" is ready, false: time elapsed
 
     //return first value or none if all jobs failed; blocks until result is ready!
-    Opt<T> get() const; //may be called only once!
+    std::optional<T> get() const; //may be called only once!
 
 private:
     class AsyncResult;
@@ -118,13 +118,14 @@ class Protected
 {
 public:
     Protected() {}
-    Protected(const T& value) : value_(value) {}
+    Protected(T& value) : value_(value) {}
+    //Protected(T&& tmp ) : value_(std::move(tmp)) {} <- wait until needed
 
     template <class Function>
-    void access(Function fun)
+    auto access(Function fun) //-> decltype(fun(std::declval<T&>()))
     {
-        std::lock_guard<std::mutex> dummy(lockValue_);
-        fun(value_);
+        std::lock_guard dummy(lockValue_);
+        return fun(value_);
     }
 
 private:
@@ -135,6 +136,137 @@ private:
     T value_{};
 };
 
+//------------------------------------------------------------------------------------------
+
+template <class Function>
+class ThreadGroup
+{
+public:
+    ThreadGroup(size_t threadCountMax, const std::string& groupName) : threadCountMax_(threadCountMax), groupName_(groupName)
+    { if (threadCountMax == 0) throw std::logic_error("Contract violation! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__)); }
+
+    ~ThreadGroup()
+    {
+        for (InterruptibleThread& w : worker_) w.interrupt(); //interrupt all first, then join
+        for (InterruptibleThread& w : worker_) detach_ ? w.detach() : w.join();
+    }
+
+    ThreadGroup(ThreadGroup&& tmp) noexcept :
+        worker_        (std::move(tmp.worker_)),
+        workLoad_      (std::move(tmp.workLoad_)),
+        detach_        (tmp.detach_),
+        threadCountMax_(tmp.threadCountMax_),
+        groupName_     (std::move(tmp.groupName_)) { tmp.worker_.clear(); /*just in case: make sure destructor is no-op!*/ }
+
+    ThreadGroup& operator=(ThreadGroup&& tmp) noexcept { swap(tmp); return *this; } //noexcept *required* to support move for reallocations in std::vector and std::swap!!!
+
+    //context of controlling OR worker thread, non-blocking:
+    void run(Function&& wi /*should throw ThreadInterruption when needed*/, bool insertFront = false)
+    {
+        {
+            std::lock_guard dummy(workLoad_->lock);
+
+            if (insertFront)
+                workLoad_->tasks.push_front(std::move(wi));
+            else
+                workLoad_->tasks.push_back(std::move(wi));
+            const size_t tasksPending = ++(workLoad_->tasksPending);
+
+            if (worker_.size() < std::min(tasksPending, threadCountMax_))
+                addWorkerThread();
+        }
+        workLoad_->conditionNewTask.notify_all();
+    }
+
+    //context of controlling thread, blocking:
+    void wait()
+    {
+        //perf: no difference in xBRZ test case compared to std::condition_variable-based implementation
+        auto promiseDone = std::make_shared<std::promise<void>>(); //
+        std::future<void> allDone = promiseDone->get_future();
+
+        notifyWhenDone([promiseDone] { promiseDone->set_value(); }); //std::function doesn't support construction involving move-only types!
+        //use reference? => potential lifetime issue, e.g. promise object theoretically might be accessed inside set_value() after future gets signalled
+
+        allDone.get();
+    }
+
+    //non-blocking wait()-alternative: context of controlling thread:
+    void notifyWhenDone(const std::function<void()>& onCompletion /*noexcept! runs on worker thread!*/)
+    {
+        std::lock_guard dummy(workLoad_->lock);
+
+        if (workLoad_->tasksPending == 0)
+            onCompletion();
+        else
+            workLoad_->onCompletionCallbacks.push_back(onCompletion);
+    }
+
+    //context of controlling thread:
+    void detach() { detach_ = true; } //not expected to also interrupt!
+
+private:
+    ThreadGroup           (const ThreadGroup&) = delete;
+    ThreadGroup& operator=(const ThreadGroup&) = delete;
+
+    void addWorkerThread()
+    {
+        std::string threadName = groupName_ + '[' + numberTo<std::string>(worker_.size() + 1) + '/' + numberTo<std::string>(threadCountMax_) + ']';
+
+        worker_.emplace_back([wl = workLoad_, threadName = std::move(threadName)] //don't capture "this"! consider detach() and swap()
+        {
+            setCurrentThreadName(threadName.c_str());
+
+            std::unique_lock dummy(wl->lock);
+            for (;;)
+            {
+                interruptibleWait(wl->conditionNewTask, dummy, [&tasks = wl->tasks] { return !tasks.empty(); }); //throw ThreadInterruption
+
+                Function task = std::move(wl->tasks.    front()); //noexcept thanks to move
+                /**/                      wl->tasks.pop_front();  //
+
+                dummy.unlock();
+                task(); //throw ThreadInterruption?
+                dummy.lock();
+
+                if (--(wl->tasksPending) == 0)
+                    if (!wl->onCompletionCallbacks.empty())
+                    {
+                        std::vector<std::function<void()>> callbacks;
+                        callbacks.swap(wl->onCompletionCallbacks);
+
+                        dummy.unlock();
+                        for (const auto& cb : callbacks) cb(); //noexcept!
+                        dummy.lock();
+                    }
+            }
+        });
+    }
+
+    void swap(ThreadGroup& other)
+    {
+        std::swap(worker_,         other.worker_);
+        std::swap(workLoad_,       other.workLoad_);
+        std::swap(detach_,         other.detach_);
+        std::swap(threadCountMax_, other.threadCountMax_);
+        std::swap(groupName_,      other.groupName_);
+    }
+
+    struct WorkLoad
+    {
+        std::mutex lock;
+        RingBuffer<Function> tasks; //FIFO! :)
+        size_t tasksPending = 0;
+        std::condition_variable conditionNewTask;
+        std::vector<std::function<void()>> onCompletionCallbacks;
+    };
+
+    std::vector<InterruptibleThread> worker_;
+    std::shared_ptr<WorkLoad> workLoad_ = std::make_shared<WorkLoad>();
+    bool detach_ = false;
+    size_t threadCountMax_;
+    std::string groupName_;
+};
 
 
 
@@ -148,7 +280,7 @@ private:
 namespace impl
 {
 template <class Function> inline
-auto runAsync(Function&& fun, TrueType /*copy-constructible*/)
+auto runAsync(Function&& fun, std::true_type /*copy-constructible*/)
 {
     using ResultType = decltype(fun());
 
@@ -161,11 +293,11 @@ auto runAsync(Function&& fun, TrueType /*copy-constructible*/)
 
 
 template <class Function> inline
-auto runAsync(Function&& fun, FalseType /*copy-constructible*/)
+auto runAsync(Function&& fun, std::false_type /*copy-constructible*/)
 {
     //support move-only function objects!
     auto sharedFun = std::make_shared<Function>(std::forward<Function>(fun));
-    return runAsync([sharedFun] { return (*sharedFun)(); }, TrueType());
+    return runAsync([sharedFun] { return (*sharedFun)(); }, std::true_type());
 }
 }
 
@@ -173,7 +305,7 @@ auto runAsync(Function&& fun, FalseType /*copy-constructible*/)
 template <class Function> inline
 auto runAsync(Function&& fun)
 {
-    return impl::runAsync(std::forward<Function>(fun), StaticBool<std::is_copy_constructible<Function>::value>());
+    return impl::runAsync(std::forward<Function>(fun), std::is_copy_constructible<Function>());
 }
 
 
@@ -189,14 +321,14 @@ bool wait_for_all_timed(InputIterator first, InputIterator last, const Duration&
 
 
 template <class T>
-class GetFirstResult<T>::AsyncResult
+class AsyncFirstResult<T>::AsyncResult
 {
 public:
     //context: worker threads
-    void reportFinished(Opt<T>&& result)
+    void reportFinished(std::optional<T>&& result)
     {
         {
-            std::lock_guard<std::mutex> dummy(lockResult_);
+            std::lock_guard dummy(lockResult_);
             ++jobsFinished_;
             if (!result_)
                 result_ = std::move(result);
@@ -208,13 +340,13 @@ public:
     template <class Duration>
     bool waitForResult(size_t jobsTotal, const Duration& duration)
     {
-        std::unique_lock<std::mutex> dummy(lockResult_);
+        std::unique_lock dummy(lockResult_);
         return conditionJobDone_.wait_for(dummy, duration, [&] { return this->jobDone(jobsTotal); });
     }
 
-    Opt<T> getResult(size_t jobsTotal)
+    std::optional<T> getResult(size_t jobsTotal)
     {
-        std::unique_lock<std::mutex> dummy(lockResult_);
+        std::unique_lock dummy(lockResult_);
         conditionJobDone_.wait(dummy, [&] { return this->jobDone(jobsTotal); });
 
         return std::move(result_);
@@ -223,22 +355,21 @@ public:
 private:
     bool jobDone(size_t jobsTotal) const { return result_ || (jobsFinished_ >= jobsTotal); } //call while locked!
 
-
     std::mutex lockResult_;
     size_t jobsFinished_ = 0; //
-    Opt<T> result_;          //our condition is: "have result" or "jobsFinished_ == jobsTotal"
+    std::optional<T> result_;           //our condition is: "have result" or "jobsFinished_ == jobsTotal"
     std::condition_variable conditionJobDone_;
 };
 
 
 
 template <class T> inline
-GetFirstResult<T>::GetFirstResult() : asyncResult_(std::make_shared<AsyncResult>()) {}
+AsyncFirstResult<T>::AsyncFirstResult() : asyncResult_(std::make_shared<AsyncResult>()) {}
 
 
 template <class T>
 template <class Fun> inline
-void GetFirstResult<T>::addJob(Fun&& f) //f must return a zen::Opt<T> containing a value on success
+void AsyncFirstResult<T>::addJob(Fun&& f) //f must return a std::optional<T> containing a value on success
 {
     std::thread t([asyncResult = this->asyncResult_, f = std::forward<Fun>(f)] { asyncResult->reportFinished(f()); });
     ++jobsTotal_;
@@ -248,17 +379,13 @@ void GetFirstResult<T>::addJob(Fun&& f) //f must return a zen::Opt<T> containing
 
 template <class T>
 template <class Duration> inline
-bool GetFirstResult<T>::timedWait(const Duration& duration) const { return asyncResult_->waitForResult(jobsTotal_, duration); }
+bool AsyncFirstResult<T>::timedWait(const Duration& duration) const { return asyncResult_->waitForResult(jobsTotal_, duration); }
 
 
 template <class T> inline
-Opt<T> GetFirstResult<T>::get() const { return asyncResult_->getResult(jobsTotal_); }
+std::optional<T> AsyncFirstResult<T>::get() const { return asyncResult_->getResult(jobsTotal_); }
 
 //------------------------------------------------------------------------------------------
-
-//thread_local with non-POD seems to cause memory leaks on VS 14 => pointer only is fine:
-    #define ZEN_THREAD_LOCAL_SPECIFIER __thread
-
 
 class ThreadInterruption {};
 
@@ -272,12 +399,12 @@ public:
         interrupted_ = true;
 
         {
-            std::lock_guard<std::mutex> dummy(lockSleep_); //needed! makes sure the following signal is not lost!
+            std::lock_guard dummy(lockSleep_); //needed! makes sure the following signal is not lost!
             //usually we'd make "interrupted" non-atomic, but this is already given due to interruptibleWait() handling
         }
         conditionSleepInterruption_.notify_all();
 
-        std::lock_guard<std::mutex> dummy(lockConditionPtr_);
+        std::lock_guard dummy(lockConditionPtr_);
         if (activeCondition_)
             activeCondition_->notify_all(); //signal may get lost!
         //alternative design locking the cv's mutex here could be dangerous: potential for dead lock!
@@ -297,7 +424,8 @@ public:
         setConditionVar(&cv);
         ZEN_ON_SCOPE_EXIT(setConditionVar(nullptr));
 
-        //"interrupted" is not protected by cv's mutex => signal may get lost!!! => add artifical time out to mitigate! CPU: 0.25% vs 0% for longer time out!
+        //"interrupted_" is not protected by cv's mutex => signal may get lost!!! e.g. after condition was checked but before the wait begins
+        //=> add artifical time out to mitigate! CPU: 0.25% vs 0% for longer time out!
         while (!cv.wait_for(lock, std::chrono::milliseconds(1), [&] { return this->interrupted_ || pred(); }))
             ;
 
@@ -308,7 +436,7 @@ public:
     template <class Rep, class Period>
     void interruptibleSleep(const std::chrono::duration<Rep, Period>& relTime) //throw ThreadInterruption
     {
-        std::unique_lock<std::mutex> lock(lockSleep_);
+        std::unique_lock lock(lockSleep_);
         if (conditionSleepInterruption_.wait_for(lock, relTime, [this] { return static_cast<bool>(this->interrupted_); }))
             throw ThreadInterruption();
     }
@@ -316,7 +444,7 @@ public:
 private:
     void setConditionVar(std::condition_variable* cv)
     {
-        std::lock_guard<std::mutex> dummy(lockConditionPtr_);
+        std::lock_guard dummy(lockConditionPtr_);
         activeCondition_ = cv;
     }
 
@@ -336,7 +464,8 @@ namespace impl
 inline
 InterruptionStatus*& refThreadLocalInterruptionStatus()
 {
-    static ZEN_THREAD_LOCAL_SPECIFIER InterruptionStatus* threadLocalInterruptionStatus = nullptr;
+    //thread_local with non-POD seems to cause memory leaks on VS 14 => pointer only is fine:
+    thread_local InterruptionStatus* threadLocalInterruptionStatus = nullptr;
     return threadLocalInterruptionStatus;
 }
 }
@@ -400,26 +529,6 @@ InterruptibleThread::InterruptibleThread(Function&& f)
 
 inline
 void InterruptibleThread::interrupt() { intStatus_->interrupt(); }
-
-
-
-
-inline
-void setCurrentThreadName(const char* threadName)
-{
-    ::prctl(PR_SET_NAME, threadName, 0, 0, 0);
-
-}
-
-
-inline
-uint64_t getThreadId()
-{
-    //obviously "gettid()" is not available on Ubuntu/Debian/Suse => use the OpenSSL approach:
-    static_assert(sizeof(uint64_t) >= sizeof(void*), "");
-    return reinterpret_cast<uint64_t>(static_cast<void*>(&errno));
-
-}
 }
 
 #endif //THREAD_H_7896323423432235246427

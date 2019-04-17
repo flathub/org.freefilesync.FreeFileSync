@@ -59,10 +59,10 @@ std::shared_ptr<const TranslationHandler> getTranslator();
 namespace impl
 {
 inline
-Global<const TranslationHandler>& refGlobalTranslationHandler()
+FunStatGlobal<const TranslationHandler>& refGlobalTranslationHandler()
 {
     //getTranslator() may be called even after static objects of this translation unit are destroyed!
-    static Global<const TranslationHandler> inst; //external linkage even in header!
+    static FunStatGlobal<const TranslationHandler> inst; //external linkage even in header!
     return inst;
 }
 }
@@ -95,7 +95,7 @@ std::wstring translate(const std::wstring& text)
 template <class T> inline
 std::wstring translate(const std::wstring& singular, const std::wstring& plural, T n)
 {
-    static_assert(sizeof(n) <= sizeof(int64_t), "");
+    static_assert(sizeof(n) <= sizeof(int64_t));
     const auto n64 = static_cast<int64_t>(n);
 
     assert(contains(plural, L"%x"));

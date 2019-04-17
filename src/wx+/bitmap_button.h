@@ -9,6 +9,7 @@
 
 #include <wx/bmpbuttn.h>
 #include "image_tools.h"
+#include "dc.h"
 
 
 namespace zen
@@ -28,7 +29,8 @@ public:
         wxBitmapButton(parent, id, wxNullBitmap, pos, size, style | wxBU_AUTODRAW, validator, name) { SetLabel(label); }
 };
 
-void setBitmapTextLabel(wxBitmapButton& btn, const wxImage& img, const wxString& text, int gap = 5, int border = 5);
+//wxButton::SetBitmap() also supports "image + text", but screws up proper gap and border handling
+void setBitmapTextLabel(wxBitmapButton& btn, const wxImage& img, const wxString& text, int gap = fastFromDIP(5), int border = fastFromDIP(5));
 
 //set bitmap label flicker free:
 void setImage(wxBitmapButton& button, const wxBitmap& bmp);
@@ -53,12 +55,9 @@ void setBitmapTextLabel(wxBitmapButton& btn, const wxImage& img, const wxString&
 
     wxImage dynImage = createImageFromText(text, btn.GetFont(), btn.GetForegroundColour());
     if (img.IsOk())
-    {
-        if (btn.GetLayoutDirection() != wxLayout_RightToLeft)
-            dynImage = stackImages(img, dynImage, ImageStackLayout::HORIZONTAL, ImageStackAlignment::CENTER, gap);
-        else
-            dynImage = stackImages(dynImage, img, ImageStackLayout::HORIZONTAL, ImageStackAlignment::CENTER, gap);
-    }
+        dynImage = btn.GetLayoutDirection() != wxLayout_RightToLeft ?
+                   stackImages(img, dynImage, ImageStackLayout::HORIZONTAL, ImageStackAlignment::CENTER, gap) :
+                   stackImages(dynImage, img, ImageStackLayout::HORIZONTAL, ImageStackAlignment::CENTER, gap);
 
     //SetMinSize() instead of SetSize() is needed here for wxWindows layout determination to work corretly
     const int defaultHeight = wxButton::GetDefaultSize().GetHeight();

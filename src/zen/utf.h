@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <iterator>
 #include "string_tools.h" //copyStringTo
-#include "optional.h"
 
 
 namespace zen
@@ -53,6 +52,8 @@ const CodePoint TRAIL_SURROGATE_MAX = 0xdfff;
 const CodePoint REPLACEMENT_CHAR    = 0xfffd;
 const CodePoint CODE_POINT_MAX      = 0x10ffff;
 
+static_assert(LEAD_SURROGATE + TRAIL_SURROGATE + TRAIL_SURROGATE_MAX + REPLACEMENT_CHAR + CODE_POINT_MAX == 1348603);
+
 
 template <class Function> inline
 void codePointToUtf16(CodePoint cp, Function writeOutput) //"writeOutput" is a unary function taking a Char16
@@ -94,10 +95,10 @@ class Utf16Decoder
 public:
     Utf16Decoder(const Char16* str, size_t len) : it_(str), last_(str + len) {}
 
-    Opt<CodePoint> getNext()
+    std::optional<CodePoint> getNext()
     {
         if (it_ == last_)
-            return NoValue();
+            return {};
 
         const Char16 ch = *it_++;
         CodePoint cp = ch;
@@ -188,10 +189,10 @@ class Utf8Decoder
 public:
     Utf8Decoder(const Char8* str, size_t len) : it_(str), last_(str + len) {}
 
-    Opt<CodePoint> getNext()
+    std::optional<CodePoint> getNext()
     {
         if (it_ == last_)
-            return NoValue();
+            return std::nullopt;
 
         const Char8 ch = *it_++;
         CodePoint cp = ch;
@@ -245,14 +246,14 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------
 
-template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, Int2Type<1>) { codePointToUtf8 (cp, writeOutput); } //UTF8-char
-template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, Int2Type<2>) { codePointToUtf16(cp, writeOutput); } //Windows: UTF16-wchar_t
-template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, Int2Type<4>) { writeOutput(cp); } //other OS: UTF32-wchar_t
+template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, std::integral_constant<int, 1>) { codePointToUtf8 (cp, writeOutput); } //UTF8-char
+template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, std::integral_constant<int, 2>) { codePointToUtf16(cp, writeOutput); } //Windows: UTF16-wchar_t
+template <class Function> inline void codePointToUtf(CodePoint cp, Function writeOutput, std::integral_constant<int, 4>) { writeOutput(cp); } //other OS: UTF32-wchar_t
 
 template <class CharType, class Function> inline
 void codePointToUtf(CodePoint cp, Function writeOutput) //"writeOutput" is a unary function taking a CharType
 {
-    return codePointToUtf(cp, writeOutput, Int2Type<sizeof(CharType)>());
+    return codePointToUtf(cp, writeOutput, std::integral_constant<int, sizeof(CharType)>());
 }
 
 //----------------------------------------------------------------------------------------------------------------
@@ -266,7 +267,7 @@ class UtfDecoderImpl<CharType, 1> //UTF8-char
 {
 public:
     UtfDecoderImpl(const CharType* str, size_t len) : decoder_(reinterpret_cast<const Char8*>(str), len) {}
-    Opt<CodePoint> getNext() { return decoder_.getNext(); }
+    std::optional<CodePoint> getNext() { return decoder_.getNext(); }
 private:
     Utf8Decoder decoder_;
 };
@@ -277,7 +278,7 @@ class UtfDecoderImpl<CharType, 2> //Windows: UTF16-wchar_t
 {
 public:
     UtfDecoderImpl(const CharType* str, size_t len) : decoder_(reinterpret_cast<const Char16*>(str), len) {}
-    Opt<CodePoint> getNext() { return decoder_.getNext(); }
+    std::optional<CodePoint> getNext() { return decoder_.getNext(); }
 private:
     Utf16Decoder decoder_;
 };
@@ -288,10 +289,10 @@ class UtfDecoderImpl<CharType, 4> //other OS: UTF32-wchar_t
 {
 public:
     UtfDecoderImpl(const CharType* str, size_t len) : it_(reinterpret_cast<const CodePoint*>(str)), last_(it_ + len) {}
-    Opt<CodePoint> getNext()
+    std::optional<CodePoint> getNext()
     {
         if (it_ == last_)
-            return NoValue();
+            return {};
         return *it_++;
     }
 private:
@@ -311,8 +312,8 @@ bool isValidUtf(const UtfString& str)
 {
     using namespace impl;
 
-    UtfDecoder<typename GetCharType<UtfString>::Type> decoder(strBegin(str), strLength(str));
-    while (Opt<CodePoint> cp = decoder.getNext())
+    UtfDecoder<GetCharTypeT<UtfString>> decoder(strBegin(str), strLength(str));
+    while (const std::optional<CodePoint> cp = decoder.getNext())
         if (*cp == REPLACEMENT_CHAR)
             return false;
 
@@ -324,7 +325,7 @@ template <class UtfString> inline
 size_t unicodeLength(const UtfString& str) //return number of code points (+ correctly handle broken UTF encoding)
 {
     size_t uniLen = 0;
-    impl::UtfDecoder<typename GetCharType<UtfString>::Type> decoder(strBegin(str), strLength(str));
+    impl::UtfDecoder<GetCharTypeT<UtfString>> decoder(strBegin(str), strLength(str));
     while (decoder.getNext())
         ++uniLen;
     return uniLen;
@@ -336,13 +337,13 @@ UtfString getUnicodeSubstring(const UtfString& str, size_t uniPosFirst, size_t u
 {
     assert(uniPosFirst <= uniPosLast && uniPosLast <= unicodeLength(str));
     using namespace impl;
-    using CharType = typename GetCharType<UtfString>::Type;
+    using CharType = GetCharTypeT<UtfString>;
     UtfString output;
     if (uniPosFirst >= uniPosLast) //optimize for empty range
         return output;
 
     UtfDecoder<CharType> decoder(strBegin(str), strLength(str));
-    for (size_t uniPos = 0; Opt<CodePoint> cp = decoder.getNext(); ++uniPos) //[!] declaration in condition part of the for-loop
+    for (size_t uniPos = 0; std::optional<CodePoint> cp = decoder.getNext(); ++uniPos) //[!] declaration in condition part of the for-loop
         if (uniPosFirst <= uniPos)
         {
             if (uniPos >= uniPosLast)
@@ -357,16 +358,16 @@ UtfString getUnicodeSubstring(const UtfString& str, size_t uniPosFirst, size_t u
 namespace impl
 {
 template <class TargetString, class SourceString> inline
-TargetString utfTo(const SourceString& str, FalseType)
+TargetString utfTo(const SourceString& str, std::false_type)
 {
-    using CharSrc = typename GetCharType<SourceString>::Type;
-    using CharTrg = typename GetCharType<TargetString>::Type;
-    static_assert(sizeof(CharSrc) != sizeof(CharTrg), "no UTF-conversion needed");
+    using CharSrc = GetCharTypeT<SourceString>;
+    using CharTrg = GetCharTypeT<TargetString>;
+    static_assert(sizeof(CharSrc) != sizeof(CharTrg));
 
     TargetString output;
 
     UtfDecoder<CharSrc> decoder(strBegin(str), strLength(str));
-    while (Opt<CodePoint> cp = decoder.getNext())
+    while (const std::optional<CodePoint> cp = decoder.getNext())
         codePointToUtf<CharTrg>(*cp, [&](CharTrg c) { output += c; });
 
     return output;
@@ -374,14 +375,14 @@ TargetString utfTo(const SourceString& str, FalseType)
 
 
 template <class TargetString, class SourceString> inline
-TargetString utfTo(const SourceString& str, TrueType) { return copyStringTo<TargetString>(str); }
+TargetString utfTo(const SourceString& str, std::true_type) { return copyStringTo<TargetString>(str); }
 }
 
 
 template <class TargetString, class SourceString> inline
 TargetString utfTo(const SourceString& str)
 {
-    return impl::utfTo<TargetString>(str, StaticBool<sizeof(typename GetCharType<SourceString>::Type) == sizeof(typename GetCharType<TargetString>::Type)>());
+    return impl::utfTo<TargetString>(str, std::bool_constant<sizeof(GetCharTypeT<SourceString>) == sizeof(GetCharTypeT<TargetString>)>());
 }
 }
 

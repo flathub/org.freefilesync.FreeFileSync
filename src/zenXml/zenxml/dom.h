@@ -10,7 +10,6 @@
 #include <string>
 #include <list>
 #include <map>
-#include <zen/fixed_list.h>
 #include "cvrt_text.h" //"readText/writeText"
 
 
@@ -144,9 +143,15 @@ public:
     template < class IterTy,        //underlying iterator type
                class T,             //target object type
                class AccessPolicy > //access policy: see AccessPtrMap
-    class PtrIter : public std::iterator<std::input_iterator_tag, T>, private AccessPolicy //get rid of shared_ptr indirection
+    class PtrIter : private AccessPolicy //get rid of shared_ptr indirection
     {
     public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type = T;
+        using difference_type = ptrdiff_t;
+        using pointer   = T*;
+        using reference = T&;
+
         PtrIter(IterTy it) : it_(it) {}
         PtrIter(const PtrIter& other) : it_(other.it_) {}
         PtrIter& operator++() { ++it_; return *this; }
@@ -191,8 +196,8 @@ public:
         T& objectRef(const IterTy& it) const { return *it; }
     };
 
-    using ChildIter      = PtrIter<FixedList<XmlElement>::iterator,             XmlElement, AccessListElement>;
-    using ChildIterConst = PtrIter<FixedList<XmlElement>::const_iterator, const XmlElement, AccessListElement>;
+    using ChildIter      = PtrIter<std::list<XmlElement>::iterator,             XmlElement, AccessListElement>;
+    using ChildIterConst = PtrIter<std::list<XmlElement>::const_iterator, const XmlElement, AccessListElement>;
 
     ///Access all child elements sequentially via STL iterators.
     /**
@@ -232,7 +237,7 @@ public:
     std::pair<AttrIter, AttrIter> getAttributes() const { return { attributes_.begin(), attributes_.end() }; }
 
     //swap two elements while keeping references to parent.  -> disabled documentation extraction
-    void swapSubtree(XmlElement& other)
+    void swapSubtree(XmlElement& other) noexcept
     {
         name_               .swap(other.name_);
         value_              .swap(other.value_);
@@ -257,7 +262,7 @@ private:
     std::list<Attribute>                                  attributes_;       //attributes in order of creation
     std::map<std::string, std::list<Attribute>::iterator> attributesSorted_; //alternate view: sorted by attribute name
 
-    FixedList<XmlElement>                   childElements_;       //child elements in order of creation
+    std::list<XmlElement>                   childElements_;       //child elements in order of creation
     std::multimap<std::string, XmlElement*> childElementsSorted_; //alternate view: sorted by element name
     XmlElement* parent_ = nullptr;
 };
@@ -275,11 +280,11 @@ bool XmlElement::getValue(std::string& value) const { value = value_; return tru
 class XmlDoc
 {
 public:
-    ///Default constructor setting up an empty XML document with a standard declaration: <?xml version="1.0" encoding="UTF-8" ?>
+    ///Default constructor setting up an empty XML document with a standard declaration: <?xml version="1.0" encoding="utf-8" ?>
     XmlDoc() {}
 
-    XmlDoc(XmlDoc&& tmp) { swap(tmp); }
-    XmlDoc& operator=(XmlDoc&& tmp) { swap(tmp); return *this; }
+    XmlDoc(XmlDoc&& tmp) noexcept { swap(tmp); }
+    XmlDoc& operator=(XmlDoc&& tmp) noexcept { swap(tmp); return *this; }
 
     //Setup an empty XML document
     /**
@@ -337,7 +342,7 @@ public:
     void setStandalone(const String& standalone) { standalone_ = utfTo<std::string>(standalone); }
 
     //Transactionally swap two elements.  -> disabled documentation extraction
-    void swap(XmlDoc& other)
+    void swap(XmlDoc& other) noexcept
     {
         version_   .swap(other.version_);
         encoding_  .swap(other.encoding_);
@@ -350,7 +355,7 @@ private:
     XmlDoc& operator=(const XmlDoc&) = delete;
 
     std::string version_ { "1.0" };
-    std::string encoding_{ "UTF-8" };
+    std::string encoding_{ "utf-8" };
     std::string standalone_;
 
     XmlElement root_{ "Root" };

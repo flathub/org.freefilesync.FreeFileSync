@@ -31,7 +31,7 @@ public:
     void onQueryEndSession(); //last chance to do something useful before killing the application!
 
 private:
-    MainDialog(wxDialog* dlg, const Zstring& cfgFileName);
+    MainDialog(const Zstring& cfgFileName);
     ~MainDialog();
 
     void loadConfig(const Zstring& filepath);
@@ -54,12 +54,11 @@ private:
     XmlRealConfig getConfiguration();
     void setLastUsedConfig(const Zstring& filepath);
 
-    void addFolder(const std::vector<Zstring>& newFolders, bool addFront = false);
+    void insertAddFolder(const std::vector<Zstring>& newFolders, size_t pos);
     void removeAddFolder(size_t pos);
-    void clearAddFolders();
 
-    std::unique_ptr<FolderSelector2> dirpathFirst;
-    std::vector<DirectoryPanel*> dirpathsExtra; //additional pairs to the standard pair
+    std::unique_ptr<FolderSelector2> firstFolderPanel_;
+    std::vector<DirectoryPanel*> additionalFolderPanels_; //additional pairs to the standard pair
 
 
     const Zstring lastRunConfigPath_;

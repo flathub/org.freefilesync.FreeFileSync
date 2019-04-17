@@ -14,7 +14,6 @@
 #include <wx/settings.h>
 #include <wx/bitmap.h>
 #include <zen/string_tools.h>
-#include <zen/optional.h>
 
 
 //elegant 2D graph as wxPanel specialization
@@ -63,8 +62,8 @@ struct SparseCurveData : public CurveData
 {
     SparseCurveData(bool addSteps = false) : addSteps_(addSteps) {} //addSteps: add points to get a staircase effect or connect points via a direct line
 
-    virtual Opt<CurvePoint> getLessEq   (double x) const = 0;
-    virtual Opt<CurvePoint> getGreaterEq(double x) const = 0;
+    virtual std::optional<CurvePoint> getLessEq   (double x) const = 0;
+    virtual std::optional<CurvePoint> getGreaterEq(double x) const = 0;
 
 private:
     std::vector<CurvePoint> getPoints(double minX, double maxX, const wxSize& areaSizePx) const override;
@@ -80,33 +79,33 @@ struct ArrayCurveData : public SparseCurveData
 private:
     std::pair<double, double> getRangeX() const override { const size_t sz = getSize(); return { 0.0, sz == 0 ? 0.0 : sz - 1.0}; }
 
-    Opt<CurvePoint> getLessEq(double x) const override
+    std::optional<CurvePoint> getLessEq(double x) const override
     {
         const size_t sz = getSize();
         const size_t pos = std::min<ptrdiff_t>(std::floor(x), sz - 1); //[!] expect unsigned underflow if empty!
         if (pos < sz)
             return CurvePoint(pos, getValue(pos));
-        return NoValue();
+        return {};
     }
 
-    Opt<CurvePoint> getGreaterEq(double x) const override
+    std::optional<CurvePoint> getGreaterEq(double x) const override
     {
         const size_t pos = std::max<ptrdiff_t>(std::ceil(x), 0); //[!] use std::max with signed type!
         if (pos < getSize())
             return CurvePoint(pos, getValue(pos));
-        return NoValue();
+        return {};
     }
 };
 
 
 struct VectorCurveData : public ArrayCurveData
 {
-    std::vector<double>& refData() { return data; }
+    std::vector<double>& refData() { return data_; }
 private:
-    double getValue(size_t pos) const override { return pos < data.size() ? data[pos] : 0; }
-    size_t getSize()            const override { return data.size(); }
+    double getValue(size_t pos) const override { return pos < data_.size() ? data_[pos] : 0; }
+    size_t getSize()            const override { return data_.size(); }
 
-    std::vector<double> data;
+    std::vector<double> data_;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -128,7 +127,7 @@ double nextNiceNumber(double blockSize); //round to next number which is conveni
 struct DecimalNumberFormatter : public LabelFormatter
 {
     double   getOptimalBlockSize(double sizeProposed                  ) const override { return nextNiceNumber(sizeProposed); }
-    wxString formatText         (double value, double optimalBlockSize) const override { return zen::numberTo<wxString>(value); }
+    wxString formatText         (double value, double optimalBlockSize) const override { return numberTo<wxString>(value); }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -178,7 +177,7 @@ public:
     {
     public:
         CurveAttributes() {} //required by GCC
-        CurveAttributes& setColor     (const wxColor& col) { color = col; autoColor = false; return *this; }
+        CurveAttributes& setColor       (const wxColor& col) { color = col; autoColor = false; return *this; }
         CurveAttributes& fillCurveArea  (const wxColor& col) { fillColor = col; fillMode = FILL_CURVE;   return *this; }
         CurveAttributes& fillPolygonArea(const wxColor& col) { fillColor = col; fillMode = FILL_POLYGON; return *this; }
         CurveAttributes& setLineWidth(size_t width) { lineWidth = static_cast<int>(width); return *this; }
@@ -240,26 +239,26 @@ public:
     class MainAttributes
     {
     public:
-        MainAttributes& setMinX(double newMinX) { minX = newMinX; minXauto = false; return *this; }
-        MainAttributes& setMaxX(double newMaxX) { maxX = newMaxX; maxXauto = false; return *this; }
+        MainAttributes& setMinX(double newMinX) { minX = newMinX; return *this; }
+        MainAttributes& setMaxX(double newMaxX) { maxX = newMaxX; return *this; }
 
-        MainAttributes& setMinY(double newMinY) { minY = newMinY; minYauto = false; return *this; }
-        MainAttributes& setMaxY(double newMaxY) { maxY = newMaxY; maxYauto = false; return *this; }
+        MainAttributes& setMinY(double newMinY) { minY = newMinY; return *this; }
+        MainAttributes& setMaxY(double newMaxY) { maxY = newMaxY; return *this; }
 
-        MainAttributes& setAutoSize() { minXauto = maxXauto = minYauto = maxYauto = true; return *this; }
+        MainAttributes& setAutoSize() { minX = maxX = minY = maxY = {}; return *this; }
 
-        MainAttributes& setLabelX(PosLabelX posX, size_t height = 25, std::shared_ptr<LabelFormatter> newLabelFmt = std::make_shared<DecimalNumberFormatter>())
+        MainAttributes& setLabelX(PosLabelX posX, int height = -1, std::shared_ptr<LabelFormatter> newLabelFmt = nullptr)
         {
-            labelposX    = posX;
-            xLabelHeight = static_cast<int>(height);
-            labelFmtX    = newLabelFmt;
+            labelposX = posX;
+            if (height >= 0) xLabelHeight = height;
+            if (newLabelFmt) labelFmtX = newLabelFmt;
             return *this;
         }
-        MainAttributes& setLabelY(PosLabelY posY, size_t width = 60, std::shared_ptr<LabelFormatter> newLabelFmt = std::make_shared<DecimalNumberFormatter>())
+        MainAttributes& setLabelY(PosLabelY posY, int width = -1, std::shared_ptr<LabelFormatter> newLabelFmt = nullptr)
         {
-            labelposY    = posY;
-            yLabelWidth  = static_cast<int>(width);
-            labelFmtY    = newLabelFmt;
+            labelposY = posY;
+            if (width >= 0) yLabelWidth = width;
+            if (newLabelFmt) labelFmtY = newLabelFmt;
             return *this;
         }
 
@@ -272,22 +271,18 @@ public:
     private:
         friend class Graph2D;
 
-        bool minXauto = true; //autodetect range for X value
-        bool maxXauto = true;
-        double minX = 0; //x-range to visualize
-        double maxX = 0; //
+        std::optional<double> minX; //x-range to visualize
+        std::optional<double> maxX; //
 
-        bool minYauto = true; //autodetect range for Y value
-        bool maxYauto = true;
-        double minY = 0; //y-range to visualize
-        double maxY = 0; //
+        std::optional<double> minY; //y-range to visualize
+        std::optional<double> maxY; //
 
         PosLabelX labelposX = LABEL_X_BOTTOM;
-        int xLabelHeight = 25;
+        std::optional<int> xLabelHeight;
         std::shared_ptr<LabelFormatter> labelFmtX = std::make_shared<DecimalNumberFormatter>();
 
         PosLabelY labelposY = LABEL_Y_LEFT;
-        int yLabelWidth = 60;
+        std::optional<int> yLabelWidth;
         std::shared_ptr<LabelFormatter> labelFmtY = std::make_shared<DecimalNumberFormatter>();
 
         std::map<PosCorner, wxString> cornerTexts;
@@ -295,6 +290,7 @@ public:
         wxColor backgroundColor = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
         SelMode mouseSelMode = SELECT_RECTANGLE;
     };
+
     void setAttributes(const MainAttributes& newAttr) { attr_ = newAttr; Refresh(); }
     MainAttributes getAttributes() const { return attr_; }
 
@@ -315,7 +311,6 @@ private:
 
     void onPaintEvent(wxPaintEvent& event);
     void onSizeEvent(wxSizeEvent& event) { Refresh(); event.Skip(); }
-    void onEraseBackGround(wxEraseEvent& event) {}
 
     void render(wxDC& dc) const;
 
@@ -341,12 +336,12 @@ private:
 
     MainAttributes attr_; //global attributes
 
-    Opt<wxBitmap> doubleBuffer_;
+    std::optional<wxBitmap> doubleBuffer_;
 
     using CurveList = std::vector<std::pair<std::shared_ptr<CurveData>, CurveAttributes>>;
     CurveList curves_;
 
-    //perf!!! generating the font is *very* expensive! don't do this repeatedly in Graph2D::render()!
+    //perf!!! generating the font is *very* expensive! => buffer for Graph2D::render()!
     const wxFont labelFont_ { wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, L"Arial" };
 };
 }

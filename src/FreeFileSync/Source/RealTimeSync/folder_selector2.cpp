@@ -7,11 +7,10 @@
 #include "folder_selector2.h"
 #include <zen/thread.h>
 #include <zen/file_access.h>
-#include <zen/optional.h>
 #include <wx/dirdlg.h>
 #include <wx/scrolwin.h>
 #include <wx+/popup_dlg.h>
-#include "../lib/resolve_path.h"
+#include "../base/resolve_path.h"
     #include <gtk/gtk.h>
 
 
@@ -21,6 +20,9 @@ using namespace rts;
 
 namespace
 {
+const std::chrono::milliseconds FOLDER_SELECTED_EXISTENCE_CHECK_TIME_MAX(200);
+
+
 void setFolderPath(const Zstring& dirpath, wxTextCtrl* txtCtrl, wxWindow& tooltipWnd, wxStaticText* staticText) //pointers are optional
 {
     if (txtCtrl)
@@ -28,20 +30,25 @@ void setFolderPath(const Zstring& dirpath, wxTextCtrl* txtCtrl, wxWindow& toolti
 
     const Zstring folderPathFmt = fff::getResolvedFilePath(dirpath); //may block when resolving [<volume name>]
 
-    tooltipWnd.SetToolTip(nullptr); //workaround wxComboBox bug http://trac.wxwidgets.org/ticket/10512 / http://trac.wxwidgets.org/ticket/12659
-    tooltipWnd.SetToolTip(utfTo<wxString>(folderPathFmt)); //who knows when the real bugfix reaches mere mortals via an official release...
+    if (folderPathFmt.empty())
+        tooltipWnd.UnsetToolTip(); //wxGTK doesn't allow wxToolTip with empty text!
+    else
+        tooltipWnd.SetToolTip(utfTo<wxString>(folderPathFmt));
 
     if (staticText) //change static box label only if there is a real difference to what is shown in wxTextCtrl anyway
-        staticText->SetLabel(equalFilePath(appendSeparator(trimCpy(dirpath)), appendSeparator(folderPathFmt)) ? wxString(_("Drag && drop")) : utfTo<wxString>(folderPathFmt));
+        staticText->SetLabel(equalNativePath(appendSeparator(trimCpy(dirpath)), appendSeparator(folderPathFmt)) ?
+                             wxString(_("Drag && drop")) : utfTo<wxString>(folderPathFmt));
 }
 }
 
 //##############################################################################################################
 
-FolderSelector2::FolderSelector2(wxWindow&     dropWindow,
+FolderSelector2::FolderSelector2(wxWindow*     parent,
+                                 wxWindow&     dropWindow,
                                  wxButton&     selectButton,
                                  wxTextCtrl&   folderPathCtrl,
                                  wxStaticText* staticText) :
+    parent_(parent),
     dropWindow_(dropWindow),
     selectButton_(selectButton),
     folderPathCtrl_(folderPathCtrl),
@@ -74,7 +81,7 @@ FolderSelector2::~FolderSelector2()
 
 void FolderSelector2::onMouseWheel(wxMouseEvent& event)
 {
-    //for combobox: although switching through available items is wxWidgets default, this is NOT windows default, e.g. explorer
+    //for combobox: although switching through available items is wxWidgets default, this is NOT windows default, e.g. Explorer
     //additionally this will delete manual entries, although all the users wanted is scroll the parent window!
 
     //redirect to parent scrolled window!
@@ -100,7 +107,7 @@ void FolderSelector2::onFilesDropped(FileDropEvent& event)
     try
     {
         if (getItemType(itemPath) == ItemType::FILE) //throw FileError
-            if (Opt<Zstring> parentPath = getParentFolderPath(itemPath))
+            if (std::optional<Zstring> parentPath = getParentFolderPath(itemPath))
                 itemPath = *parentPath;
     }
     catch (FileError&) {} //e.g. good for inactive mapped network shares, not so nice for C:\pagefile.sys
@@ -130,12 +137,12 @@ void FolderSelector2::onSelectDir(wxCommandEvent& event)
         {
             auto ft = runAsync([folderPath] { return dirAvailable(folderPath); });
 
-            if (ft.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && ft.get()) //potentially slow network access: wait 200ms at most
+            if (ft.wait_for(FOLDER_SELECTED_EXISTENCE_CHECK_TIME_MAX) == std::future_status::ready && ft.get()) //potentially slow network access: wait 200ms at most
                 defaultFolderPath = folderPath;
         }
     }
 
-    wxDirDialog dirPicker(&selectButton_, _("Select a folder"), utfTo<wxString>(defaultFolderPath)); //put modal wxWidgets dialogs on stack: creating on freestore leads to memleak!
+    wxDirDialog dirPicker(parent_, _("Select a folder"), utfTo<wxString>(defaultFolderPath)); //put modal wxWidgets dialogs on stack: creating on freestore leads to memleak!
     if (dirPicker.ShowModal() != wxID_OK)
         return;
     const Zstring newFolderPath = utfTo<Zstring>(dirPicker.GetPath());
@@ -146,9 +153,7 @@ void FolderSelector2::onSelectDir(wxCommandEvent& event)
 
 Zstring FolderSelector2::getPath() const
 {
-    Zstring path = utfTo<Zstring>(folderPathCtrl_.GetValue());
-
-    return path;
+    return utfTo<Zstring>(folderPathCtrl_.GetValue());
 }
 
 

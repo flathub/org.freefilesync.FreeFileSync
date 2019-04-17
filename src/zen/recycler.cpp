@@ -27,7 +27,7 @@ bool zen::recycleOrDeleteIfExists(const Zstring& itemPath) //throw FileError
 
     if (!::g_file_trash(file, nullptr, &error))
     {
-        const Opt<ItemType> type = getItemTypeIfExists(itemPath); //throw FileError
+        const std::optional<ItemType> type = itemStillExists(itemPath); //throw FileError
         if (!type)
             return false;
 
@@ -45,7 +45,7 @@ bool zen::recycleOrDeleteIfExists(const Zstring& itemPath) //throw FileError
             return true;
         }
 
-        throw FileError(errorMsg, formatSystemError(L"g_file_trash", L"Glib Error Code " + numberTo<std::wstring>(error->code), utfTo<std::wstring>(error->message)));
+        throw FileError(errorMsg, formatSystemError(L"g_file_trash", replaceCpy(_("Error Code %x"), L"%x", numberTo<std::wstring>(error->code)), utfTo<std::wstring>(error->message)));
         //g_quark_to_string(error->domain)
     }
     return true;

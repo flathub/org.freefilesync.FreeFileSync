@@ -56,49 +56,45 @@ ZEN_INIT_DETECT_MEMBER(insert) //
 }
 
 template <typename T>
-struct IsStlContainer :
-    StaticBool<
-    impl_2384343::HasMemberType_value_type    <T>::value&&
-    impl_2384343::HasMemberType_iterator      <T>::value&&
-    impl_2384343::HasMemberType_const_iterator<T>::value&&
-    impl_2384343::HasMember_begin             <T>::value&&
-    impl_2384343::HasMember_end               <T>::value&&
-    impl_2384343::HasMember_insert            <T>::value> {};
+using IsStlContainer = std::bool_constant<
+                       impl_2384343::HasMemberType_value_type    <T>::value &&
+                       impl_2384343::HasMemberType_iterator      <T>::value &&
+                       impl_2384343::HasMemberType_const_iterator<T>::value &&
+                       impl_2384343::HasMember_begin             <T>::value &&
+                       impl_2384343::HasMember_end               <T>::value &&
+                       impl_2384343::HasMember_insert            <T>::value>;
 
 
-namespace impl_2384343
+template <class T>
+struct IsStlPair
 {
-ZEN_INIT_DETECT_MEMBER_TYPE(first_type);
-ZEN_INIT_DETECT_MEMBER_TYPE(second_type);
+private:
+    using Yes = char[1];
+    using No  = char[2];
 
-ZEN_INIT_DETECT_MEMBER(first)   //we don't know the exact declaration of the member attribute: may be in a base class!
-ZEN_INIT_DETECT_MEMBER(second)  //
-}
-
-template <typename T>
-struct IsStlPair :
-    StaticBool<
-    impl_2384343::HasMemberType_first_type <T>::value&&
-    impl_2384343::HasMemberType_second_type<T>::value&&
-    impl_2384343::HasMember_first          <T>::value&&
-    impl_2384343::HasMember_second         <T>::value> {};
+    template <class T1, class T2>
+    static Yes& isPair(const std::pair<T1, T2>&);
+    static  No& isPair(...);
+public:
+    enum { value = sizeof(isPair(std::declval<T>())) == sizeof(Yes) };
+};
 
 //######################################################################################
 
 //Conversion from arbitrary types to an XML element
-enum ValueType
+enum class ValueType
 {
-    VALUE_TYPE_STL_CONTAINER,
-    VALUE_TYPE_STL_PAIR,
-    VALUE_TYPE_OTHER,
+    STL_CONTAINER,
+    STL_PAIR,
+    OTHER,
 };
 
 template <class T>
-struct GetValueType : StaticEnum<ValueType,
-    GetTextType<T>::value != TEXT_TYPE_OTHER ? VALUE_TYPE_OTHER : //some string classes are also STL containers, so check this first
-    IsStlContainer<T>::value ? VALUE_TYPE_STL_CONTAINER :
-    IsStlPair<T>::value      ? VALUE_TYPE_STL_PAIR :
-    VALUE_TYPE_OTHER> {};
+using GetValueType = std::integral_constant<ValueType,
+      GetTextType   <T>::value != TEXT_TYPE_OTHER ? ValueType::OTHER : //some string classes are also STL containers, so check this first
+      IsStlContainer<T>::value ? ValueType::STL_CONTAINER :
+      IsStlPair     <T>::value ? ValueType::STL_PAIR :
+      ValueType::OTHER>;
 
 
 template <class T, ValueType type>
@@ -113,7 +109,7 @@ struct ConvertElement;
 
 //partial specialization: handle conversion for all STL-container types!
 template <class T>
-struct ConvertElement<T, VALUE_TYPE_STL_CONTAINER>
+struct ConvertElement<T, ValueType::STL_CONTAINER>
 {
     void writeStruc(const T& value, XmlElement& output) const
     {
@@ -145,7 +141,7 @@ struct ConvertElement<T, VALUE_TYPE_STL_CONTAINER>
 
 //partial specialization: handle conversion for std::pair
 template <class T>
-struct ConvertElement<T, VALUE_TYPE_STL_PAIR>
+struct ConvertElement<T, ValueType::STL_PAIR>
 {
     void writeStruc(const T& value, XmlElement& output) const
     {
@@ -173,7 +169,7 @@ struct ConvertElement<T, VALUE_TYPE_STL_PAIR>
 
 //partial specialization: not a pure structured type, try text conversion (thereby respect user specializations of writeText()/readText())
 template <class T>
-struct ConvertElement<T, VALUE_TYPE_OTHER>
+struct ConvertElement<T, ValueType::OTHER>
 {
     void writeStruc(const T& value, XmlElement& output) const
     {

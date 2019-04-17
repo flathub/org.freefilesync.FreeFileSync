@@ -16,8 +16,8 @@
 #include "folder_selector.h"
 #include "small_dlgs.h"
 #include "sync_cfg.h"
-#include "../lib/norm_filter.h"
-#include "../structures.h"
+#include "../base/norm_filter.h"
+#include "../base/structures.h"
 
 
 namespace fff
@@ -28,29 +28,26 @@ template <class GuiPanel>
 class FolderPairPanelBasic : private wxEvtHandler
 {
 public:
-    using AltCompCfgPtr = std::shared_ptr<const CompConfig>;
-    using AltSyncCfgPtr = std::shared_ptr<const SyncConfig>;
-
-    void setConfig(AltCompCfgPtr compConfig, AltSyncCfgPtr syncCfg, const FilterConfig& filter)
+    void setConfig(const std::optional<CompConfig>& compConfig, const std::optional<SyncConfig>& syncCfg, const FilterConfig& filter)
     {
-        altCompConfig_ = compConfig;
-        altSyncConfig_ = syncCfg;
-        localFilter_   = filter;
+        localCmpCfg_  = compConfig;
+        localSyncCfg_ = syncCfg;
+        localFilter_  = filter;
         refreshButtons();
     }
 
-    AltCompCfgPtr getAltCompConfig  () const { return altCompConfig_; }
-    AltSyncCfgPtr getAltSyncConfig  () const { return altSyncConfig_; }
-    FilterConfig  getAltFilterConfig() const { return localFilter_;   }
+    std::optional<CompConfig> getCompConfig  () const { return localCmpCfg_;  }
+    std::optional<SyncConfig> getSyncConfig  () const { return localSyncCfg_; }
+    FilterConfig         getFilterConfig() const { return localFilter_;  }
 
 
     FolderPairPanelBasic(GuiPanel& basicPanel) : //takes reference on basic panel to be enhanced
         basicPanel_(basicPanel)
     {
         //register events for removal of alternate configuration
-        basicPanel_.m_bpButtonAltCompCfg ->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnAltCompCfgContext    ), nullptr, this);
-        basicPanel_.m_bpButtonAltSyncCfg ->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnAltSyncCfgContext    ), nullptr, this);
-        basicPanel_.m_bpButtonLocalFilter->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnLocalFilterCfgContext), nullptr, this);
+        basicPanel_.m_bpButtonLocalCompCfg ->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnLocalCompCfgContext  ), nullptr, this);
+        basicPanel_.m_bpButtonLocalSyncCfg ->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnLocalSyncCfgContext  ), nullptr, this);
+        basicPanel_.m_bpButtonLocalFilter  ->Connect(wxEVT_RIGHT_DOWN, wxCommandEventHandler(FolderPairPanelBasic::OnLocalFilterCfgContext), nullptr, this);
 
         basicPanel_.m_bpButtonRemovePair->SetBitmapLabel(zen::getResourceImage(L"item_remove"));
     }
@@ -60,65 +57,69 @@ private:
     {
         using namespace zen;
 
-        if (altCompConfig_.get())
+        const wxImage imgCmp    = shrinkImage(getResourceImage(L"cfg_compare").ConvertToImage(), fastFromDIP(20));
+        const wxImage imgSync   = shrinkImage(getResourceImage(L"cfg_sync"   ).ConvertToImage(), fastFromDIP(20));
+        const wxImage imgFilter = shrinkImage(getResourceImage(L"cfg_filter" ).ConvertToImage(), fastFromDIP(20));
+
+        if (localCmpCfg_)
         {
-            setImage(*basicPanel_.m_bpButtonAltCompCfg, getResourceImage(L"cfg_compare_small"));
-            basicPanel_.m_bpButtonAltCompCfg->SetToolTip(_("Local comparison settings") +  L" (" + getVariantName(altCompConfig_->compareVar) + L")");
+            setImage(*basicPanel_.m_bpButtonLocalCompCfg, imgCmp);
+            basicPanel_.m_bpButtonLocalCompCfg->SetToolTip(_("Local comparison settings") +  L" (" + getVariantName(localCmpCfg_->compareVar) + L")");
         }
         else
         {
-            setImage(*basicPanel_.m_bpButtonAltCompCfg, greyScale(getResourceImage(L"cfg_compare_small")));
-            basicPanel_.m_bpButtonAltCompCfg->SetToolTip(_("Local comparison settings"));
+            setImage(*basicPanel_.m_bpButtonLocalCompCfg, greyScale(imgCmp));
+            basicPanel_.m_bpButtonLocalCompCfg->SetToolTip(_("Local comparison settings"));
         }
 
-        if (altSyncConfig_.get())
+        if (localSyncCfg_)
         {
-            setImage(*basicPanel_.m_bpButtonAltSyncCfg, getResourceImage(L"cfg_sync_small"));
-            basicPanel_.m_bpButtonAltSyncCfg->SetToolTip(_("Local synchronization settings") +  L" (" + getVariantName(altSyncConfig_->directionCfg.var) + L")");
+            setImage(*basicPanel_.m_bpButtonLocalSyncCfg, imgSync);
+            basicPanel_.m_bpButtonLocalSyncCfg->SetToolTip(_("Local synchronization settings") +  L" (" + getVariantName(localSyncCfg_->directionCfg.var) + L")");
         }
         else
         {
-            setImage(*basicPanel_.m_bpButtonAltSyncCfg, greyScale(getResourceImage(L"cfg_sync_small")));
-            basicPanel_.m_bpButtonAltSyncCfg->SetToolTip(_("Local synchronization settings"));
+            setImage(*basicPanel_.m_bpButtonLocalSyncCfg, greyScale(imgSync));
+            basicPanel_.m_bpButtonLocalSyncCfg->SetToolTip(_("Local synchronization settings"));
         }
 
         if (!isNullFilter(localFilter_))
         {
-            setImage(*basicPanel_.m_bpButtonLocalFilter, getResourceImage(L"filter_small"));
+            setImage(*basicPanel_.m_bpButtonLocalFilter, imgFilter);
             basicPanel_.m_bpButtonLocalFilter->SetToolTip(_("Local filter") + L" (" + _("Active") + L")");
         }
         else
         {
-            setImage(*basicPanel_.m_bpButtonLocalFilter, greyScale(getResourceImage(L"filter_small")));
+            setImage(*basicPanel_.m_bpButtonLocalFilter, greyScale(imgFilter));
             basicPanel_.m_bpButtonLocalFilter->SetToolTip(_("Local filter") + L" (" + _("None") + L")");
         }
     }
 
-    void OnAltCompCfgContext(wxCommandEvent& event)
+    void OnLocalCompCfgContext(wxCommandEvent& event)
     {
-        auto removeAltCompCfg = [&]
+        auto removeLocalCompCfg = [&]
         {
-            this->altCompConfig_.reset(); //"this->" galore: workaround GCC compiler bugs
+            this->localCmpCfg_ = {}; //"this->" galore: workaround GCC compiler bugs
             this->refreshButtons();
-            this->onAltCompCfgChange();
+            this->onLocalCompCfgChange();
         };
 
         zen::ContextMenu menu;
-        menu.addItem(_("Remove local settings"), removeAltCompCfg, nullptr, altCompConfig_.get() != nullptr);
+        menu.addItem(_("Remove local settings"), removeLocalCompCfg, nullptr, static_cast<bool>(localCmpCfg_));
         menu.popup(basicPanel_);
     }
 
-    void OnAltSyncCfgContext(wxCommandEvent& event)
+    void OnLocalSyncCfgContext(wxCommandEvent& event)
     {
-        auto removeAltSyncCfg = [&]
+        auto removeLocalSyncCfg = [&]
         {
-            this->altSyncConfig_.reset();
+            this->localSyncCfg_ = {};
             this->refreshButtons();
-            this->onAltSyncCfgChange();
+            this->onLocalSyncCfgChange();
         };
 
         zen::ContextMenu menu;
-        menu.addItem(_("Remove local settings"), removeAltSyncCfg, nullptr, altSyncConfig_.get() != nullptr);
+        menu.addItem(_("Remove local settings"), removeLocalSyncCfg, nullptr, static_cast<bool>(localSyncCfg_));
         menu.popup(basicPanel_);
     }
 
@@ -157,16 +158,16 @@ private:
     virtual wxWindow* getParentWindow() = 0;
     virtual std::unique_ptr<FilterConfig>& getFilterCfgOnClipboardRef() = 0;
 
-    virtual void onAltCompCfgChange() = 0;
-    virtual void onAltSyncCfgChange() = 0;
+    virtual void onLocalCompCfgChange  () = 0;
+    virtual void onLocalSyncCfgChange  () = 0;
     virtual void onLocalFilterCfgChange() = 0;
 
     GuiPanel& basicPanel_; //panel to be enhanced by this template
 
     //alternate configuration attached to it
-    AltCompCfgPtr altCompConfig_; //optional
-    AltSyncCfgPtr altSyncConfig_; //
-    FilterConfig  localFilter_;
+    std::optional<CompConfig> localCmpCfg_;
+    std::optional<SyncConfig> localSyncCfg_;
+    FilterConfig         localFilter_;
 };
 }
 

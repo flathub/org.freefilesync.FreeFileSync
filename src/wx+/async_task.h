@@ -49,12 +49,12 @@ public:
     bool resultReady   () const override { return isReady(asyncResult_); }
     void evaluateResult()       override
     {
-        evalResult(IsSameType<ResultType, void>());
+        evalResult(std::is_same<ResultType, void>());
     }
 
 private:
-    void evalResult(FalseType /*void result type*/) { evalOnGui_(asyncResult_.get()); }
-    void evalResult(TrueType  /*void result type*/) { asyncResult_.get(); evalOnGui_(); }
+    void evalResult(std::false_type /*void result type*/) { evalOnGui_(asyncResult_.get()); }
+    void evalResult(std::true_type  /*void result type*/) { asyncResult_.get(); evalOnGui_(); }
 
     std::future<ResultType> asyncResult_;
     Fun evalOnGui_; //keep "evalOnGui" strictly separated from async thread: in particular do not copy in thread!
@@ -70,7 +70,7 @@ public:
     void add(Fun&& evalAsync, Fun2&& evalOnGui)
     {
         using ResultType = decltype(evalAsync());
-        tasks_.push_back(std::make_unique<ConcreteTask<ResultType, Fun2>>(zen::runAsync(std::forward<Fun>(evalAsync)), std::forward<Fun2>(evalOnGui)));
+        tasks_.push_back(std::make_unique<ConcreteTask<ResultType, std::decay_t<Fun2>>>(zen::runAsync(std::forward<Fun>(evalAsync)), std::forward<Fun2>(evalOnGui)));
     }
     //equivalent to "evalOnGui(evalAsync())"
     //  -> evalAsync: the usual thread-safety requirements apply!
@@ -83,9 +83,9 @@ public:
             inRecursion_ = true;
             ZEN_ON_SCOPE_EXIT(inRecursion_ = false);
 
-            std::vector<std::unique_ptr<Task>> readyTasks; //Reentrancy; access to AsyncTasks::add is not protected! => evaluate outside erase_if
+            std::vector<std::unique_ptr<Task>> readyTasks; //Reentrancy; access to AsyncTasks::add is not protected! => evaluate outside eraseIf
 
-            erase_if(tasks_, [&](std::unique_ptr<Task>& task)
+            eraseIf(tasks_, [&](std::unique_ptr<Task>& task)
             {
                 if (task->resultReady())
                 {
@@ -95,7 +95,7 @@ public:
                 return false;
             });
 
-            for (auto& task : readyTasks)
+            for (std::unique_ptr<Task>& task : readyTasks)
                 task->evaluateResult();
         }
     }
@@ -115,7 +115,7 @@ private:
 class AsyncGuiQueue : private wxEvtHandler
 {
 public:
-    AsyncGuiQueue() { timer_.Connect(wxEVT_TIMER, wxEventHandler(AsyncGuiQueue::onTimerEvent), nullptr, this); }
+    AsyncGuiQueue(int pollingMs = 50) : pollingMs_(pollingMs) { timer_.Connect(wxEVT_TIMER, wxEventHandler(AsyncGuiQueue::onTimerEvent), nullptr, this); }
 
     template <class Fun, class Fun2>
     void processAsync(Fun&& evalAsync, Fun2&& evalOnGui)
@@ -123,7 +123,7 @@ public:
         asyncTasks_.add(std::forward<Fun >(evalAsync),
                         std::forward<Fun2>(evalOnGui));
         if (!timer_.IsRunning())
-            timer_.Start(50 /*unit: [ms]*/);
+            timer_.Start(pollingMs_ /*unit: [ms]*/);
     }
 
 private:
@@ -134,6 +134,7 @@ private:
             timer_.Stop();
     }
 
+    const int pollingMs_;
     impl::AsyncTasks asyncTasks_;
     wxTimer timer_; //don't use wxWidgets' idle handling => repeated idle requests/consumption hogs 100% cpu!
 };

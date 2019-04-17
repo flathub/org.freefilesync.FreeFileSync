@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <cassert>
 #include <vector>
-#include <sstream>
+#include <sstream> //std::basic_ostringstream
 #include "stl_tools.h"
 #include "string_traits.h"
 
@@ -26,32 +26,30 @@ template <class Char> bool isWhiteSpace(Char c);
 template <class Char> bool isDigit     (Char c); //not exactly the same as "std::isdigit" -> we consider '0'-'9' only!
 template <class Char> bool isHexDigit  (Char c);
 template <class Char> bool isAsciiAlpha(Char c);
+template <class Char> bool isAsciiString(const Char* str);
 template <class Char> Char asciiToLower(Char c);
 template <class Char> Char asciiToUpper(Char c);
 
-//case-sensitive comparison (compile-time correctness:  use different number of arguments as STL comparison predicates!)
-struct CmpBinary { template <class Char> int operator()(const Char* lhs, size_t lhsLen, const Char* rhs, size_t rhsLen) const; };
-
-//basic case-insensitive comparison (considering A-Z only!)
-struct CmpAsciiNoCase { template <class Char> int operator()(const Char* lhs, size_t lhsLen, const Char* rhs, size_t rhsLen) const; };
-
-struct LessAsciiNoCase
-{
-    template <class S> //don't support heterogenous input! => use as container predicate only!
-    bool operator()(const S& lhs, const S& rhs) const { return CmpAsciiNoCase()(strBegin(lhs), strLength(lhs), strBegin(rhs), strLength(rhs)) < 0; }
-};
-
-//both S and T can be strings or char/wchar_t arrays or simple char/wchar_t
+//both S and T can be strings or char/wchar_t arrays or single char/wchar_t
 template <class S, class T> bool contains(const S& str, const T& term);
 
-template <class S, class T>                 bool startsWith(const S& str, const T& prefix);
-template <class S, class T, class Function> bool startsWith(const S& str, const T& prefix,  Function cmpStringFun);
+template <class S, class T> bool startsWith           (const S& str, const T& prefix);
+template <class S, class T> bool startsWithAsciiNoCase(const S& str, const T& prefix);
 
-template <class S, class T>                 bool endsWith  (const S& str, const T& postfix);
-template <class S, class T, class Function> bool endsWith  (const S& str, const T& postfix, Function cmpStringFun);
+template <class S, class T> bool endsWith           (const S& str, const T& postfix);
+template <class S, class T> bool endsWithAsciiNoCase(const S& str, const T& postfix);
 
-template <class S, class T>                 bool strEqual(const S& lhs, const T& rhs);
-template <class S, class T, class Function> bool strEqual(const S& lhs, const T& rhs, Function cmpStringFun);
+template <class S, class T> bool equalString     (const S& lhs, const T& rhs);
+template <class S, class T> bool equalAsciiNoCase(const S& lhs, const T& rhs);
+
+template <class S, class T> int compareString     (const S& lhs, const T& rhs);
+template <class S, class T> int compareAsciiNoCase(const S& lhs, const T& rhs); //basic case-insensitive comparison (considering A-Z only!)
+
+struct LessAsciiNoCase //STL container predicate
+{
+    template <class S> bool operator()(const S& lhs, const S& rhs) const { return compareAsciiNoCase(lhs, rhs) < 0; }
+};
+
 
 enum FailureReturnVal
 {
@@ -75,8 +73,8 @@ template <class S>                 S    trimCpy(S  str, bool fromLeft = true, bo
 template <class S>                 void trim   (S& str, bool fromLeft = true, bool fromRight = true);
 template <class S, class Function> void trim(S& str, bool fromLeft, bool fromRight, Function trimThisChar);
 
-template <class S, class T, class U> void replace   (      S& str, const T& oldTerm, const U& newTerm, bool replaceAll = true);
-template <class S, class T, class U> S    replaceCpy(const S& str, const T& oldTerm, const U& newTerm, bool replaceAll = true);
+template <class S, class T, class U> void replace   (S& str, const T& oldTerm, const U& newTerm, bool replaceAll = true);
+template <class S, class T, class U> S    replaceCpy(S  str, const T& oldTerm, const U& newTerm, bool replaceAll = true);
 
 //high-performance conversion between numbers and strings
 template <class S,   class Num> S   numberTo(const Num& number);
@@ -106,28 +104,21 @@ template <class T, class S> T copyStringTo(S&& str);
 
 
 //---------------------- implementation ----------------------
-template <> inline
-bool isWhiteSpace(char c)
+template <class Char> inline
+bool isWhiteSpace(Char c)
 {
+    static_assert(std::is_same_v<Char, char> || std::is_same_v<Char, wchar_t>);
     assert(c != 0); //std C++ does not consider 0 as white space
-    //caveat 1: std::isspace() takes an int, but expects an unsigned char
-    //caveat 2: some parts of UTF-8 chars are erroneously seen as whitespace, e.g. the a0 from "\xec\x8b\xa0" (MSVC)
-    return static_cast<unsigned char>(c) < 128 &&
-           std::isspace(static_cast<unsigned char>(c)) != 0;
+    return c == static_cast<Char>(' ') || (static_cast<Char>('\t') <= c && c <= static_cast<Char>('\r'));
+    //following std::isspace() for default locale but without the interface insanity:
+    //  - std::isspace() takes an int, but expects an unsigned char
+    //  - some parts of UTF-8 chars are erroneously seen as whitespace, e.g. the a0 from "\xec\x8b\xa0" (MSVC)
 }
-
-template <> inline
-bool isWhiteSpace(wchar_t c)
-{
-    assert(c != 0); //std C++ does not consider 0 as white space
-    return std::iswspace(c) != 0;
-}
-
 
 template <class Char> inline
-bool isDigit(Char c) //similar to implmenetation of std::isdigit()!
+bool isDigit(Char c) //similar to implementation of std::isdigit()!
 {
-    static_assert(IsSameType<Char, char>::value || IsSameType<Char, wchar_t>::value, "");
+    static_assert(std::is_same_v<Char, char> || std::is_same_v<Char, wchar_t>);
     return static_cast<Char>('0') <= c && c <= static_cast<Char>('9');
 }
 
@@ -135,7 +126,7 @@ bool isDigit(Char c) //similar to implmenetation of std::isdigit()!
 template <class Char> inline
 bool isHexDigit(Char c)
 {
-    static_assert(IsSameType<Char, char>::value || IsSameType<Char, wchar_t>::value, "");
+    static_assert(std::is_same_v<Char, char> || std::is_same_v<Char, wchar_t>);
     return (static_cast<Char>('0') <= c && c <= static_cast<Char>('9')) ||
            (static_cast<Char>('A') <= c && c <= static_cast<Char>('F')) ||
            (static_cast<Char>('a') <= c && c <= static_cast<Char>('f'));
@@ -145,9 +136,20 @@ bool isHexDigit(Char c)
 template <class Char> inline
 bool isAsciiAlpha(Char c)
 {
-    static_assert(IsSameType<Char, char>::value || IsSameType<Char, wchar_t>::value, "");
+    static_assert(std::is_same_v<Char, char> || std::is_same_v<Char, wchar_t>);
     return (static_cast<Char>('A') <= c && c <= static_cast<Char>('Z')) ||
            (static_cast<Char>('a') <= c && c <= static_cast<Char>('z'));
+}
+
+
+template <class Char> inline
+bool isAsciiString(const Char* str)
+{
+    static_assert(std::is_same_v<Char, char> || std::is_same_v<Char, wchar_t>);
+    for (Char c = *str; c != 0; c = *++str)
+        if (zen::makeUnsigned(c) >= 128)
+            return false;
+    return true;
 }
 
 
@@ -169,47 +171,109 @@ Char asciiToUpper(Char c)
 }
 
 
-template <class S, class T, class Function> inline
-bool startsWith(const S& str, const T& prefix, Function cmpStringFun)
+namespace impl
 {
-    const size_t pfLen = strLength(prefix);
-    if (strLength(str) < pfLen)
-        return false;
+inline int strcmpWithNulls(const char*    ptr1, const char*    ptr2, size_t num) { return std:: memcmp(ptr1, ptr2, num); } //support embedded 0, unlike strncmp/wcsncmp!
+inline int strcmpWithNulls(const wchar_t* ptr1, const wchar_t* ptr2, size_t num) { return std::wmemcmp(ptr1, ptr2, num); } //
 
-    return cmpStringFun(strBegin(str),    pfLen,
-                        strBegin(prefix), pfLen) == 0;
+
+template <class Char> inline
+int strcmpAsciiNoCase(const Char* lhs, const Char* rhs, size_t len)
+{
+    while (len-- > 0)
+    {
+        const Char charL = asciiToLower(*lhs++); //ordering: lower-case chars have higher code points than uppper-case
+        const Char charR = asciiToLower(*rhs++); //
+        if (charL != charR)
+            return static_cast<unsigned int>(charL) - static_cast<unsigned int>(charR); //unsigned char-comparison is the convention!
+        //unsigned underflow is well-defined!
+    }
+    return 0;
+}
 }
 
 
-template <class S, class T, class Function> inline
-bool endsWith(const S& str, const T& postfix, Function cmpStringFun)
+template <class S, class T> inline
+bool startsWith(const S& str, const T& prefix)
+{
+    const size_t pfLen = strLength(prefix);
+    return strLength(str) >= pfLen && impl::strcmpWithNulls(strBegin(str), strBegin(prefix), pfLen) == 0;
+}
+
+
+template <class S, class T> inline
+bool startsWithAsciiNoCase(const S& str, const T& prefix)
+{
+    const size_t pfLen = strLength(prefix);
+    return strLength(str) >= pfLen && impl::strcmpAsciiNoCase(strBegin(str), strBegin(prefix), pfLen) == 0;
+}
+
+
+template <class S, class T> inline
+bool endsWith(const S& str, const T& postfix)
 {
     const size_t strLen = strLength(str);
     const size_t pfLen  = strLength(postfix);
-    if (strLen < pfLen)
-        return false;
-
-    return cmpStringFun(strBegin(str) + strLen - pfLen, pfLen,
-                        strBegin(postfix), pfLen) == 0;
+    return strLen >= pfLen && impl::strcmpWithNulls(strBegin(str) + strLen - pfLen, strBegin(postfix), pfLen) == 0;
 }
 
 
-template <class S, class T, class Function> inline
-bool strEqual(const S& lhs, const T& rhs, Function cmpStringFun)
+template <class S, class T> inline
+bool endsWithAsciiNoCase(const S& str, const T& postfix)
 {
-    return cmpStringFun(strBegin(lhs), strLength(lhs), strBegin(rhs), strLength(rhs)) == 0;
+    const size_t strLen = strLength(str);
+    const size_t pfLen  = strLength(postfix);
+    return strLen >= pfLen && impl::strcmpAsciiNoCase(strBegin(str) + strLen - pfLen, strBegin(postfix), pfLen) == 0;
 }
 
 
-template <class S, class T> inline bool startsWith(const S& str, const T& prefix ) { return startsWith(str, prefix,  CmpBinary()); }
-template <class S, class T> inline bool endsWith  (const S& str, const T& postfix) { return endsWith  (str, postfix, CmpBinary()); }
-template <class S, class T> inline bool strEqual  (const S& lhs, const T& rhs    ) { return strEqual  (lhs, rhs,     CmpBinary()); }
+template <class S, class T> inline
+bool equalString(const S& lhs, const T& rhs)
+{
+    const size_t lhsLen = strLength(lhs);
+    return lhsLen == strLength(rhs) && impl::strcmpWithNulls(strBegin(lhs), strBegin(rhs), lhsLen) == 0;
+}
+
+
+template <class S, class T> inline
+bool equalAsciiNoCase(const S& lhs, const T& rhs)
+{
+    const size_t lhsLen = strLength(lhs);
+    return lhsLen == strLength(rhs) && impl::strcmpAsciiNoCase(strBegin(lhs), strBegin(rhs), lhsLen) == 0;
+}
+
+
+template <class S, class T> inline
+int compareString(const S& lhs, const T& rhs)
+{
+    const size_t lhsLen = strLength(lhs);
+    const size_t rhsLen = strLength(rhs);
+
+    //length check *after* strcmpWithNulls(): we do care about natural ordering: e.g. for "compareString(makeUpperCopy(lhs), makeUpperCopy(rhs))"
+    const int rv = impl::strcmpWithNulls(strBegin(lhs), strBegin(rhs), std::min(lhsLen, rhsLen));
+    if (rv != 0)
+        return rv;
+    return static_cast<int>(lhsLen) - static_cast<int>(rhsLen);
+}
+
+
+template <class S, class T> inline
+int compareAsciiNoCase(const S& lhs, const T& rhs)
+{
+    const size_t lhsLen = strLength(lhs);
+    const size_t rhsLen = strLength(rhs);
+
+    const int rv = impl::strcmpAsciiNoCase(strBegin(lhs), strBegin(rhs), std::min(lhsLen, rhsLen));
+    if (rv != 0)
+        return rv;
+    return static_cast<int>(lhsLen) - static_cast<int>(rhsLen);
+}
 
 
 template <class S, class T> inline
 bool contains(const S& str, const T& term)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t strLen  = strLength(str);
     const size_t termLen = strLength(term);
     if (strLen < termLen)
@@ -227,7 +291,7 @@ bool contains(const S& str, const T& term)
 template <class S, class T> inline
 S afterLast(const S& str, const T& term, FailureReturnVal rv)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t termLen = strLength(term);
     assert(termLen > 0);
 
@@ -235,8 +299,8 @@ S afterLast(const S& str, const T& term, FailureReturnVal rv)
     const auto* const strLast   = strFirst + strLength(str);
     const auto* const termFirst = strBegin(term);
 
-    const auto* it = search_last(strFirst, strLast,
-                                 termFirst, termFirst + termLen);
+    const auto* it = searchLast(strFirst, strLast,
+                                termFirst, termFirst + termLen);
     if (it == strLast)
         return rv == IF_MISSING_RETURN_ALL ? str : S();
 
@@ -248,7 +312,7 @@ S afterLast(const S& str, const T& term, FailureReturnVal rv)
 template <class S, class T> inline
 S beforeLast(const S& str, const T& term, FailureReturnVal rv)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t termLen = strLength(term);
     assert(termLen > 0);
 
@@ -256,8 +320,8 @@ S beforeLast(const S& str, const T& term, FailureReturnVal rv)
     const auto* const strLast   = strFirst + strLength(str);
     const auto* const termFirst = strBegin(term);
 
-    const auto* it = search_last(strFirst, strLast,
-                                 termFirst, termFirst + termLen);
+    const auto* it = searchLast(strFirst, strLast,
+                                termFirst, termFirst + termLen);
     if (it == strLast)
         return rv == IF_MISSING_RETURN_ALL ? str : S();
 
@@ -268,7 +332,7 @@ S beforeLast(const S& str, const T& term, FailureReturnVal rv)
 template <class S, class T> inline
 S afterFirst(const S& str, const T& term, FailureReturnVal rv)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t termLen = strLength(term);
     assert(termLen > 0);
 
@@ -289,7 +353,7 @@ S afterFirst(const S& str, const T& term, FailureReturnVal rv)
 template <class S, class T> inline
 S beforeFirst(const S& str, const T& term, FailureReturnVal rv)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t termLen = strLength(term);
     assert(termLen > 0);
 
@@ -309,7 +373,7 @@ S beforeFirst(const S& str, const T& term, FailureReturnVal rv)
 template <class S, class T> inline
 std::vector<S> split(const S& str, const T& delimiter, SplitType st)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
     const size_t delimLen = strLength(delimiter);
     assert(delimLen > 0);
     if (delimLen == 0)
@@ -346,21 +410,30 @@ ZEN_INIT_DETECT_MEMBER(append);
 
 //either call operator+=(S(str, len)) or append(str, len)
 template <class S, class InputIterator> inline
-typename EnableIf<HasMember_append<S>::value>::Type stringAppend(S& str, InputIterator first, InputIterator last) { str.append(first, last);  }
+std::enable_if_t<HasMember_append<S>::value> stringAppend(S& str, InputIterator first, InputIterator last) { str.append(first, last);  }
 
-template <class S, class InputIterator> inline
-typename EnableIf<!HasMember_append<S>::value>::Type stringAppend(S& str, InputIterator first, InputIterator last) { str += S(first, last); }
+//inefficient append: keep disabled until really needed
+//template <class S, class InputIterator> inline
+//std::enable_if_t<!HasMember_append<S>::value> stringAppend(S& str, InputIterator first, InputIterator last) { str += S(first, last); }
 }
 
 
 template <class S, class T, class U> inline
-S replaceCpy(const S& str, const T& oldTerm, const U& newTerm, bool replaceAll)
+S replaceCpy(S str, const T& oldTerm, const U& newTerm, bool replaceAll)
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
-    static_assert(IsSameType<typename GetCharType<T>::Type, typename GetCharType<U>::Type>::value, "");
+    replace(str, oldTerm, newTerm, replaceAll);
+    return str;
+}
+
+
+template <class S, class T, class U> inline
+void replace(S& str, const T& oldTerm, const U& newTerm, bool replaceAll)
+{
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
+    static_assert(std::is_same_v<GetCharTypeT<T>, GetCharTypeT<U>>);
     const size_t oldLen = strLength(oldTerm);
     if (oldLen == 0)
-        return str;
+        return;
 
     const auto* const oldBegin = strBegin(oldTerm);
     const auto* const oldEnd   = oldBegin + oldLen;
@@ -368,35 +441,31 @@ S replaceCpy(const S& str, const T& oldTerm, const U& newTerm, bool replaceAll)
     const auto* const newBegin = strBegin(newTerm);
     const auto* const newEnd   = newBegin + strLength(newTerm);
 
-    S output;
+    auto it = strBegin(str); //don't use str.begin() or wxString will return this wxUni* nonsense!
+    const auto* const strEnd = it + strLength(str);
 
-    for (auto it = str.begin();;)
+    auto itFound = std::search(it, strEnd,
+                               oldBegin, oldEnd);
+    if (itFound == strEnd)
+        return; //optimize "oldTerm not found"
+
+    S output(it, itFound);
+    do
     {
-        const auto itFound = std::search(it, str.end(),
-                                         oldBegin, oldEnd);
-        if (itFound == str.end() && it == str.begin())
-            return str; //optimize "oldTerm not found": return ref-counted copy
-
-        impl::stringAppend(output, it, itFound);
-        if (itFound == str.end())
-            return output;
-
         impl::stringAppend(output, newBegin, newEnd);
         it = itFound + oldLen;
 
         if (!replaceAll)
-        {
-            impl::stringAppend(output, it, str.end());
-            return output;
-        }
+            itFound = strEnd;
+        else
+            itFound = std::search(it, strEnd,
+                                  oldBegin, oldEnd);
+
+        impl::stringAppend(output, it, itFound);
     }
-}
+    while (itFound != strEnd);
 
-
-template <class S, class T, class U> inline
-void replace(S& str, const T& oldTerm, const U& newTerm, bool replaceAll)
-{
-    str = replaceCpy(str, oldTerm, newTerm, replaceAll);
+    str = std::move(output);
 }
 
 
@@ -427,7 +496,7 @@ void trim(S& str, bool fromLeft, bool fromRight, Function trimThisChar)
 template <class S> inline
 void trim(S& str, bool fromLeft, bool fromRight)
 {
-    using CharType = typename GetCharType<S>::Type;
+    using CharType = GetCharTypeT<S>;
     trim(str, fromLeft, fromRight, [](CharType c) { return isWhiteSpace(c); });
 }
 
@@ -437,7 +506,7 @@ S trimCpy(S str, bool fromLeft, bool fromRight)
 {
     //implementing trimCpy() in terms of trim(), instead of the other way round, avoids memory allocations when trimming from right!
     trim(str, fromLeft, fromRight);
-    return std::move(str); //"str" is an l-value parameter => no copy elision!
+    return str;
 }
 
 
@@ -446,7 +515,11 @@ namespace impl
 template <class S, class T>
 struct CopyStringToString
 {
-    T copy(const S& src) const { return T(strBegin(src), strLength(src)); }
+    T copy(const S& src) const
+    {
+        static_assert(!std::is_same_v<std::decay_t<S>, std::decay_t<T>>);
+        return T(strBegin(src), strLength(src));
+    }
 };
 
 template <class T>
@@ -455,40 +528,10 @@ struct CopyStringToString<T, T> //perf: we don't need a deep copy if string type
     template <class S>
     T copy(S&& str) const { return std::forward<S>(str); }
 };
-
-inline int strcmpWithNulls(const char*    ptr1, const char*    ptr2, size_t num) { return std::memcmp (ptr1, ptr2, num); }
-inline int strcmpWithNulls(const wchar_t* ptr1, const wchar_t* ptr2, size_t num) { return std::wmemcmp(ptr1, ptr2, num); }
 }
 
 template <class T, class S> inline
 T copyStringTo(S&& str) { return impl::CopyStringToString<std::decay_t<S>, T>().copy(std::forward<S>(str)); }
-
-
-template <class Char> inline
-int CmpBinary::operator()(const Char* lhs, size_t lhsLen, const Char* rhs, size_t rhsLen) const
-{
-    //support embedded 0, unlike strncmp/wcsncmp!
-    const int rv = impl::strcmpWithNulls(lhs, rhs, std::min(lhsLen, rhsLen));
-    if (rv != 0)
-        return rv;
-    return static_cast<int>(lhsLen) - static_cast<int>(rhsLen);
-}
-
-
-template <class Char> inline
-int CmpAsciiNoCase::operator()(const Char* lhs, size_t lhsLen, const Char* rhs, size_t rhsLen) const
-{
-    const auto* const lhsLast = lhs + std::min(lhsLen, rhsLen);
-    while (lhs != lhsLast)
-    {
-        const Char charL = asciiToLower(*lhs++); //ordering: lower-case chars have higher code points than uppper-case
-        const Char charR = asciiToLower(*rhs++); //
-        if (charL != charR)
-            return static_cast<unsigned int>(charL) - static_cast<unsigned int>(charR); //unsigned char-comparison is the convention!
-        //unsigned underflow is well-defined!
-    }
-    return static_cast<int>(lhsLen) - static_cast<int>(rhsLen);
-}
 
 
 namespace impl
@@ -509,11 +552,10 @@ int saferPrintf(wchar_t* buffer, size_t bufferSize, const wchar_t* format, const
 template <class S, class T, class Num> inline
 S printNumber(const T& format, const Num& number) //format a single number using ::sprintf
 {
-    static_assert(IsSameType<typename GetCharType<S>::Type, typename GetCharType<T>::Type>::value, "");
-    using CharType = typename GetCharType<S>::Type;
+    static_assert(std::is_same_v<GetCharTypeT<S>, GetCharTypeT<T>>);
 
     const int BUFFER_SIZE = 128;
-    CharType buffer[BUFFER_SIZE]; //zero-initialize?
+    GetCharTypeT<S> buffer[BUFFER_SIZE]; //zero-initialize?
     const int charsWritten = impl::saferPrintf(buffer, BUFFER_SIZE, strBegin(format), number);
 
     return 0 < charsWritten && charsWritten < BUFFER_SIZE ? S(buffer, charsWritten) : S();
@@ -522,21 +564,19 @@ S printNumber(const T& format, const Num& number) //format a single number using
 
 namespace impl
 {
-enum NumberType
+enum class NumberType
 {
-    NUM_TYPE_SIGNED_INT,
-    NUM_TYPE_UNSIGNED_INT,
-    NUM_TYPE_FLOATING_POINT,
-    NUM_TYPE_OTHER,
+    SIGNED_INT,
+    UNSIGNED_INT,
+    FLOATING_POINT,
+    OTHER,
 };
 
 
 template <class S, class Num> inline
-S numberTo(const Num& number, Int2Type<NUM_TYPE_OTHER>) //default number to string conversion using streams: convenient, but SLOW, SLOW, SLOW!!!! (~ factor of 20)
+S numberTo(const Num& number, std::integral_constant<NumberType, NumberType::OTHER>) //default number to string conversion using streams: convenient, but SLOW, SLOW, SLOW!!!! (~ factor of 20)
 {
-    using CharType = typename GetCharType<S>::Type;
-
-    std::basic_ostringstream<CharType> ss;
+    std::basic_ostringstream<GetCharTypeT<S>> ss;
     ss << number;
     return copyStringTo<S>(ss.str());
 }
@@ -546,9 +586,9 @@ template <class S, class Num> inline S floatToString(const Num& number, char   )
 template <class S, class Num> inline S floatToString(const Num& number, wchar_t) { return printNumber<S>(L"%g", static_cast<double>(number)); }
 
 template <class S, class Num> inline
-S numberTo(const Num& number, Int2Type<NUM_TYPE_FLOATING_POINT>)
+S numberTo(const Num& number, std::integral_constant<NumberType, NumberType::FLOATING_POINT>)
 {
-    return floatToString<S>(number, typename GetCharType<S>::Type());
+    return floatToString<S>(number, GetCharTypeT<S>());
 }
 
 
@@ -591,10 +631,9 @@ void formatPositiveInteger(Num n, OutputIterator& it)
 
 
 template <class S, class Num> inline
-S numberTo(const Num& number, Int2Type<NUM_TYPE_SIGNED_INT>)
+S numberTo(const Num& number, std::integral_constant<NumberType, NumberType::SIGNED_INT>)
 {
-    using CharType = typename GetCharType<S>::Type;
-    CharType buffer[2 + sizeof(Num) * 241 / 100]; //zero-initialize?
+    GetCharTypeT<S> buffer[2 + sizeof(Num) * 241 / 100]; //zero-initialize?
     //it's generally faster to use a buffer than to rely on String::operator+=() (in)efficiency
     //required chars (+ sign char): 1 + ceil(ln_10(256^sizeof(n) / 2 + 1))    -> divide by 2 for signed half-range; second +1 since one half starts with 1!
     // <= 1 + ceil(ln_10(256^sizeof(n))) =~ 1 + ceil(sizeof(n) * 2.4082) <= 2 + floor(sizeof(n) * 2.41)
@@ -612,10 +651,9 @@ S numberTo(const Num& number, Int2Type<NUM_TYPE_SIGNED_INT>)
 
 
 template <class S, class Num> inline
-S numberTo(const Num& number, Int2Type<NUM_TYPE_UNSIGNED_INT>)
+S numberTo(const Num& number, std::integral_constant<NumberType, NumberType::UNSIGNED_INT>)
 {
-    using CharType = typename GetCharType<S>::Type;
-    CharType buffer[1 + sizeof(Num) * 241 / 100]; //zero-initialize?
+    GetCharTypeT<S> buffer[1 + sizeof(Num) * 241 / 100]; //zero-initialize?
     //required chars: ceil(ln_10(256^sizeof(n))) =~ ceil(sizeof(n) * 2.4082) <= 1 + floor(sizeof(n) * 2.41)
 
     auto it = std::end(buffer);
@@ -628,9 +666,9 @@ S numberTo(const Num& number, Int2Type<NUM_TYPE_UNSIGNED_INT>)
 //--------------------------------------------------------------------------------
 
 template <class Num, class S> inline
-Num stringTo(const S& str, Int2Type<NUM_TYPE_OTHER>) //default string to number conversion using streams: convenient, but SLOW
+Num stringTo(const S& str, std::integral_constant<NumberType, NumberType::OTHER>) //default string to number conversion using streams: convenient, but SLOW
 {
-    using CharType = typename GetCharType<S>::Type;
+    using CharType = GetCharTypeT<S>;
     Num number = 0;
     std::basic_istringstream<CharType>(copyStringTo<std::basic_string<CharType>>(str)) >> number;
     return number;
@@ -641,7 +679,7 @@ template <class Num> inline Num stringToFloat(const char*    str) { return std::
 template <class Num> inline Num stringToFloat(const wchar_t* str) { return std::wcstod(str, nullptr); }
 
 template <class Num, class S> inline
-Num stringTo(const S& str, Int2Type<NUM_TYPE_FLOATING_POINT>)
+Num stringTo(const S& str, std::integral_constant<NumberType, NumberType::FLOATING_POINT>)
 {
     return stringToFloat<Num>(strBegin(str));
 }
@@ -649,7 +687,7 @@ Num stringTo(const S& str, Int2Type<NUM_TYPE_FLOATING_POINT>)
 template <class Num, class S>
 Num extractInteger(const S& str, bool& hasMinusSign) //very fast conversion to integers: slightly faster than std::atoi, but more importantly: generic
 {
-    using CharType = typename GetCharType<S>::Type;
+    using CharType = GetCharTypeT<S>;
 
     const CharType* first = strBegin(str);
     const CharType* last  = first + strLength(str);
@@ -680,14 +718,14 @@ Num extractInteger(const S& str, bool& hasMinusSign) //very fast conversion to i
             number += c - static_cast<CharType>('0');
         }
         else //rest of string should contain whitespace only, it's NOT a bug if there is something else!
-            break; //assert(std::all_of(iter, last, &isWhiteSpace<CharType>)); -> this is NO assert situation
+            break; //assert(std::all_of(iter, last, isWhiteSpace<CharType>)); -> this is NO assert situation
     }
     return number;
 }
 
 
 template <class Num, class S> inline
-Num stringTo(const S& str, Int2Type<NUM_TYPE_SIGNED_INT>)
+Num stringTo(const S& str, std::integral_constant<NumberType, NumberType::SIGNED_INT>)
 {
     bool hasMinusSign = false; //handle minus sign
     const Num number = extractInteger<Num>(str, hasMinusSign);
@@ -696,7 +734,7 @@ Num stringTo(const S& str, Int2Type<NUM_TYPE_SIGNED_INT>)
 
 
 template <class Num, class S> inline
-Num stringTo(const S& str, Int2Type<NUM_TYPE_UNSIGNED_INT>) //very fast conversion to integers: slightly faster than std::atoi, but more importantly: generic
+Num stringTo(const S& str, std::integral_constant<NumberType, NumberType::UNSIGNED_INT>) //very fast conversion to integers: slightly faster than std::atoi, but more importantly: generic
 {
     bool hasMinusSign = false; //handle minus sign
     const Num number = extractInteger<Num>(str, hasMinusSign);
@@ -713,11 +751,11 @@ Num stringTo(const S& str, Int2Type<NUM_TYPE_UNSIGNED_INT>) //very fast conversi
 template <class S, class Num> inline
 S numberTo(const Num& number)
 {
-    using TypeTag = Int2Type<
-                    IsSignedInt  <Num>::value ? impl::NUM_TYPE_SIGNED_INT :
-                    IsUnsignedInt<Num>::value ? impl::NUM_TYPE_UNSIGNED_INT :
-                    IsFloat      <Num>::value ? impl::NUM_TYPE_FLOATING_POINT :
-                    impl::NUM_TYPE_OTHER>;
+    using TypeTag = std::integral_constant<impl::NumberType,
+          IsSignedInt  <Num>::value ? impl::NumberType::SIGNED_INT :
+          IsUnsignedInt<Num>::value ? impl::NumberType::UNSIGNED_INT :
+          IsFloat      <Num>::value ? impl::NumberType::FLOATING_POINT :
+          impl::NumberType::OTHER>;
 
     return impl::numberTo<S>(number, TypeTag());
 }
@@ -726,11 +764,11 @@ S numberTo(const Num& number)
 template <class Num, class S> inline
 Num stringTo(const S& str)
 {
-    using TypeTag = Int2Type<
-                    IsSignedInt  <Num>::value ? impl::NUM_TYPE_SIGNED_INT :
-                    IsUnsignedInt<Num>::value ? impl::NUM_TYPE_UNSIGNED_INT :
-                    IsFloat      <Num>::value ? impl::NUM_TYPE_FLOATING_POINT :
-                    impl::NUM_TYPE_OTHER>;
+    using TypeTag = std::integral_constant<impl::NumberType,
+          IsSignedInt  <Num>::value ? impl::NumberType::SIGNED_INT :
+          IsUnsignedInt<Num>::value ? impl::NumberType::UNSIGNED_INT :
+          IsFloat      <Num>::value ? impl::NumberType::FLOATING_POINT :
+          impl::NumberType::OTHER>;
 
     return impl::stringTo<Num>(str, TypeTag());
 }

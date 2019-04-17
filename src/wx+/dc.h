@@ -8,8 +8,10 @@
 #define DC_H_4987123956832143243214
 
 #include <unordered_map>
-#include <zen/optional.h>
+#include <optional>
+#include <zen/basic_math.h>
 #include <wx/dcbuffer.h> //for macro: wxALWAYS_NATIVE_DOUBLE_BUFFER
+#include <wx/dcscreen.h>
 
 
 namespace zen
@@ -40,6 +42,25 @@ void clearArea(wxDC& dc, const wxRect& rect, const wxColor& col)
     dc.DrawRectangle(rect);
 }
 
+
+/*
+Standard DPI:
+    Windows/Ubuntu: 96 x 96
+    macOS: wxWidgets uses DIP (note: wxScreenDC().GetPPI() returns 72 x 72 which is a lie; looks like 96 x 96)
+*/
+inline
+int fastFromDIP(int d) //like wxWindow::FromDIP (but tied to primary monitor and buffered)
+{
+
+#ifdef wxHAVE_DPI_INDEPENDENT_PIXELS //pulled from wx/window.h: https://github.com/wxWidgets/wxWidgets/blob/master/include/wx/window.h#L2029
+    return d; //e.g. macOS, GTK3
+#else //https://github.com/wxWidgets/wxWidgets/blob/master/src/common/wincmn.cpp#L2865
+    assert(wxTheApp); //only call after wxWidgets was initalized!
+    static const int dpiY = wxScreenDC().GetPPI().y; //perf: buffering for calls to ::GetDeviceCaps() needed!?
+    const int defaultDpi = 96;
+    return numeric::round(1.0 * d * dpiY / defaultDpi);
+#endif
+}
 
 
 
@@ -83,7 +104,7 @@ private:
     //associate "active" clipping area with each DC
     static std::unordered_map<wxDC*, wxRect>& refDcToAreaMap() { static std::unordered_map<wxDC*, wxRect> clippingAreas; return clippingAreas; }
 
-    Opt<wxRect> oldRect_;
+    std::optional<wxRect> oldRect_;
     wxDC& dc_;
 };
 
@@ -93,13 +114,13 @@ private:
 #endif
 
 #if wxALWAYS_NATIVE_DOUBLE_BUFFER
-struct BufferedPaintDC : public wxPaintDC { BufferedPaintDC(wxWindow& wnd, Opt<wxBitmap>& buffer) : wxPaintDC(&wnd) {} };
+struct BufferedPaintDC : public wxPaintDC { BufferedPaintDC(wxWindow& wnd, std::optional<wxBitmap>& buffer) : wxPaintDC(&wnd) {} };
 
 #else
 class BufferedPaintDC : public wxMemoryDC
 {
 public:
-    BufferedPaintDC(wxWindow& wnd, Opt<wxBitmap>& buffer) : buffer_(buffer), paintDc_(&wnd)
+    BufferedPaintDC(wxWindow& wnd, std::optional<wxBitmap>& buffer) : buffer_(buffer), paintDc_(&wnd)
     {
         const wxSize clientSize = wnd.GetClientSize();
         if (clientSize.GetWidth() > 0 && clientSize.GetHeight() > 0) //wxBitmap asserts this!! width may be 0; test case "Grid::CornerWin": compare both sides, then change config
@@ -113,7 +134,7 @@ public:
                 SetLayoutDirection(wxLayout_RightToLeft);
         }
         else
-            buffer = NoValue();
+            buffer = {};
     }
 
     ~BufferedPaintDC()
@@ -132,7 +153,7 @@ public:
     }
 
 private:
-    Opt<wxBitmap>& buffer_;
+    std::optional<wxBitmap>& buffer_;
     wxPaintDC paintDc_;
 };
 #endif

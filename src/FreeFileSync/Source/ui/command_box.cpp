@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <zen/stl_tools.h>
 #include <zen/utf.h>
+#include <wx+/dc.h>
 
 using namespace zen;
 using namespace fff;
@@ -21,7 +22,7 @@ inline
 std::wstring getSeparationLine() { return std::wstring(50, EM_DASH); } //no space between dashes!
 
 
-std::vector<std::pair<std::wstring, Zstring>> getDefaultCommands() //(gui name/command) pairs
+std::vector<std::pair<std::wstring, Zstring>> getDefaultCommands() //(description/command) pairs
 {
     return
     {
@@ -48,7 +49,7 @@ CommandBox::CommandBox(wxWindow* parent,
     defaultCommands_(getDefaultCommands())
 {
     //####################################
-    /*#*/ SetMinSize(wxSize(150, -1)); //# workaround yet another wxWidgets bug: default minimum size is much too large for a wxComboBox
+    /*#*/ SetMinSize(wxSize(fastFromDIP(150), -1)); //# workaround yet another wxWidgets bug: default minimum size is much too large for a wxComboBox
     //####################################
 
     Connect(wxEVT_KEY_DOWN,                  wxKeyEventHandler    (CommandBox::OnKeyEvent  ), nullptr, this);
@@ -62,21 +63,21 @@ CommandBox::CommandBox(wxWindow* parent,
 
 void CommandBox::addItemHistory()
 {
-    const Zstring command = trimCpy(getValue());
+    const Zstring newCommand = trimCpy(getValue());
 
-    if (command == utfTo<Zstring>(getSeparationLine()) || //do not add sep. line
-        command.empty())
+    if (newCommand == utfTo<Zstring>(getSeparationLine()) || //do not add sep. line
+        newCommand.empty())
         return;
 
     //do not add built-in commands to history
-    for (const auto& item : defaultCommands_)
-        if (command == utfTo<Zstring>(item.first) ||
-            equalFilePath(command, item.second))
+    for (const auto& [description, cmd] : defaultCommands_)
+        if (newCommand == utfTo<Zstring>(description) ||
+            equalNoCase(newCommand, cmd))
             return;
 
-    erase_if(history_, [&](const Zstring& item) { return equalFilePath(command, item); });
+    eraseIf(history_, [&](const Zstring& item) { return equalNoCase(newCommand, item); });
 
-    history_.insert(history_.begin(), command);
+    history_.insert(history_.begin(), newCommand);
 
     if (history_.size() > historyMax_)
         history_.resize(historyMax_);
@@ -103,8 +104,8 @@ void CommandBox::setValueAndUpdateList(const std::wstring& value)
     std::deque<std::wstring> items;
 
     //1. built in commands
-    for (const auto& item : defaultCommands_)
-        items.push_back(item.first);
+    for (const auto& [description, cmd] : defaultCommands_)
+        items.push_back(description);
 
     //2. history elements
     auto histSorted = history_;
@@ -153,9 +154,9 @@ void CommandBox::OnValidateSelection(wxCommandEvent& event)
     if (value == getSeparationLine())
         return setValueAndUpdateList(std::wstring());
 
-    for (const auto& item : defaultCommands_)
-        if (item.first == value)
-            return setValueAndUpdateList(utfTo<std::wstring>(item.second)); //replace GUI name by actual command string
+    for (const auto& [description, cmd] : defaultCommands_)
+        if (description == value)
+            return setValueAndUpdateList(utfTo<std::wstring>(cmd)); //replace GUI name by actual command string
 }
 
 
@@ -191,7 +192,7 @@ void CommandBox::OnKeyEvent(wxKeyEvent& event)
                     //this->SetSelection(wxNOT_FOUND);
 
                     //delete selected row
-                    erase_if(history_, [&](const Zstring& item) { return item == selValue; });
+                    eraseIf(history_, [&](const Zstring& item) { return item == selValue; });
 
                     SetString(pos, wxString()); //in contrast to Delete(), this one does not kill the drop-down list and gives a nice visual feedback!
                     //Delete(pos);

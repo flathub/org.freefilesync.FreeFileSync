@@ -7,6 +7,7 @@
 #ifndef CVRT_TEXT_H_018727339083427097434
 #define CVRT_TEXT_H_018727339083427097434
 
+#include <chrono>
 #include <zen/utf.h>
 #include <zen/string_tools.h>
 
@@ -21,9 +22,9 @@ It is \b not required to call these functions directly. They are implicitly used
 zen::XmlElement::setValue(), zen::XmlElement::getAttribute() and zen::XmlElement::setAttribute().
 \n\n
 Conversions for the following user types are supported by default:
-    - strings - std::string, std::wstring, char*, wchar_t*, char, wchar_t, ect..., all STL-compatible-string-classes
-    - numbers - int, double, float, bool, long, ect..., all built-in numbers
-    - STL containers - std::map, std::set, std::vector, std::list, ect..., all STL-compatible-containers
+    - strings - std::string, std::wstring, char*, wchar_t*, char, wchar_t, etc..., all STL-compatible-string-classes
+    - numbers - int, double, float, bool, long, etc..., all built-in numbers
+    - STL containers - std::map, std::set, std::vector, std::list, etc..., all STL-compatible-containers
     - std::pair
 
 You can add support for additional types via template specialization. \n\n
@@ -101,21 +102,37 @@ template <class T> void writeText(const T& value, std::string& output);
 
 
 //------------------------------ implementation -------------------------------------
+template <class T>
+struct IsChronoDuration
+{
+private:
+    using Yes = char[1];
+    using No  = char[2];
+
+    template <class Rep, class Period>
+    static Yes& isDuration(std::chrono::duration<Rep, Period>);
+    static  No& isDuration(...);
+public:
+    enum { value = sizeof(isDuration(std::declval<T>())) == sizeof(Yes) };
+};
+
 
 //Conversion from arbitrary types to text (for use with XML elements and attributes)
 enum TextType
 {
     TEXT_TYPE_BOOL,
     TEXT_TYPE_NUMBER,
+    TEXT_TYPE_CHRONO,
     TEXT_TYPE_STRING,
     TEXT_TYPE_OTHER,
 };
 
 template <class T>
-struct GetTextType : StaticEnum<TextType,
-    IsSameType<T, bool>::value ? TEXT_TYPE_BOOL   :
-    IsStringLike<T>::value     ? TEXT_TYPE_STRING : //string before number to correctly handle char/wchar_t -> this was an issue with Loki only!
+struct GetTextType : std::integral_constant<TextType,
+    std::is_same_v<T, bool>    ? TEXT_TYPE_BOOL   :
+    IsStringLikeV<T>           ? TEXT_TYPE_STRING : //string before number to correctly handle char/wchar_t -> this was an issue with Loki only!
     IsArithmetic<T>::value     ? TEXT_TYPE_NUMBER : //
+    IsChronoDuration<T>::value ? TEXT_TYPE_CHRONO :
     TEXT_TYPE_OTHER> {};
 
 //######################################################################################
@@ -165,6 +182,20 @@ struct ConvertText<T, TEXT_TYPE_NUMBER>
     }
 };
 
+template <class T>
+struct ConvertText<T, TEXT_TYPE_CHRONO>
+{
+    void writeText(const T& value, std::string& output) const
+    {
+        output = numberTo<std::string>(value.count());
+    }
+    bool readText(const std::string& input, T& value) const
+    {
+        value = T(stringTo<typename T::rep>(input));
+        return true;
+    }
+};
+
 //partial specialization: handle conversion for all string-like types!
 template <class T>
 struct ConvertText<T, TEXT_TYPE_STRING>
@@ -186,7 +217,7 @@ template <class T>
 struct ConvertText<T, TEXT_TYPE_OTHER>
 {
     //###########################################################################################################################################
-    static_assert(sizeof(T) == -1, "");
+    static_assert(sizeof(T) == -1);
     /*
         ATTENTION: The data type T is yet unknown to the zen::Xml framework!
 

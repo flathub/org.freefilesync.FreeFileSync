@@ -9,31 +9,26 @@
 #include <wx/imaglist.h>
 #include <wx/wupdlock.h>
 #include <wx/sound.h>
-#include <wx/clipbrd.h>
-#include <wx/dcclient.h>
-#include <wx/dataobj.h> //wxTextDataObject
+#include <wx/app.h>
 #include <zen/basic_math.h>
 #include <zen/format_unit.h>
 #include <zen/scope_guard.h>
-#include <wx+/grid.h>
 #include <wx+/toggle_button.h>
 #include <wx+/image_tools.h>
 #include <wx+/graph.h>
-#include <wx+/context_menu.h>
 #include <wx+/no_flicker.h>
 #include <wx+/font_size.h>
 #include <wx+/std_button_layout.h>
-#include <wx+/popup_dlg.h>
-#include <wx+/image_resources.h>
 #include <zen/file_access.h>
 #include <zen/thread.h>
-#include <wx+/rtl.h>
+#include <zen/perf.h>
 #include <wx+/choice_enum.h>
 #include "gui_generated.h"
-#include "../lib/ffs_paths.h"
-#include "../lib/perf_check.h"
+#include "../base/ffs_paths.h"
+#include "../base/perf_check.h"
 #include "tray_icon.h"
 #include "taskbar.h"
+#include "log_panel.h"
 #include "app_icon.h"
 
 
@@ -46,8 +41,10 @@ namespace
 //window size used for statistics
 const std::chrono::seconds WINDOW_REMAINING_TIME(60); //USB memory stick scenario can have drop outs of 40 seconds => 60 sec. window size handles it
 const std::chrono::seconds WINDOW_BYTES_PER_SEC  (5); //
+const std::chrono::milliseconds SPEED_ESTIMATE_UPDATE_INTERVAL(500);
+const std::chrono::seconds      SPEED_ESTIMATE_SAMPLE_INTERVAL(1);
 
-inline wxColor getColorGridLine() { return { 192, 192, 192 }; } //light grey
+const size_t PROGRESS_GRAPH_SAMPLE_SIZE_MAX = 2500000; //sizeof(single node) worst case ~ 3 * 8 byte ptr + 16 byte key/value = 40 byte
 
 inline wxColor getColorBytes() { return { 111, 255,  99 }; } //light green
 inline wxColor getColorItems() { return { 127, 147, 255 }; } //light blue
@@ -62,90 +59,26 @@ inline wxColor getColorBytesBackgroundRim() { return { 12, 128,   0 }; } //dark 
 inline wxColor getColorItemsBackgroundRim() { return { 53,  25, 255 }; } //dark blue
 
 
-//don't use wxStopWatch for long-running measurements: internally it uses ::QueryPerformanceCounter() which can overflow after only a few days:
-//https://www.freefilesync.org/forum/viewtopic.php?t=1426
-//    std::chrono::system_clock is not a steady clock, but at least doesn't overflow! (wraps ::GetSystemTimePreciseAsFileTime())
-//    std::chrono::steady_clock also wraps ::QueryPerformanceCounter() => same flaw like wxStopWatch???
-
-class StopWatch
+std::wstring getDialogPhaseText(const Statistics& syncStat, bool paused)
 {
-public:
-    bool isPaused() const { return paused_; }
+    if (paused)
+        return _("Paused");
 
-    void pause()
+    if (syncStat.getAbortStatus())
+        return _("Stop requested...");
+
+    switch (syncStat.currentPhase())
     {
-        if (!paused_)
-        {
-            paused_ = true;
-            elapsedUntilPause_ += std::chrono::system_clock::now() - startTime_;
-        }
+        case ProcessCallback::PHASE_NONE:
+            return _("Initializing..."); //dialog is shown *before* sync starts, so this text may be visible!
+        case ProcessCallback::PHASE_SCANNING:
+            return _("Scanning...");
+        case ProcessCallback::PHASE_COMPARING_CONTENT:
+            return _("Comparing content...");
+        case ProcessCallback::PHASE_SYNCHRONIZING:
+            return _("Synchronizing...");
     }
-
-    void resume()
-    {
-        if (paused_)
-        {
-            paused_ = false;
-            startTime_ = std::chrono::system_clock::now();
-        }
-    }
-
-    void restart()
-    {
-        paused_ = false;
-        startTime_ = std::chrono::system_clock::now();
-        elapsedUntilPause_ = std::chrono::nanoseconds::zero();
-    }
-
-    std::chrono::nanoseconds elapsed() const
-    {
-        auto elapsedTotal = elapsedUntilPause_;
-        if (!paused_)
-            elapsedTotal += std::chrono::system_clock::now() - startTime_;
-        return elapsedTotal;
-    }
-
-private:
-    bool paused_ = false;
-    std::chrono::system_clock::time_point startTime_ = std::chrono::system_clock::now();
-    std::chrono::nanoseconds elapsedUntilPause_{}; //std::chrono::duration is uninitialized by default! WTF! When will this stupidity end???
-};
-
-
-std::wstring getDialogPhaseText(const Statistics* syncStat, bool paused, SyncProgressDialog::SyncResult finalResult)
-{
-    if (syncStat) //sync running
-    {
-        if (paused)
-            return _("Paused");
-
-        if (syncStat->getAbortStatus())
-            return _("Stop requested...");
-        else
-            switch (syncStat->currentPhase())
-            {
-                case ProcessCallback::PHASE_NONE:
-                    return _("Initializing..."); //dialog is shown *before* sync starts, so this text may be visible!
-                case ProcessCallback::PHASE_SCANNING:
-                    return _("Scanning...");
-                case ProcessCallback::PHASE_COMPARING_CONTENT:
-                    return _("Comparing content...");
-                case ProcessCallback::PHASE_SYNCHRONIZING:
-                    return _("Synchronizing...");
-            }
-    }
-    else //sync finished
-        switch (finalResult)
-        {
-            case SyncProgressDialog::RESULT_ABORTED:
-                return _("Stopped");
-            case SyncProgressDialog::RESULT_FINISHED_WITH_ERROR:
-                return _("Completed with errors");
-            case SyncProgressDialog::RESULT_FINISHED_WITH_WARNINGS:
-                return _("Completed with warnings");
-            case SyncProgressDialog::RESULT_FINISHED_WITH_SUCCESS:
-                return _("Completed");
-        }
+    assert(false);
     return std::wstring();
 }
 
@@ -199,17 +132,26 @@ class CompareProgressDialog::Impl : public CompareProgressDlgGenerated
 public:
     Impl(wxFrame& parentWindow);
 
-    void init(const Statistics& syncStat, bool ignoreErrors); //constructor/destructor semantics, but underlying Window is reused
-    void teardown();                                          //
+    void init(const Statistics& syncStat, bool ignoreErrors, size_t automaticRetryCount); //constructor/destructor semantics, but underlying Window is reused
+    void teardown();                                                                      //
 
     void initNewPhase();
     void updateProgressGui();
 
-    bool getOptionIgnoreErrors() const            { return m_checkBoxIgnoreErrors->GetValue(); }
-    void setOptionIgnoreErrors(bool ignoreErrors) { m_checkBoxIgnoreErrors->SetValue(ignoreErrors); updateStaticGui(); }
+    bool getOptionIgnoreErrors() const            { return ignoreErrors_; }
+    void setOptionIgnoreErrors(bool ignoreErrors) { ignoreErrors_ = ignoreErrors; updateStaticGui(); }
+
+    void timerSetStatus(bool active)
+    {
+        if (active)
+            stopWatch_.resume();
+        else
+            stopWatch_.pause();
+    }
+    bool timerIsRunning() const { return !stopWatch_.isPaused(); }
 
 private:
-    void OnToggleIgnoreErrors(wxCommandEvent& event) override { updateStaticGui(); }
+    //void OnToggleIgnoreErrors(wxCommandEvent& event) override { updateStaticGui(); }
 
     void updateStaticGui();
 
@@ -217,18 +159,20 @@ private:
     wxString parentTitleBackup_;
 
     StopWatch stopWatch_;
-    std::chrono::nanoseconds binCompStart_{}; //begin of binary comparison phase
+    std::chrono::nanoseconds phaseStart_{}; //begin of current phase
 
     const Statistics* syncStat_ = nullptr; //only bound while sync is running
 
     std::unique_ptr<Taskbar> taskbar_;
-    std::unique_ptr<PerfCheck> perf_; //estimate remaining time
+    PerfCheck perf_{ WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC }; //estimate remaining time
 
     std::chrono::nanoseconds timeLastSpeedEstimate_ = std::chrono::seconds(-100); //used for calculating intervals between showing and collecting perf samples
     //initial value: just some big number
 
     std::shared_ptr<CurveDataProgressBar> curveDataBytes_{ std::make_shared<CurveDataProgressBar>(true  /*drawTop*/) };
     std::shared_ptr<CurveDataProgressBar> curveDataItems_{ std::make_shared<CurveDataProgressBar>(false /*drawTop*/) };
+
+    bool ignoreErrors_ = false;
 };
 
 
@@ -236,6 +180,9 @@ CompareProgressDialog::Impl::Impl(wxFrame& parentWindow) :
     CompareProgressDlgGenerated(&parentWindow),
     parentWindow_(parentWindow)
 {
+    m_bitmapIgnoreErrors->SetBitmap(getResourceImage(L"error_ignore_active"));
+    m_bitmapRetryErrors ->SetBitmap(getResourceImage(L"error_retry"));
+
     //make sure that standard height matches PHASE_COMPARING_CONTENT statistics layout
     m_staticTextItemsFoundLabel->Hide();
     m_staticTextItemsFound     ->Hide();
@@ -252,15 +199,15 @@ CompareProgressDialog::Impl::Impl(wxFrame& parentWindow) :
 
     m_panelProgressGraph->addCurve(std::make_shared<CurveDataProgressSeparatorLine>(), Graph2D::CurveAttributes().setLineWidth(1).setColor(Graph2D::getBorderColor()));
 
-    m_panelStatistics->Layout();
     Layout();
+    m_panelStatistics->Layout();
 
     GetSizer()->SetSizeHints(this); //~=Fit() + SetMinSize()
     //=> works like a charm for GTK2 with window resizing problems and title bar corruption; e.g. Debian!!!
 }
 
 
-void CompareProgressDialog::Impl::init(const Statistics& syncStat, bool ignoreErrors)
+void CompareProgressDialog::Impl::init(const Statistics& syncStat, bool ignoreErrors, size_t automaticRetryCount)
 {
     syncStat_ = &syncStat;
     parentTitleBackup_ = parentWindow_.GetTitle();
@@ -274,7 +221,7 @@ void CompareProgressDialog::Impl::init(const Statistics& syncStat, bool ignoreEr
     //initialize progress indicator
     bSizerProgressGraph->Show(false);
 
-    perf_.reset();
+    perf_ = PerfCheck(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
     stopWatch_.restart(); //measure total time
 
     //initially hide status that's relevant for comparing bytewise only
@@ -287,14 +234,17 @@ void CompareProgressDialog::Impl::init(const Statistics& syncStat, bool ignoreEr
     m_staticTextTimeRemainingLabel->Hide();
     m_staticTextTimeRemaining     ->Hide();
 
+    setText(*m_staticTextRetryCount, std::wstring(L"(") + formatNumber(automaticRetryCount) + MULT_SIGN + L")");
+    bSizerErrorsRetry->Show(automaticRetryCount > 0);
+
     //allow changing a few options dynamically during sync
-    m_checkBoxIgnoreErrors->SetValue(ignoreErrors);
+    ignoreErrors_ = ignoreErrors;
 
     updateStaticGui();
     updateProgressGui();
 
-    m_panelStatistics->Layout();
     Layout();
+    m_panelStatistics->Layout();
 }
 
 
@@ -308,6 +258,11 @@ void CompareProgressDialog::Impl::teardown()
 
 void CompareProgressDialog::Impl::initNewPhase()
 {
+    //start new measurement
+    perf_ = PerfCheck(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
+    timeLastSpeedEstimate_ = std::chrono::seconds(-100); //make sure estimate is updated upon next check
+    phaseStart_ = stopWatch_.elapsed();
+
     switch (syncStat_->currentPhase())
     {
         case ProcessCallback::PHASE_NONE:
@@ -317,12 +272,6 @@ void CompareProgressDialog::Impl::initNewPhase()
 
         case ProcessCallback::PHASE_COMPARING_CONTENT:
         case ProcessCallback::PHASE_SYNCHRONIZING:
-            //start to measure perf
-            perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
-            timeLastSpeedEstimate_ = std::chrono::seconds(-100); //make sure estimate is updated upon next check
-
-            binCompStart_ = stopWatch_.elapsed();
-
             bSizerProgressGraph->Show(true);
 
             //show status for comparing bytewise
@@ -335,8 +284,8 @@ void CompareProgressDialog::Impl::initNewPhase()
             m_staticTextTimeRemainingLabel->Show();
             m_staticTextTimeRemaining     ->Show();
 
-            m_panelStatistics->Layout();
             Layout();
+            m_panelStatistics->Layout();
             break;
     }
 
@@ -346,12 +295,14 @@ void CompareProgressDialog::Impl::initNewPhase()
 
 void CompareProgressDialog::Impl::updateStaticGui()
 {
-    m_bitmapIgnoreErrors->SetBitmap(getResourceImage(m_checkBoxIgnoreErrors->GetValue() ? L"msg_error_medium_ignored" : L"msg_error_medium"));
+    bSizerErrorsIgnore->Show(ignoreErrors_);
+    Layout();
 }
 
 
 void CompareProgressDialog::Impl::updateProgressGui()
 {
+    assert(syncStat_);
     if (!syncStat_) //no comparison running!!
         return;
 
@@ -364,19 +315,24 @@ void CompareProgressDialog::Impl::updateProgressGui()
     bool layoutChanged = false; //avoid screen flicker by calling layout() only if necessary
     const std::chrono::nanoseconds timeElapsed = stopWatch_.elapsed();
 
+    const int     itemsCurrent = syncStat_->getStatsCurrent(syncStat_->currentPhase()).items;
+    const int64_t bytesCurrent = syncStat_->getStatsCurrent(syncStat_->currentPhase()).bytes;
+    const int     itemsTotal   = syncStat_->getStatsTotal  (syncStat_->currentPhase()).items;
+    const int64_t bytesTotal   = syncStat_->getStatsTotal  (syncStat_->currentPhase()).bytes;
+
     //status texts
     setText(*m_staticTextStatus, replaceCpy(syncStat_->currentStatusText(), L'\n', L' ')); //no layout update for status texts!
 
-    //write status information to taskbar, parent title ect.
+    //write status information to taskbar, parent title etc.
     switch (syncStat_->currentPhase())
     {
         case ProcessCallback::PHASE_NONE:
         case ProcessCallback::PHASE_SCANNING:
         {
-            const wxString& scannedObjects = formatNumber(syncStat_->getItemsCurrent(ProcessCallback::PHASE_SCANNING));
+            const wxString& scannedObjects = formatNumber(itemsCurrent);
 
             //dialog caption, taskbar
-            setTitle(scannedObjects + SPACED_DASH + getDialogPhaseText(syncStat_, false /*paused*/, SyncProgressDialog::RESULT_ABORTED));
+            setTitle(scannedObjects + SPACED_DASH + getDialogPhaseText(*syncStat_, false /*paused*/));
             if (taskbar_.get()) //support Windows 7 taskbar
                 taskbar_->setStatus(Taskbar::STATUS_INDETERMINATE);
 
@@ -388,18 +344,13 @@ void CompareProgressDialog::Impl::updateProgressGui()
         case ProcessCallback::PHASE_SYNCHRONIZING:
         case ProcessCallback::PHASE_COMPARING_CONTENT:
         {
-            const int     itemsCurrent = syncStat_->getItemsCurrent(syncStat_->currentPhase());
-            const int     itemsTotal   = syncStat_->getItemsTotal  (syncStat_->currentPhase());
-            const int64_t bytesCurrent = syncStat_->getBytesCurrent(syncStat_->currentPhase());
-            const int64_t bytesTotal   = syncStat_->getBytesTotal  (syncStat_->currentPhase());
-
             //add both bytes + item count, to handle "deletion-only" cases
             const double fractionTotal = bytesTotal + itemsTotal == 0 ? 0 : 1.0 * (bytesCurrent + itemsCurrent) / (bytesTotal + itemsTotal);
             const double fractionBytes = bytesTotal == 0 ? 0 : 1.0 * bytesCurrent / bytesTotal;
             const double fractionItems = itemsTotal == 0 ? 0 : 1.0 * itemsCurrent / itemsTotal;
 
             //dialog caption, taskbar
-            setTitle(formatFraction(fractionTotal) + SPACED_DASH + getDialogPhaseText(syncStat_, false /*paused*/, SyncProgressDialog::RESULT_ABORTED));
+            setTitle(formatFraction(fractionTotal) + SPACED_DASH + getDialogPhaseText(*syncStat_, false /*paused*/));
             if (taskbar_.get())
             {
                 taskbar_->setProgress(fractionTotal);
@@ -415,26 +366,24 @@ void CompareProgressDialog::Impl::updateProgressGui()
             setText(*m_staticTextBytesRemaining, L"(" + formatFilesizeShort(bytesTotal - bytesCurrent) + L")", &layoutChanged);
 
             //remaining time and speed: only visible during binary comparison
-            assert(perf_);
-            if (perf_)
-                if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= std::chrono::milliseconds(500))
-                {
-                    timeLastSpeedEstimate_ = timeElapsed;
+            if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= SPEED_ESTIMATE_UPDATE_INTERVAL)
+            {
+                timeLastSpeedEstimate_ = timeElapsed;
 
-                    if (numeric::dist(binCompStart_, timeElapsed) >= std::chrono::seconds(1)) //discard stats for first second: probably messy
-                        perf_->addSample(timeElapsed, itemsCurrent, bytesCurrent);
+                if (numeric::dist(phaseStart_, timeElapsed) >= SPEED_ESTIMATE_SAMPLE_INTERVAL) //discard stats for first second: probably messy
+                    perf_.addSample(timeElapsed, itemsCurrent, bytesCurrent);
 
-                    //current speed -> Win 7 copy uses 1 sec update interval instead
-                    Opt<std::wstring> bps = perf_->getBytesPerSecond();
-                    Opt<std::wstring> ips = perf_->getItemsPerSecond();
-                    m_panelProgressGraph->setAttributes(m_panelProgressGraph->getAttributes().setCornerText(bps ? *bps : L"", Graph2D::CORNER_TOP_LEFT));
-                    m_panelProgressGraph->setAttributes(m_panelProgressGraph->getAttributes().setCornerText(ips ? *ips : L"", Graph2D::CORNER_BOTTOM_LEFT));
+                //current speed -> Win 7 copy uses 1 sec update interval instead
+                std::optional<std::wstring> bps = perf_.getBytesPerSecond();
+                std::optional<std::wstring> ips = perf_.getItemsPerSecond();
+                m_panelProgressGraph->setAttributes(m_panelProgressGraph->getAttributes().setCornerText(bps ? *bps : L"", Graph2D::CORNER_TOP_LEFT));
+                m_panelProgressGraph->setAttributes(m_panelProgressGraph->getAttributes().setCornerText(ips ? *ips : L"", Graph2D::CORNER_BOTTOM_LEFT));
 
-                    //remaining time: display with relative error of 10% - based on samples taken every 0.5 sec only
-                    //-> call more often than once per second to correctly show last few seconds countdown, but don't call too often to avoid occasional jitter
-                    Opt<double> remTimeSec = perf_->getRemainingTimeSec(bytesTotal - bytesCurrent);
-                    setText(*m_staticTextTimeRemaining, remTimeSec ? formatRemainingTime(*remTimeSec) : L"-", &layoutChanged);
-                }
+                //remaining time: display with relative error of 10% - based on samples taken every 0.5 sec only
+                //-> call more often than once per second to correctly show last few seconds countdown, but don't call too often to avoid occasional jitter
+                std::optional<double> remTimeSec = perf_.getRemainingTimeSec(bytesTotal - bytesCurrent);
+                setText(*m_staticTextTimeRemaining, remTimeSec ? formatRemainingTime(*remTimeSec) : L"-", &layoutChanged);
+            }
 
             m_panelProgressGraph->Refresh();
         }
@@ -450,8 +399,8 @@ void CompareProgressDialog::Impl::updateProgressGui()
 
     if (layoutChanged)
     {
-        m_panelStatistics->Layout();
         Layout();
+        m_panelStatistics->Layout();
     }
 
     //do the ui update
@@ -463,549 +412,14 @@ void CompareProgressDialog::Impl::updateProgressGui()
 //redirect to implementation
 CompareProgressDialog::CompareProgressDialog(wxFrame& parentWindow) : pimpl_(new Impl(parentWindow)) {} //owned by parentWindow
 wxWindow* CompareProgressDialog::getAsWindow() { return pimpl_; }
-void CompareProgressDialog::init(const Statistics& syncStat, bool ignoreErrors) { pimpl_->init(syncStat, ignoreErrors); }
+void CompareProgressDialog::init(const Statistics& syncStat, bool ignoreErrors, size_t automaticRetryCount) { pimpl_->init(syncStat, ignoreErrors, automaticRetryCount); }
 void CompareProgressDialog::teardown()     { pimpl_->teardown(); }
 void CompareProgressDialog::initNewPhase() { pimpl_->initNewPhase(); }
 void CompareProgressDialog::updateGui()    { pimpl_->updateProgressGui(); }
 bool CompareProgressDialog::getOptionIgnoreErrors() const { return pimpl_->getOptionIgnoreErrors(); }
 void CompareProgressDialog::setOptionIgnoreErrors(bool ignoreErrors) { pimpl_->setOptionIgnoreErrors(ignoreErrors); }
-
-//########################################################################################
-
-namespace
-{
-//pretty much the same like "bool wxWindowBase::IsDescendant(wxWindowBase* child) const" but without the obvious misnomer
-inline
-bool isComponentOf(const wxWindow* child, const wxWindow* top)
-{
-    for (const wxWindow* wnd = child; wnd != nullptr; wnd = wnd->GetParent())
-        if (wnd == top)
-            return true;
-    return false;
-}
-
-
-inline
-wxBitmap getImageButtonPressed(const wchar_t* name)
-{
-    return layOver(getResourceImage(L"log button pressed"), getResourceImage(name));
-}
-
-
-inline
-wxBitmap getImageButtonReleased(const wchar_t* name)
-{
-    return greyScale(getResourceImage(name)).ConvertToImage();
-    //getResourceImage(utfTo<wxString>(name)).ConvertToImage().ConvertToGreyscale(1.0/3, 1.0/3, 1.0/3); //treat all channels equally!
-    //brighten(output, 30);
-
-    //zen::moveImage(output, 1, 0); //move image right one pixel
-    //return output;
-}
-
-
-//a vector-view on ErrorLog considering multi-line messages: prepare consumption by Grid
-class MessageView
-{
-public:
-    MessageView(const ErrorLog& log) : log_(log) {}
-
-    size_t rowsOnView() const { return viewRef_.size(); }
-
-    struct LogEntryView
-    {
-        time_t      time = 0;
-        MessageType type = MSG_TYPE_INFO;
-        MsgString   messageLine;
-        bool firstLine = false; //if LogEntry::message spans multiple rows
-    };
-
-    Opt<LogEntryView> getEntry(size_t row) const
-    {
-        if (row < viewRef_.size())
-        {
-            const Line& line = viewRef_[row];
-
-            LogEntryView output;
-            output.time = line.logIt_->time;
-            output.type = line.logIt_->type;
-            output.messageLine = extractLine(line.logIt_->message, line.rowNumber_);
-            output.firstLine = line.rowNumber_ == 0; //this is virtually always correct, unless first line of the original message is empty!
-            return output;
-        }
-        return NoValue();
-    }
-
-    void updateView(int includedTypes) //MSG_TYPE_INFO | MSG_TYPE_WARNING, ect. see error_log.h
-    {
-        viewRef_.clear();
-
-        for (auto it = log_.begin(); it != log_.end(); ++it)
-            if (it->type & includedTypes)
-            {
-                static_assert(IsSameType<GetCharType<MsgString>::Type, wchar_t>::value, "");
-                assert(!startsWith(it->message, L'\n'));
-
-                size_t rowNumber = 0;
-                bool lastCharNewline = true;
-                for (const wchar_t c : it->message)
-                    if (c == L'\n')
-                    {
-                        if (!lastCharNewline) //do not reference empty lines!
-                            viewRef_.emplace_back(it, rowNumber);
-                        ++rowNumber;
-                        lastCharNewline = true;
-                    }
-                    else
-                        lastCharNewline = false;
-
-                if (!lastCharNewline)
-                    viewRef_.emplace_back(it, rowNumber);
-            }
-    }
-
-private:
-    static MsgString extractLine(const MsgString& message, size_t textRow)
-    {
-        auto it1 = message.begin();
-        for (;;)
-        {
-            auto it2 = std::find_if(it1, message.end(), [](wchar_t c) { return c == L'\n'; });
-            if (textRow == 0)
-                return it1 == message.end() ? MsgString() : MsgString(&*it1, it2 - it1); //must not dereference iterator pointing to "end"!
-
-            if (it2 == message.end())
-            {
-                assert(false);
-                return MsgString();
-            }
-
-            it1 = it2 + 1; //skip newline
-            --textRow;
-        }
-    }
-
-    struct Line
-    {
-        Line(ErrorLog::const_iterator logIt, size_t rowNumber) : logIt_(logIt), rowNumber_(rowNumber) {}
-
-        ErrorLog::const_iterator logIt_; //always bound!
-        size_t rowNumber_; //LogEntry::message may span multiple rows
-    };
-
-    std::vector<Line> viewRef_; //partial view on log_
-    /*          /|\
-                 | updateView()
-                 |                      */
-    const ErrorLog log_;
-};
-
-//-----------------------------------------------------------------------------
-
-enum class ColumnTypeMsg
-{
-    TIME,
-    CATEGORY,
-    TEXT,
-};
-
-//Grid data implementation referencing MessageView
-class GridDataMessages : public GridData
-{
-public:
-    GridDataMessages(const ErrorLog& log) : msgView_(log) {}
-
-    MessageView& getDataView() { return msgView_; }
-
-    size_t getRowCount() const override { return msgView_.rowsOnView(); }
-
-    std::wstring getValue(size_t row, ColumnType colType) const override
-    {
-        if (Opt<MessageView::LogEntryView> entry = msgView_.getEntry(row))
-            switch (static_cast<ColumnTypeMsg>(colType))
-            {
-                case ColumnTypeMsg::TIME:
-                    if (entry->firstLine)
-                        return formatTime<std::wstring>(FORMAT_TIME, getLocalTime(entry->time));
-                    break;
-
-                case ColumnTypeMsg::CATEGORY:
-                    if (entry->firstLine)
-                        switch (entry->type)
-                        {
-                            case MSG_TYPE_INFO:
-                                return _("Info");
-                            case MSG_TYPE_WARNING:
-                                return _("Warning");
-                            case MSG_TYPE_ERROR:
-                                return _("Error");
-                            case MSG_TYPE_FATAL_ERROR:
-                                return _("Serious Error");
-                        }
-                    break;
-
-                case ColumnTypeMsg::TEXT:
-                    return copyStringTo<std::wstring>(entry->messageLine);
-            }
-        return std::wstring();
-    }
-
-    void renderCell(wxDC& dc, const wxRect& rect, size_t row, ColumnType colType, bool enabled, bool selected, HoverArea rowHover) override
-    {
-        wxRect rectTmp = rect;
-
-        //-------------- draw item separation line -----------------
-        {
-            wxDCPenChanger dummy2(dc, getColorGridLine());
-            const bool drawBottomLine = [&] //don't separate multi-line messages
-            {
-                if (Opt<MessageView::LogEntryView> nextEntry = msgView_.getEntry(row + 1))
-                    return nextEntry->firstLine;
-                return true;
-            }();
-
-            if (drawBottomLine)
-            {
-                dc.DrawLine(rect.GetBottomLeft(), rect.GetBottomRight() + wxPoint(1, 0));
-                --rectTmp.height;
-            }
-        }
-        //--------------------------------------------------------
-
-        if (Opt<MessageView::LogEntryView> entry = msgView_.getEntry(row))
-            switch (static_cast<ColumnTypeMsg>(colType))
-            {
-                case ColumnTypeMsg::TIME:
-                    drawCellText(dc, rectTmp, getValue(row, colType), wxALIGN_CENTER);
-                    break;
-
-                case ColumnTypeMsg::CATEGORY:
-                    if (entry->firstLine)
-                        switch (entry->type)
-                        {
-                            case MSG_TYPE_INFO:
-                                drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_info_small"), rectTmp, wxALIGN_CENTER);
-                                break;
-                            case MSG_TYPE_WARNING:
-                                drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_warning_small"), rectTmp, wxALIGN_CENTER);
-                                break;
-                            case MSG_TYPE_ERROR:
-                            case MSG_TYPE_FATAL_ERROR:
-                                drawBitmapRtlNoMirror(dc, getResourceImage(L"msg_error_small"), rectTmp, wxALIGN_CENTER);
-                                break;
-                        }
-                    break;
-
-                case ColumnTypeMsg::TEXT:
-                    rectTmp.x     += COLUMN_GAP_LEFT;
-                    rectTmp.width -= COLUMN_GAP_LEFT;
-                    drawCellText(dc, rectTmp, getValue(row, colType));
-                    break;
-            }
-    }
-
-    int getBestSize(wxDC& dc, size_t row, ColumnType colType) override
-    {
-        // -> synchronize renderCell() <-> getBestSize()
-
-        if (msgView_.getEntry(row))
-            switch (static_cast<ColumnTypeMsg>(colType))
-            {
-                case ColumnTypeMsg::TIME:
-                    return 2 * COLUMN_GAP_LEFT + dc.GetTextExtent(getValue(row, colType)).GetWidth();
-
-                case ColumnTypeMsg::CATEGORY:
-                    return getResourceImage(L"msg_info_small").GetWidth();
-
-                case ColumnTypeMsg::TEXT:
-                    return COLUMN_GAP_LEFT + dc.GetTextExtent(getValue(row, colType)).GetWidth();
-            }
-        return 0;
-    }
-
-    static int getColumnTimeDefaultWidth(Grid& grid)
-    {
-        wxClientDC dc(&grid.getMainWin());
-        dc.SetFont(grid.getMainWin().GetFont());
-        return 2 * COLUMN_GAP_LEFT + dc.GetTextExtent(formatTime<wxString>(FORMAT_TIME)).GetWidth();
-    }
-
-    static int getColumnCategoryDefaultWidth()
-    {
-        return getResourceImage(L"msg_info_small").GetWidth();
-    }
-
-    static int getRowDefaultHeight(const Grid& grid)
-    {
-        return std::max(getResourceImage(L"msg_info_small").GetHeight(), grid.getMainWin().GetCharHeight() + 2) + 1; //+ some space + bottom border
-    }
-
-    std::wstring getToolTip(size_t row, ColumnType colType) const override
-    {
-        switch (static_cast<ColumnTypeMsg>(colType))
-        {
-            case ColumnTypeMsg::TIME:
-            case ColumnTypeMsg::TEXT:
-                break;
-
-            case ColumnTypeMsg::CATEGORY:
-                return getValue(row, colType);
-        }
-        return std::wstring();
-    }
-
-    std::wstring getColumnLabel(ColumnType colType) const override { return std::wstring(); }
-
-private:
-    MessageView msgView_;
-};
-}
-
-
-class LogPanel : public LogPanelGenerated
-{
-public:
-    LogPanel(wxWindow* parent, const ErrorLog& log) : LogPanelGenerated(parent)
-    {
-        const int errorCount   = log.getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR);
-        const int warningCount = log.getItemCount(MSG_TYPE_WARNING);
-        const int infoCount    = log.getItemCount(MSG_TYPE_INFO);
-
-        auto initButton = [](ToggleButton& btn, const wchar_t* imgName, const wxString& tooltip)
-        {
-            btn.init(getImageButtonPressed(imgName), getImageButtonReleased(imgName));
-            btn.SetToolTip(tooltip);
-        };
-
-        initButton(*m_bpButtonErrors,   L"msg_error",   _("Error"  ) + L" (" + formatNumber(errorCount)   + L")");
-        initButton(*m_bpButtonWarnings, L"msg_warning", _("Warning") + L" (" + formatNumber(warningCount) + L")");
-        initButton(*m_bpButtonInfo,     L"msg_info",    _("Info"   ) + L" (" + formatNumber(infoCount)    + L")");
-
-        m_bpButtonErrors  ->setActive(true);
-        m_bpButtonWarnings->setActive(true);
-        m_bpButtonInfo    ->setActive(errorCount + warningCount == 0);
-
-        m_bpButtonErrors  ->Show(errorCount   != 0);
-        m_bpButtonWarnings->Show(warningCount != 0);
-        m_bpButtonInfo    ->Show(infoCount    != 0);
-
-        //init grid, determine default sizes
-        const int rowHeight           = GridDataMessages::getRowDefaultHeight(*m_gridMessages);
-        const int colMsgTimeWidth     = GridDataMessages::getColumnTimeDefaultWidth(*m_gridMessages);
-        const int colMsgCategoryWidth = GridDataMessages::getColumnCategoryDefaultWidth();
-
-        m_gridMessages->setDataProvider(std::make_shared<GridDataMessages>(log));
-        m_gridMessages->setColumnLabelHeight(0);
-        m_gridMessages->showRowLabel(false);
-        m_gridMessages->setRowHeight(rowHeight);
-        m_gridMessages->setColumnConfig(
-        {
-            { static_cast<ColumnType>(ColumnTypeMsg::TIME    ), colMsgTimeWidth,                        0, true },
-            { static_cast<ColumnType>(ColumnTypeMsg::CATEGORY), colMsgCategoryWidth,                    0, true },
-            { static_cast<ColumnType>(ColumnTypeMsg::TEXT    ), -colMsgTimeWidth - colMsgCategoryWidth, 1, true },
-        });
-
-        //support for CTRL + C
-        m_gridMessages->getMainWin().Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(LogPanel::onGridButtonEvent), nullptr, this);
-
-        m_gridMessages->Connect(EVENT_GRID_MOUSE_RIGHT_UP, GridClickEventHandler(LogPanel::onMsgGridContext), nullptr, this);
-
-        //enable dialog-specific key local events
-        Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(LogPanel::onLocalKeyEvent), nullptr, this);
-
-        updateGrid();
-    }
-
-private:
-    MessageView& getDataView()
-    {
-        if (auto* prov = dynamic_cast<GridDataMessages*>(m_gridMessages->getDataProvider()))
-            return prov->getDataView();
-
-        throw std::runtime_error("m_gridMessages was not initialized! " + std::string(__FILE__) + ":" + numberTo<std::string>(__LINE__));
-    }
-
-    void OnErrors(wxCommandEvent& event) override
-    {
-        m_bpButtonErrors->toggle();
-        updateGrid();
-    }
-
-    void OnWarnings(wxCommandEvent& event) override
-    {
-        m_bpButtonWarnings->toggle();
-        updateGrid();
-    }
-
-    void OnInfo(wxCommandEvent& event) override
-    {
-        m_bpButtonInfo->toggle();
-        updateGrid();
-    }
-
-    void updateGrid()
-    {
-        int includedTypes = 0;
-        if (m_bpButtonErrors->isActive())
-            includedTypes |= MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR;
-
-        if (m_bpButtonWarnings->isActive())
-            includedTypes |= MSG_TYPE_WARNING;
-
-        if (m_bpButtonInfo->isActive())
-            includedTypes |= MSG_TYPE_INFO;
-
-        getDataView().updateView(includedTypes); //update MVC "model"
-        m_gridMessages->Refresh();          //update MVC "view"
-    }
-
-    void onGridButtonEvent(wxKeyEvent& event)
-    {
-        int keyCode = event.GetKeyCode();
-
-        if (event.ControlDown())
-            switch (keyCode)
-            {
-                //case 'A': -> "select all" is already implemented by Grid!
-
-                case 'C':
-                case WXK_INSERT: //CTRL + C || CTRL + INS
-                    copySelectionToClipboard();
-                    return; // -> swallow event! don't allow default grid commands!
-            }
-
-        //else
-        //switch (keyCode)
-        //{
-        //  case WXK_RETURN:
-        //  case WXK_NUMPAD_ENTER:
-        //      return;
-        //}
-
-        event.Skip(); //unknown keypress: propagate
-    }
-
-    void onMsgGridContext(GridClickEvent& event)
-    {
-        const std::vector<size_t> selection = m_gridMessages->getSelectedRows();
-
-        const size_t rowCount = [&]() -> size_t
-        {
-            if (auto prov = m_gridMessages->getDataProvider())
-                return prov->getRowCount();
-            return 0;
-        }();
-
-        ContextMenu menu;
-        menu.addItem(_("Select all") + L"\tCtrl+A", [this] { m_gridMessages->selectAllRows(ALLOW_GRID_EVENT); }, nullptr, rowCount > 0);
-        menu.addSeparator();
-
-        menu.addItem(_("Copy") + L"\tCtrl+C", [this] { copySelectionToClipboard(); }, nullptr, !selection.empty());
-        menu.popup(*this);
-    }
-
-    void onLocalKeyEvent(wxKeyEvent& event) //process key events without explicit menu entry :)
-    {
-        if (processingKeyEventHandler_) //avoid recursion
-        {
-            event.Skip();
-            return;
-        }
-        processingKeyEventHandler_ = true;
-        ZEN_ON_SCOPE_EXIT(processingKeyEventHandler_ = false);
-
-
-        const int keyCode = event.GetKeyCode();
-
-        if (event.ControlDown())
-            switch (keyCode)
-            {
-                case 'A':
-                    m_gridMessages->SetFocus();
-                    m_gridMessages->selectAllRows(ALLOW_GRID_EVENT);
-                    return; // -> swallow event! don't allow default grid commands!
-
-                    //case 'C': -> already implemented by "Grid" class
-            }
-        else
-            switch (keyCode)
-            {
-                //redirect certain (unhandled) keys directly to grid!
-                case WXK_UP:
-                case WXK_DOWN:
-                case WXK_LEFT:
-                case WXK_RIGHT:
-                case WXK_PAGEUP:
-                case WXK_PAGEDOWN:
-                case WXK_HOME:
-                case WXK_END:
-
-                case WXK_NUMPAD_UP:
-                case WXK_NUMPAD_DOWN:
-                case WXK_NUMPAD_LEFT:
-                case WXK_NUMPAD_RIGHT:
-                case WXK_NUMPAD_PAGEUP:
-                case WXK_NUMPAD_PAGEDOWN:
-                case WXK_NUMPAD_HOME:
-                case WXK_NUMPAD_END:
-                    if (!isComponentOf(wxWindow::FindFocus(), m_gridMessages) && //don't propagate keyboard commands if grid is already in focus
-                        m_gridMessages->IsEnabled())
-                        if (wxEvtHandler* evtHandler = m_gridMessages->getMainWin().GetEventHandler())
-                        {
-                            m_gridMessages->SetFocus();
-
-                            event.SetEventType(wxEVT_KEY_DOWN); //the grid event handler doesn't expect wxEVT_CHAR_HOOK!
-                            evtHandler->ProcessEvent(event); //propagating event catched at wxTheApp to child leads to recursion, but we prevented it...
-                            event.Skip(false); //definitively handled now!
-                            return;
-                        }
-                    break;
-            }
-
-        event.Skip();
-    }
-
-    void copySelectionToClipboard()
-    {
-        try
-        {
-            using zxString = Zbase<wchar_t>; //guaranteed exponential growth, unlike wxString
-            zxString clipboardString;
-
-            if (auto prov = m_gridMessages->getDataProvider())
-            {
-                std::vector<Grid::ColAttributes> colAttr = m_gridMessages->getColumnConfig();
-                erase_if(colAttr, [](const Grid::ColAttributes& ca) { return !ca.visible; });
-                if (!colAttr.empty())
-                    for (size_t row : m_gridMessages->getSelectedRows())
-                    {
-                        std::for_each(colAttr.begin(), --colAttr.end(),
-                                      [&](const Grid::ColAttributes& ca)
-                        {
-                            clipboardString += copyStringTo<zxString>(prov->getValue(row, ca.type));
-                            clipboardString += L'\t';
-                        });
-                        clipboardString += copyStringTo<zxString>(prov->getValue(row, colAttr.back().type));
-                        clipboardString += L'\n';
-                    }
-            }
-
-            //finally write to clipboard
-            if (!clipboardString.empty())
-                if (wxClipboard::Get()->Open())
-                {
-                    ZEN_ON_SCOPE_EXIT(wxClipboard::Get()->Close());
-                    wxClipboard::Get()->SetData(new wxTextDataObject(copyStringTo<wxString>(clipboardString))); //ownership passed
-                }
-        }
-        catch (const std::bad_alloc& e)
-        {
-            showNotificationDialog(nullptr, DialogInfoType::ERROR2, PopupDialogCfg().setMainInstructions(_("Out of memory.") + L" " + utfTo<std::wstring>(e.what())));
-        }
-    }
-
-    bool processingKeyEventHandler_ = false;
-};
+void CompareProgressDialog::timerSetStatus(bool active) { pimpl_->timerSetStatus(active); }
+bool CompareProgressDialog::timerIsRunning() const { return pimpl_->timerIsRunning(); }
 
 //########################################################################################
 
@@ -1033,7 +447,7 @@ public:
         //documentation differs about whether "hint" should be before or after the to be inserted element!
         //however "std::map<>::end()" is interpreted correctly by GCC and VS2010
 
-        if (samples_.size() > MAX_BUFFER_SIZE) //limit buffer size
+        if (samples_.size() > PROGRESS_GRAPH_SAMPLE_SIZE_MAX) //limit buffer size
             samples_.erase(samples_.begin());
     }
 
@@ -1056,7 +470,7 @@ private:
                  std::chrono::duration<double>(upperEnd).count() };
     }
 
-    Opt<CurvePoint> getLessEq(double x) const override //x: seconds since begin
+    std::optional<CurvePoint> getLessEq(double x) const override //x: seconds since begin
     {
         const auto timeX = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(x)); //round down
 
@@ -1069,13 +483,13 @@ private:
         //find first key > x, then go one step back: => samples must be a std::map, NOT std::multimap!!!
         auto it = samples_.upper_bound(timeX);
         if (it == samples_.begin())
-            return NoValue();
+            return {};
         //=> samples not empty in this context
         --it;
         return CurvePoint(std::chrono::duration<double>(it->first).count(), it->second);
     }
 
-    Opt<CurvePoint> getGreaterEq(double x) const override
+    std::optional<CurvePoint> getGreaterEq(double x) const override
     {
         const std::chrono::nanoseconds timeX(static_cast<std::chrono::nanoseconds::rep>(std::ceil(x * (1000 * 1000 * 1000)))); //round up!
 
@@ -1087,11 +501,9 @@ private:
 
         auto it = samples_.lower_bound(timeX);
         if (it == samples_.end())
-            return NoValue();
+            return {};
         return CurvePoint(std::chrono::duration<double>(it->first).count(), it->second);
     }
-
-    static const size_t MAX_BUFFER_SIZE = 2500000; //sizeof(single node) worst case ~ 3 * 8 byte ptr + 16 byte key/value = 40 byte
 
     std::map <std::chrono::nanoseconds, double> samples_;    //[!] don't use std::multimap, see getLessEq()
     std::pair<std::chrono::nanoseconds, double> lastSample_; //artificial most current record at the end of samples to visualize current time!
@@ -1220,6 +632,7 @@ struct LabelFormatterTimeElapsed : public LabelFormatter
     {
         if (!drawLabel_)
             return wxString();
+
         return timeElapsed < 60 ?
                wxString(_P("1 sec", "%x sec", numeric::round(timeElapsed))) :
                timeElapsed < 3600 ?
@@ -1253,11 +666,12 @@ public:
                            const wxString& jobName,
                            const Zstring& soundFileSyncComplete,
                            bool ignoreErrors,
+                           size_t automaticRetryCount,
                            PostSyncAction2 postSyncAction);
     ~SyncProgressDialogImpl() override;
 
     //call this in StatusUpdater derived class destructor at the LATEST(!) to prevent access to currentStatusUpdater
-    void showSummary(SyncResult resultId, const ErrorLog& log) override;
+    void showSummary(SyncResult finalStatus, const std::shared_ptr<const ErrorLog>& log /*bound!*/) override;
     void closeDirectly(bool restoreParentFrame) override;
 
     wxWindow* getWindowIfVisible() override { return this->IsShown() ? this : nullptr; }
@@ -1267,8 +681,8 @@ public:
     void notifyProgressChange() override;
     void updateGui           () override { updateProgressGui(true /*allowYield*/); }
 
-    bool getOptionIgnoreErrors()                 const override { return pnl_.m_checkBoxIgnoreErrors->GetValue(); }
-    void    setOptionIgnoreErrors(bool ignoreErrors)   override { pnl_.m_checkBoxIgnoreErrors->SetValue(ignoreErrors); updateStaticGui(); }
+    bool getOptionIgnoreErrors()                 const override { return ignoreErrors_; }
+    void setOptionIgnoreErrors(bool ignoreErrors)      override { ignoreErrors_ = ignoreErrors; updateStaticGui(); }
     PostSyncAction2 getOptionPostSyncAction()    const override { return getEnumVal(enumPostSyncAction_, *pnl_.m_choicePostSyncAction); }
     bool getOptionAutoCloseDialog()              const override { return pnl_.m_checkBoxAutoClose->GetValue(); }
 
@@ -1294,7 +708,7 @@ private:
     void OnClose  (wxCloseEvent& event);
     void OnIconize(wxIconizeEvent& event);
     void OnMinimizeToTray(wxCommandEvent& event) { minimizeToTray(); }
-    void OnToggleIgnoreErrors(wxCommandEvent& event) { updateStaticGui(); }
+    //void OnToggleIgnoreErrors(wxCommandEvent& event) { updateStaticGui(); }
 
     void minimizeToTray();
     void resumeFromSystray();
@@ -1314,16 +728,15 @@ private:
 
     std::function<void()> notifyWindowTerminate_; //call once in OnClose(), NOT in destructor which is called far too late somewhere in wxWidgets main loop!
 
-    bool wereDead_ = false; //set after wxWindow::Delete(), which equals "delete this" on OS X!
-
     //status variables
     const Statistics* syncStat_;                  //
     AbortCallback*    abortCb_;                   //valid only while sync is running
-    bool paused_ = false; //valid only while sync is running
-    SyncResult finalResult_ = RESULT_ABORTED; //set after sync
+    bool paused_ = false;
+    const std::shared_ptr<int> lifeSign_ = std::make_shared<int>(42); //only bound while instance exists, see pause handling in updateProgressGui()
+    //wxWindow::Delete(), equals "delete this" on OS X!
 
     //remaining time
-    std::unique_ptr<PerfCheck> perf_;
+    PerfCheck perf_{ WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC };
     std::chrono::nanoseconds timeLastSpeedEstimate_ = std::chrono::seconds(-100); //used for calculating intervals between collecting perf samples
 
     //help calculate total speed
@@ -1340,6 +753,7 @@ private:
     std::unique_ptr<FfsTrayIcon> trayIcon_; //optional: if filled all other windows should be hidden and conversely
     std::unique_ptr<Taskbar> taskbar_;
 
+    bool ignoreErrors_ = false;
     EnumDescrList<PostSyncAction2> enumPostSyncAction_;
 };
 
@@ -1356,6 +770,7 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
                                                                const wxString& jobName,
                                                                const Zstring& soundFileSyncComplete,
                                                                bool ignoreErrors,
+                                                               size_t automaticRetryCount,
                                                                PostSyncAction2 postSyncAction) :
     TopLevelDialog(parentFrame, wxID_ANY, wxString(), wxDefaultPosition, wxDefaultSize, style), //title is overwritten anyway in setExternalStatus()
     pnl_(*new SyncProgressPanelGenerated(this)), //ownership passed to "this"
@@ -1366,12 +781,13 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
     syncStat_ (&syncStat),
     abortCb_  (&abortCb)
 {
-    static_assert(IsSameType<TopLevelDialog, wxFrame >::value ||
-                  IsSameType<TopLevelDialog, wxDialog>::value, "");
-    assert((IsSameType<TopLevelDialog, wxFrame>::value == !parentFrame));
+    static_assert(std::is_same_v<TopLevelDialog, wxFrame > ||
+                  std::is_same_v<TopLevelDialog, wxDialog>);
+    assert((std::is_same_v<TopLevelDialog, wxFrame> == !parentFrame));
 
     //finish construction of this dialog:
-    this->SetMinSize(wxSize(470, 280)); //== minimum size! no idea why SetMinSize() is not used...
+    this->pnl_.m_panelProgress->SetMinSize(wxSize(fastFromDIP(550), fastFromDIP(340)));
+
     wxBoxSizer* bSizer170 = new wxBoxSizer(wxVERTICAL);
     bSizer170->Add(&pnl_, 1, wxEXPAND);
     this->SetSizer(bSizer170); //pass ownership
@@ -1384,7 +800,6 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
     pnl_.m_buttonPause->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SyncProgressDialogImpl::OnPause ), NULL, this);
     pnl_.m_buttonStop ->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SyncProgressDialogImpl::OnCancel), NULL, this);
     pnl_.m_bpButtonMinimizeToTray->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(SyncProgressDialogImpl::OnMinimizeToTray), NULL, this);
-    pnl_.m_checkBoxIgnoreErrors->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(SyncProgressDialogImpl::OnToggleIgnoreErrors), NULL, this);
 
     if (parentFrame_)
         parentFrame_->Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(SyncProgressDialogImpl::onParentKeyEvent), nullptr, this);
@@ -1420,9 +835,12 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
 
     pnl_.m_bpButtonMinimizeToTray->SetBitmapLabel(getResourceImage(L"minimize_to_tray"));
 
+    pnl_.m_bitmapIgnoreErrors->SetBitmap(getResourceImage(L"error_ignore_active"));
+    pnl_.m_bitmapRetryErrors ->SetBitmap(getResourceImage(L"error_retry"));
+
     //init graph
-    const int xLabelHeight = this->GetCharHeight() + 2 * 1 /*border*/; //use same height for both graphs to make sure they stretch evenly
-    const int yLabelWidth  = 70;
+    const int xLabelHeight = this->GetCharHeight() + fastFromDIP(2) /*margin*/; //use same height for both graphs to make sure they stretch evenly
+    const int yLabelWidth  = fastFromDIP(70);
     pnl_.m_panelGraphBytes->setAttributes(Graph2D::MainAttributes().
                                           setLabelX(Graph2D::LABEL_X_TOP,    xLabelHeight, std::make_shared<LabelFormatterTimeElapsed>(true)).
                                           setLabelY(Graph2D::LABEL_Y_RIGHT,  yLabelWidth,  std::make_shared<LabelFormatterBytes>()).
@@ -1459,8 +877,11 @@ SyncProgressDialogImpl<TopLevelDialog>::SyncProgressDialogImpl(long style, //wxF
     pnl_.m_bitmapGraphKeyBytes->SetBitmap(generateSquareBitmap(getColorBytes(), getColorBytesRim()));
     pnl_.m_bitmapGraphKeyItems->SetBitmap(generateSquareBitmap(getColorItems(), getColorItemsRim()));
 
+    setText(*pnl_.m_staticTextRetryCount, std::wstring(L"(") + formatNumber(automaticRetryCount) + MULT_SIGN + L")");
+    pnl_.bSizerErrorsRetry->Show(automaticRetryCount > 0);
+
     //allow changing a few options dynamically during sync
-    pnl_.m_checkBoxIgnoreErrors->SetValue(ignoreErrors);
+    ignoreErrors_ = ignoreErrors;
 
     enumPostSyncAction_.add(PostSyncAction2::NONE, L"");
     if (parentFrame_) //enable EXIT option for gui mode sync
@@ -1505,6 +926,7 @@ SyncProgressDialogImpl<TopLevelDialog>::~SyncProgressDialogImpl()
         //if (parentFrame_->IsIconized()) //caveat: if window is maximized calling Iconize(false) will erroneously un-maximize!
         //    parentFrame_->Iconize(false);
     }
+    //else: don't call "TransformProcessType": consider "switch to main dialog" option during silent batch run
 
     //our client is NOT expecting a second call via notifyWindowTerminate_()!
 }
@@ -1552,19 +974,18 @@ void SyncProgressDialogImpl<TopLevelDialog>::initNewPhase()
     updateStaticGui(); //evaluates "syncStat_->currentPhase()"
 
     //reset graphs (e.g. after binary comparison)
-    curveDataBytesCurrent_->setValue(0, 0, 0);
-    curveDataItemsCurrent_->setValue(0, 0, 0);
     curveDataBytesTotal_  ->setValue(0, 0);
     curveDataItemsTotal_  ->setValue(0, 0);
+    curveDataBytesCurrent_->setValue(0, 0, 0);
+    curveDataItemsCurrent_->setValue(0, 0, 0);
     curveDataBytes_       ->clear();
     curveDataItems_       ->clear();
 
     notifyProgressChange(); //make sure graphs get initial values
 
     //start new measurement
-    perf_ = std::make_unique<PerfCheck>(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
+    perf_ = PerfCheck(WINDOW_REMAINING_TIME, WINDOW_BYTES_PER_SEC);
     timeLastSpeedEstimate_ = std::chrono::seconds(-100); //make sure estimate is updated upon next check
-
     phaseStart_ = stopWatch_.elapsed();
 
     updateProgressGui(false /*allowYield*/);
@@ -1575,23 +996,11 @@ template <class TopLevelDialog>
 void SyncProgressDialogImpl<TopLevelDialog>::notifyProgressChange() //noexcept!
 {
     if (syncStat_) //sync running
-        switch (syncStat_->currentPhase())
-        {
-            case ProcessCallback::PHASE_NONE:
-            //assert(false); -> can happen: e.g. batch run, log file creation failed, throw in BatchStatusHandler constructor
-            case ProcessCallback::PHASE_SCANNING:
-                break;
-            case ProcessCallback::PHASE_COMPARING_CONTENT:
-            case ProcessCallback::PHASE_SYNCHRONIZING:
-            {
-                const int64_t bytesCurrent = syncStat_->getBytesCurrent(syncStat_->currentPhase());
-                const int     itemsCurrent = syncStat_->getItemsCurrent(syncStat_->currentPhase());
-
-                curveDataBytes_->addRecord(stopWatch_.elapsed(), bytesCurrent);
-                curveDataItems_->addRecord(stopWatch_.elapsed(), itemsCurrent);
-            }
-            break;
-        }
+    {
+        const ProgressStats stats = syncStat_->getStatsCurrent(syncStat_->currentPhase());
+        curveDataBytes_->addRecord(stopWatch_.elapsed(), stats.bytes);
+        curveDataItems_->addRecord(stopWatch_.elapsed(), stats.items);
+    }
 }
 
 
@@ -1604,14 +1013,14 @@ template <class TopLevelDialog>
 void SyncProgressDialogImpl<TopLevelDialog>::setExternalStatus(const wxString& status, const wxString& progress) //progress may be empty!
 {
     //sys tray: order "top-down": jobname, status, progress
-    wxString systrayTooltip = jobName_.empty() ? status : L"\"" + jobName_ + L"\"\n" + status;
+    wxString systrayTooltip = jobName_.empty() ? status : L'"' + jobName_ + L"\"\n" + status;
     if (!progress.empty())
         systrayTooltip += L" " + progress;
 
     //window caption/taskbar; inverse order: progress, status, jobname
     wxString title = progress.empty() ? status : progress + SPACED_DASH + status;
     if (!jobName_.empty())
-        title += wxString(SPACED_DASH) + L"\"" + jobName_ + L"\"";
+        title += wxString(SPACED_DASH) + L'"' + jobName_ + L'"';
 
     //systray tooltip, if window is minimized
     if (trayIcon_.get())
@@ -1631,6 +1040,7 @@ void SyncProgressDialogImpl<TopLevelDialog>::setExternalStatus(const wxString& s
 template <class TopLevelDialog>
 void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 {
+    assert(syncStat_);
     if (!syncStat_) //sync not running
         return;
 
@@ -1644,106 +1054,109 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
     const std::chrono::nanoseconds timeElapsed = stopWatch_.elapsed();
     const double timeElapsedDouble = std::chrono::duration<double>(timeElapsed).count();
 
+    const int     itemsCurrent = syncStat_->getStatsCurrent(syncStat_->currentPhase()).items;
+    const int64_t bytesCurrent = syncStat_->getStatsCurrent(syncStat_->currentPhase()).bytes;
+    const int     itemsTotal   = syncStat_->getStatsTotal  (syncStat_->currentPhase()).items;
+    const int64_t bytesTotal   = syncStat_->getStatsTotal  (syncStat_->currentPhase()).bytes;
+
     //sync status text
     setText(*pnl_.m_staticTextStatus, replaceCpy(syncStat_->currentStatusText(), L'\n', L' ')); //no layout update for status texts!
 
-    switch (syncStat_->currentPhase()) //no matter if paused or not
+
+    if (itemsTotal < 0 && bytesTotal < 0)
     {
-        case ProcessCallback::PHASE_NONE:
-        case ProcessCallback::PHASE_SCANNING:
-            //dialog caption, taskbar, systray tooltip
-            setExternalStatus(getDialogPhaseText(syncStat_, paused_, finalResult_), formatNumber(syncStat_->getItemsCurrent(ProcessCallback::PHASE_SCANNING))); //status text may be "paused"!
+        //dialog caption, taskbar, systray tooltip
+        setExternalStatus(getDialogPhaseText(*syncStat_, paused_), formatNumber(itemsCurrent)); //status text may be "paused"!
 
-            //progress indicators
-            if (trayIcon_.get()) trayIcon_->setProgress(1); //100% = regular FFS logo
+        //progress indicators
+        if (trayIcon_.get()) trayIcon_->setProgress(1); //100% = regular FFS logo
+        //taskbar_ already set to STATUS_INDETERMINATE within initNewPhase()
+    }
+    else
+    {
+        //dialog caption, taskbar, systray tooltip
 
-            //ignore graphs: should already have been cleared in initNewPhase()
+        const double fractionTotal = bytesTotal + itemsTotal == 0 ? 0 : 1.0 * (bytesCurrent + itemsCurrent) / (bytesTotal + itemsTotal);
+        //add both data + obj-count, to handle "deletion-only" cases
 
-            //remaining objects and data
-            setText(*pnl_.m_staticTextItemsRemaining, L"-", &layoutChanged);
-            setText(*pnl_.m_staticTextBytesRemaining, L"", &layoutChanged);
+        setExternalStatus(getDialogPhaseText(*syncStat_, paused_), formatFraction(fractionTotal)); //status text may be "paused"!
 
-            //remaining time and speed
-            setText(*pnl_.m_staticTextTimeRemaining, L"-", &layoutChanged);
-            pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(wxString(), Graph2D::CORNER_TOP_LEFT));
-            pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(wxString(), Graph2D::CORNER_TOP_LEFT));
-            break;
+        //progress indicators
+        if (trayIcon_.get()) trayIcon_->setProgress(fractionTotal);
+        if (taskbar_ .get()) taskbar_ ->setProgress(fractionTotal);
 
-        case ProcessCallback::PHASE_COMPARING_CONTENT:
-        case ProcessCallback::PHASE_SYNCHRONIZING:
+        //----------------------------------------------------------------------------------------------------
+        const double timeTotalSecTentative = bytesCurrent == bytesTotal ? timeElapsedDouble : std::max(curveDataBytesTotal_->getValueX(), timeElapsedDouble);
+
+        //constant line graph
+        curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, bytesCurrent);
+        curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, itemsCurrent);
+
+        //tentatively update total time, may be improved on below:
+        curveDataBytesTotal_->setValue(timeTotalSecTentative, bytesTotal);
+        curveDataItemsTotal_->setValue(timeTotalSecTentative, itemsTotal);
+    }
+
+    //even though notifyProgressChange() already set the latest data, let's add another sample to have all curves consider "timeNowMs"
+    //no problem with adding too many records: CurveDataStatistics will remove duplicate entries!
+    curveDataBytes_->addRecord(timeElapsed, bytesCurrent);
+    curveDataItems_->addRecord(timeElapsed, itemsCurrent);
+
+
+    //remaining objects and data
+    if (itemsTotal < 0 && bytesTotal < 0)
+    {
+        setText(*pnl_.m_staticTextItemsRemaining, L"-", &layoutChanged);
+        setText(*pnl_.m_staticTextBytesRemaining, L"",  &layoutChanged);
+    }
+    else
+    {
+        setText(*pnl_.m_staticTextItemsRemaining,               formatNumber(itemsTotal - itemsCurrent), &layoutChanged);
+        setText(*pnl_.m_staticTextBytesRemaining, L"(" + formatFilesizeShort(bytesTotal - bytesCurrent) + L")", &layoutChanged);
+        //it's possible data remaining becomes shortly negative if last file synced has ADS data and the bytesTotal was not yet corrected!
+    }
+
+    //remaining time and speed
+    if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= SPEED_ESTIMATE_UPDATE_INTERVAL)
+    {
+        timeLastSpeedEstimate_ = timeElapsed;
+
+        if (numeric::dist(phaseStart_, timeElapsed) >= SPEED_ESTIMATE_SAMPLE_INTERVAL) //discard stats for first second: probably messy
+            perf_.addSample(timeElapsed, itemsCurrent, bytesCurrent);
+
+        //current speed -> Win 7 copy uses 1 sec update interval instead
+        std::optional<std::wstring> bps = perf_.getBytesPerSecond();
+        std::optional<std::wstring> ips = perf_.getItemsPerSecond();
+        pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(bps ? *bps : L"", Graph2D::CORNER_TOP_LEFT));
+        pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(ips ? *ips : L"", Graph2D::CORNER_TOP_LEFT));
+
+        //remaining time
+        if (bytesTotal < 0)
         {
-            const int64_t bytesCurrent  = syncStat_->getBytesCurrent(syncStat_->currentPhase());
-            const int64_t bytesTotal    = syncStat_->getBytesTotal  (syncStat_->currentPhase());
-            const int     itemsCurrent  = syncStat_->getItemsCurrent(syncStat_->currentPhase());
-            const int     itemsTotal    = syncStat_->getItemsTotal  (syncStat_->currentPhase());
+            setText(*pnl_.m_staticTextTimeRemaining, L"-", &layoutChanged);
+            //ignore graphs: should already have been cleared in initNewPhase()
+        }
+        else
+        {
+            //remaining time: display with relative error of 10% - based on samples taken every 0.5 sec only
+            //-> call more often than once per second to correctly show last few seconds countdown, but don't call too often to avoid occasional jitter
+            std::optional<double> remTimeSec = perf_.getRemainingTimeSec(bytesTotal - bytesCurrent);
+            setText(*pnl_.m_staticTextTimeRemaining, remTimeSec ? formatRemainingTime(*remTimeSec) : L"-", &layoutChanged);
 
-            //add both data + obj-count, to handle "deletion-only" cases
-            const double fractionTotal = bytesTotal + itemsTotal == 0 ? 0 : 1.0 * (bytesCurrent + itemsCurrent) / (bytesTotal + itemsTotal);
-            //----------------------------------------------------------------------------------------------------
-
-            //dialog caption, taskbar, systray tooltip
-            setExternalStatus(getDialogPhaseText(syncStat_, paused_, finalResult_), formatFraction(fractionTotal)); //status text may be "paused"!
-
-            //progress indicators
-            if (trayIcon_.get()) trayIcon_->setProgress(fractionTotal);
-            if (taskbar_ .get()) taskbar_ ->setProgress(fractionTotal);
-
-            const double timeTotalSecTentative = bytesTotal == bytesCurrent ? timeElapsedDouble : std::max(curveDataBytesTotal_->getValueX(), timeElapsedDouble);
-
-            //constant line graph
-            curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, bytesCurrent);
-            curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSecTentative, itemsCurrent);
-
-            //tentatively update total time, may be improved on below:
-            curveDataBytesTotal_->setValue(timeTotalSecTentative, bytesTotal);
-            curveDataItemsTotal_->setValue(timeTotalSecTentative, itemsTotal);
-
-            //even though notifyProgressChange() already set the latest data, let's add another sample to have all curves consider "timeNowMs"
-            //no problem with adding too many records: CurveDataStatistics will remove duplicate entries!
-            curveDataBytes_->addRecord(timeElapsed, bytesCurrent);
-            curveDataItems_->addRecord(timeElapsed, itemsCurrent);
-
-            //remaining item and byte count
-            setText(*pnl_.m_staticTextItemsRemaining, formatNumber(itemsTotal - itemsCurrent), &layoutChanged);
-            setText(*pnl_.m_staticTextBytesRemaining, L"(" + formatFilesizeShort(bytesTotal - bytesCurrent) + L")", &layoutChanged);
-            //it's possible data remaining becomes shortly negative if last file synced has ADS data and the bytesTotal was not yet corrected!
-
-            //remaining time and speed
-            assert(perf_);
-            if (perf_)
-                if (numeric::dist(timeLastSpeedEstimate_, timeElapsed) >= std::chrono::milliseconds(500))
-                {
-                    timeLastSpeedEstimate_ = timeElapsed;
-
-                    if (numeric::dist(phaseStart_, timeElapsed) >= std::chrono::seconds(1)) //discard stats for first second: probably messy
-                        perf_->addSample(timeElapsed, itemsCurrent, bytesCurrent);
-
-                    //current speed -> Win 7 copy uses 1 sec update interval instead
-                    Opt<std::wstring> bps = perf_->getBytesPerSecond();
-                    Opt<std::wstring> ips = perf_->getItemsPerSecond();
-                    pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(bps ? *bps : L"", Graph2D::CORNER_TOP_LEFT));
-                    pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(ips ? *ips : L"", Graph2D::CORNER_TOP_LEFT));
-
-                    //remaining time: display with relative error of 10% - based on samples taken every 0.5 sec only
-                    //-> call more often than once per second to correctly show last few seconds countdown, but don't call too often to avoid occasional jitter
-                    Opt<double> remTimeSec = perf_->getRemainingTimeSec(bytesTotal - bytesCurrent);
-                    setText(*pnl_.m_staticTextTimeRemaining, remTimeSec ? formatRemainingTime(*remTimeSec) : L"-", &layoutChanged);
-
-                    //update estimated total time marker with precision of "10% remaining time" only to avoid needless jumping around:
-                    const double timeRemainingSec = remTimeSec ? *remTimeSec : 0;
-                    const double timeTotalSec = timeElapsedDouble + timeRemainingSec;
-                    if (numeric::dist(curveDataBytesTotal_->getValueX(), timeTotalSec) > 0.1 * timeRemainingSec)
-                    {
-                        curveDataBytesTotal_->setValueX(timeTotalSec);
-                        curveDataItemsTotal_->setValueX(timeTotalSec);
-                        //don't forget to update these, too:
-                        curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSec, bytesCurrent);
-                        curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSec, itemsCurrent);
-                    }
-                }
-            break;
+            //update estimated total time marker with precision of "10% remaining time" only to avoid needless jumping around:
+            const double timeRemainingSec = remTimeSec ? *remTimeSec : 0;
+            const double timeTotalSec = timeElapsedDouble + timeRemainingSec;
+            if (numeric::dist(curveDataBytesTotal_->getValueX(), timeTotalSec) > 0.1 * timeRemainingSec)
+            {
+                curveDataBytesTotal_->setValueX(timeTotalSec);
+                curveDataItemsTotal_->setValueX(timeTotalSec);
+                //don't forget to update these, too:
+                curveDataBytesCurrent_->setValue(timeElapsedDouble, timeTotalSec, bytesCurrent);
+                curveDataItemsCurrent_->setValue(timeElapsedDouble, timeTotalSec, itemsCurrent);
+            }
         }
     }
+
 
     pnl_.m_panelGraphBytes->Refresh();
     pnl_.m_panelGraphItems->Refresh();
@@ -1760,7 +1173,7 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
     {
         pnl_.m_panelProgress->Layout();
         //small statistics panels:
-        //pnl.m_panelItemsProcessed->Layout();
+        //pnl.m_panelItemsProcessed ->Layout(); -> hidden
         pnl_.m_panelItemsRemaining->Layout();
         pnl_.m_panelTimeRemaining ->Layout();
         //pnl.m_panelTimeElapsed->Layout(); -> needed?
@@ -1772,25 +1185,19 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
         //support for pause button
         if (paused_)
         {
-            /*
-            ZEN_ON_SCOPE_EXIT(resumeTimer()); -> crashes on Fedora; WHY???
-            => likely compiler bug!!!
-               1. no crash on Fedora for: ZEN_ON_SCOPE_EXIT(this->resumeTimer());
-               1. no crash if we derive from wxFrame instead of template "TopLevelDialog"
-               2. no crash on Ubuntu GCC
-               3. following makes GCC crash already during compilation: auto dfd = zen::makeGuard([this]{ resumeTimer(); });
-            */
             timerSetStatus(false /*active*/);
 
+            std::weak_ptr<int> lifeSignWeak(lifeSign_);
             while (paused_)
             {
                 wxTheApp->Yield(); //receive UI message that end pause OR forceful termination!
                 //*first* refresh GUI (removing flicker) before sleeping!
                 std::this_thread::sleep_for(UI_UPDATE_INTERVAL);
+
+                //after SyncProgressDialogImpl::OnClose() called wxWindow::Destroy() on OS X this instance is instantly toast!
+                if (!lifeSignWeak.lock())
+                    return; //GTFO and don't call this->timerSetStatus(); we're fine: https://isocpp.org/wiki/faq/freestore-mgmt#delete-this
             }
-            //after SyncProgressDialogImpl::OnClose() called wxWindow::Destroy() on OS X this instance is instantly toast!
-            if (wereDead_)
-                return; //GTFO and don't call this->timerSetStatus()
 
             timerSetStatus(true /*active*/);
         }
@@ -1808,119 +1215,72 @@ void SyncProgressDialogImpl<TopLevelDialog>::updateProgressGui(bool allowYield)
 
 
 template <class TopLevelDialog>
-void SyncProgressDialogImpl<TopLevelDialog>::updateStaticGui() //depends on "syncStat_, paused_, finalResult"
+void SyncProgressDialogImpl<TopLevelDialog>::updateStaticGui() //depends on "syncStat_, paused_"
 {
-    const wxString dlgPhaseTxt = getDialogPhaseText(syncStat_, paused_, finalResult_);
+    assert(syncStat_);
+    if (!syncStat_)
+        return;
 
-    pnl_.m_staticTextPhase->SetLabel(dlgPhaseTxt);
-    //pnl_.m_bitmapStatus->SetToolTip(dlgPhaseTxt); -> redundant
+    pnl_.m_staticTextPhase->SetLabel(getDialogPhaseText(*syncStat_, paused_));
+    //pnl_.m_bitmapStatus->SetToolTip(); -> redundant
 
-    auto setStatusBitmap = [&](const wchar_t* bmpName)
-    {
-        pnl_.m_bitmapStatus->SetBitmap(getResourceImage(bmpName));
-        pnl_.m_bitmapStatus->Show();
-    };
-
-    //status bitmap
-    if (syncStat_) //sync running
+    const wxBitmap statusImage = [&]
     {
         if (paused_)
-            setStatusBitmap(L"status_pause");
-        else
+            return getResourceImage(L"status_pause");
+
+        if (syncStat_->getAbortStatus())
+            return getResourceImage(L"status_aborted");
+
+        switch (syncStat_->currentPhase())
         {
-            if (syncStat_->getAbortStatus())
-                setStatusBitmap(L"status_aborted");
-            else
-                switch (syncStat_->currentPhase())
-                {
-                    case ProcessCallback::PHASE_NONE:
-                        pnl_.m_bitmapStatus->Hide();
-                        break;
-
-                    case ProcessCallback::PHASE_SCANNING:
-                        setStatusBitmap(L"status_scanning");
-                        break;
-
-                    case ProcessCallback::PHASE_COMPARING_CONTENT:
-                        setStatusBitmap(L"status_binary_compare");
-                        break;
-
-                    case ProcessCallback::PHASE_SYNCHRONIZING:
-                        setStatusBitmap(L"status_syncing");
-                        break;
-                }
+            case ProcessCallback::PHASE_NONE:
+            case ProcessCallback::PHASE_SCANNING:
+                return getResourceImage(L"status_scanning");
+            case ProcessCallback::PHASE_COMPARING_CONTENT:
+                return getResourceImage(L"status_binary_compare");
+            case ProcessCallback::PHASE_SYNCHRONIZING:
+                return getResourceImage(L"status_syncing");
         }
-    }
-    else //sync finished
-        switch (finalResult_)
-        {
-            case RESULT_ABORTED:
-                setStatusBitmap(L"status_aborted");
-                break;
+        assert(false);
+        return wxNullBitmap;
+    }();
+    pnl_.m_bitmapStatus->SetBitmap(statusImage);
 
-            case RESULT_FINISHED_WITH_ERROR:
-                setStatusBitmap(L"status_finished_errors");
-                break;
-
-            case RESULT_FINISHED_WITH_WARNINGS:
-                setStatusBitmap(L"status_finished_warnings");
-                break;
-
-            case RESULT_FINISHED_WITH_SUCCESS:
-                setStatusBitmap(L"status_finished_success");
-                break;
-        }
 
     //show status on Windows 7 taskbar
     if (taskbar_.get())
     {
-        if (syncStat_) //sync running
-        {
-            if (paused_)
-                taskbar_->setStatus(Taskbar::STATUS_PAUSED);
-            else
-                switch (syncStat_->currentPhase())
-                {
-                    case ProcessCallback::PHASE_NONE:
-                    case ProcessCallback::PHASE_SCANNING:
-                        taskbar_->setStatus(Taskbar::STATUS_INDETERMINATE);
-                        break;
-
-                    case ProcessCallback::PHASE_COMPARING_CONTENT:
-                    case ProcessCallback::PHASE_SYNCHRONIZING:
-                        taskbar_->setStatus(Taskbar::STATUS_NORMAL);
-                        break;
-                }
-        }
-        else //sync finished
-            switch (finalResult_)
+        if (paused_)
+            taskbar_->setStatus(Taskbar::STATUS_PAUSED);
+        else
+            switch (syncStat_->currentPhase())
             {
-                case RESULT_ABORTED:
-                case RESULT_FINISHED_WITH_ERROR:
-                    taskbar_->setStatus(Taskbar::STATUS_ERROR);
+                case ProcessCallback::PHASE_NONE:
+                case ProcessCallback::PHASE_SCANNING:
+                    taskbar_->setStatus(Taskbar::STATUS_INDETERMINATE);
                     break;
 
-                case RESULT_FINISHED_WITH_WARNINGS:
-                case RESULT_FINISHED_WITH_SUCCESS:
+                case ProcessCallback::PHASE_COMPARING_CONTENT:
+                case ProcessCallback::PHASE_SYNCHRONIZING:
                     taskbar_->setStatus(Taskbar::STATUS_NORMAL);
                     break;
             }
     }
 
     //pause button
-    if (syncStat_) //sync running
-        pnl_.m_buttonPause->SetLabel(paused_ ? _("&Continue") : _("&Pause"));
+    pnl_.m_buttonPause->SetLabel(paused_ ? _("&Continue") : _("&Pause"));
 
-
-    pnl_.m_bitmapIgnoreErrors->SetBitmap(getResourceImage(pnl_.m_checkBoxIgnoreErrors->GetValue() ? L"msg_error_medium_ignored" : L"msg_error_medium"));
+    pnl_.bSizerErrorsIgnore->Show(ignoreErrors_);
 
     pnl_.Layout();
-    this->Refresh(); //a few pixels below the status text need refreshing
+    pnl_.m_panelProgress->Layout(); //for bSizerErrorsIgnore
+    //this->Refresh(); //a few pixels below the status text need refreshing -> still needed?
 }
 
 
 template <class TopLevelDialog>
-void SyncProgressDialogImpl<TopLevelDialog>::closeDirectly(bool restoreParentFrame) //this should really be called: do not call back + schedule deletion
+void SyncProgressDialogImpl<TopLevelDialog>::closeDirectly(bool restoreParentFrame) //this should really be called "do not call back + schedule deletion"
 {
     assert(syncStat_ && abortCb_);
 
@@ -1929,19 +1289,20 @@ void SyncProgressDialogImpl<TopLevelDialog>::closeDirectly(bool restoreParentFra
 
     paused_ = false; //you never know?
 
+    //resumeFromSystray(); -> NO, instead ~SyncProgressDialogImpl() makes sure that main dialog is shown again! e.g. avoid calls to this/parentFrame_->Raise()
+
     //ATTENTION: dialog may live a little longer, so watch callbacks!
     //e.g. wxGTK calls OnIconize after wxWindow::Close() (better not ask why) and before physical destruction! => indirectly calls updateStaticGui(), which reads syncStat_!!!
     syncStat_ = nullptr;
     abortCb_  = nullptr;
 
-    //resumeFromSystray(); -> NO, instead ~SyncProgressDialogImpl() makes sure that main dialog is shown again! e.g. avoid calls to this/parentFrame_->Raise()
-
     this->Close(); //generate close event: do NOT destroy window unconditionally!
 }
 
 
+//essential to call this in StatusHandler derived class destructor
 template <class TopLevelDialog>
-void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, const ErrorLog& log) //essential to call this in StatusHandler derived class destructor
+void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult finalStatus, const std::shared_ptr<const ErrorLog>& log /*bound!*/)
 {
     assert(syncStat_ && abortCb_);
     //at the LATEST(!) to prevent access to currentStatusHandler
@@ -1954,58 +1315,90 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
     //update numbers one last time (as if sync were still running)
     notifyProgressChange(); //make one last graph entry at the *current* time
     updateProgressGui(false /*allowYield*/);
+    //===================================================================================
 
-    switch (syncStat_->currentPhase()) //no matter if paused or not
+    const int     itemsProcessed = syncStat_->getStatsCurrent(syncStat_->currentPhase()).items;
+    const int64_t bytesProcessed = syncStat_->getStatsCurrent(syncStat_->currentPhase()).bytes;
+    const int     itemsTotal     = syncStat_->getStatsTotal  (syncStat_->currentPhase()).items;
+    const int64_t bytesTotal     = syncStat_->getStatsTotal  (syncStat_->currentPhase()).bytes;
+
+    //set overall speed (instead of current speed)
+    const double timeDelta = std::chrono::duration<double>(stopWatch_.elapsed() - phaseStart_).count();
+    //we need to consider "time within current phase" not total "timeElapsed"!
+
+    const wxString overallBytesPerSecond = numeric::isNull(timeDelta) ? std::wstring() :
+                                           replaceCpy(_("%x/sec"), L"%x", formatFilesizeShort(numeric::round(bytesProcessed / timeDelta)));
+    const wxString overallItemsPerSecond = numeric::isNull(timeDelta) ? std::wstring() :
+                                           replaceCpy(_("%x/sec"), L"%x", replaceCpy(_("%x items"), L"%x", formatThreeDigitPrecision(itemsProcessed / timeDelta)));
+
+    pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(overallBytesPerSecond, Graph2D::CORNER_TOP_LEFT));
+    pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(overallItemsPerSecond, Graph2D::CORNER_TOP_LEFT));
+
+
+    //show new info box "items processed"
+    pnl_.m_panelItemsProcessed->Show();
+    pnl_.m_staticTextItemsProcessed->SetLabel(              formatNumber(itemsProcessed));
+    pnl_.m_staticTextBytesProcessed->SetLabel(L"(" + formatFilesizeShort(bytesProcessed) + L")");
+
+
+    if ((itemsTotal < 0 && bytesTotal < 0) || //no total items/bytes: e.g. for pure folder comparison
+        (itemsProcessed == itemsTotal && //
+         bytesProcessed == bytesTotal))  //...if everything was processed successfully
+        pnl_.m_panelItemsRemaining->Hide();
+    else
     {
-        case ProcessCallback::PHASE_NONE:
-        case ProcessCallback::PHASE_SCANNING:
-            //set overall speed -> not needed
-            //items processed -> not needed
-            break;
-
-        case ProcessCallback::PHASE_COMPARING_CONTENT:
-        case ProcessCallback::PHASE_SYNCHRONIZING:
-        {
-            const int     itemsCurrent = syncStat_->getItemsCurrent(syncStat_->currentPhase());
-            const int     itemsTotal   = syncStat_->getItemsTotal  (syncStat_->currentPhase());
-            const int64_t bytesCurrent = syncStat_->getBytesCurrent(syncStat_->currentPhase());
-            const int64_t bytesTotal   = syncStat_->getBytesTotal  (syncStat_->currentPhase());
-            assert(bytesCurrent <= bytesTotal);
-
-            //set overall speed (instead of current speed)
-            const double timeDelta = std::chrono::duration<double>(stopWatch_.elapsed() - phaseStart_).count();
-            //we need to consider "time within current phase" not total "timeElapsed"!
-
-            const wxString overallBytesPerSecond = numeric::isNull(timeDelta) ? std::wstring() : formatFilesizeShort(numeric::round(bytesCurrent / timeDelta)) + _("/sec");
-            const wxString overallItemsPerSecond = numeric::isNull(timeDelta) ? std::wstring() : replaceCpy(_("%x items/sec"), L"%x", formatThreeDigitPrecision(itemsCurrent / timeDelta));
-
-            pnl_.m_panelGraphBytes->setAttributes(pnl_.m_panelGraphBytes->getAttributes().setCornerText(overallBytesPerSecond, Graph2D::CORNER_TOP_LEFT));
-            pnl_.m_panelGraphItems->setAttributes(pnl_.m_panelGraphItems->getAttributes().setCornerText(overallItemsPerSecond, Graph2D::CORNER_TOP_LEFT));
-
-            //show new element "items processed"
-            pnl_.m_panelItemsProcessed->Show();
-            pnl_.m_staticTextItemsProcessed->SetLabel(formatNumber(itemsCurrent));
-            pnl_.m_staticTextBytesProcessed->SetLabel(L"(" + formatFilesizeShort(bytesCurrent) + L")");
-
-            //hide remaining elements...
-            if (itemsCurrent == itemsTotal && //...if everything was processed successfully
-                bytesCurrent == bytesTotal)
-                pnl_.m_panelItemsRemaining->Hide();
-        }
-        break;
+        pnl_.m_staticTextItemsRemaining->SetLabel(              formatNumber(itemsTotal - itemsProcessed));
+        pnl_.m_staticTextBytesRemaining->SetLabel(L"(" + formatFilesizeShort(bytesTotal - bytesProcessed) + L")");
     }
 
-    //------- change class state -------
-    finalResult_ = resultId;
+    //hide remaining time
+    pnl_.m_panelTimeRemaining->Hide();
 
+    resumeFromSystray(); //if in tray mode...
+
+    //------- change class state -------
     syncStat_ = nullptr;
     abortCb_  = nullptr;
     //----------------------------------
 
-    updateStaticGui();
-    setExternalStatus(getDialogPhaseText(syncStat_, paused_, finalResult_), wxString());
+    const wxBitmap statusImage = [&]
+    {
+        switch (finalStatus)
+        {
+            case SyncResult::FINISHED_WITH_SUCCESS:
+                return getResourceImage(L"status_finished_success");
+            case SyncResult::FINISHED_WITH_WARNINGS:
+                return getResourceImage(L"status_finished_warnings");
+            case SyncResult::FINISHED_WITH_ERROR:
+                return getResourceImage(L"status_finished_errors");
+            case SyncResult::ABORTED:
+                return getResourceImage(L"status_aborted");
+        }
+        assert(false);
+        return wxNullBitmap;
+    }();
+    pnl_.m_bitmapStatus->SetBitmap(statusImage);
 
-    resumeFromSystray(); //if in tray mode...
+    pnl_.m_staticTextPhase->SetLabel(getFinalStatusLabel(finalStatus));
+    //pnl_.m_bitmapStatus->SetToolTip(); -> redundant
+
+    //show status on Windows 7 taskbar
+    if (taskbar_.get())
+        switch (finalStatus)
+        {
+            case SyncResult::FINISHED_WITH_SUCCESS:
+            case SyncResult::FINISHED_WITH_WARNINGS:
+                taskbar_->setStatus(Taskbar::STATUS_NORMAL);
+                break;
+
+            case SyncResult::FINISHED_WITH_ERROR:
+            case SyncResult::ABORTED:
+                taskbar_->setStatus(Taskbar::STATUS_ERROR);
+                break;
+        }
+    //----------------------------------
+
+    setExternalStatus(getFinalStatusLabel(finalStatus), wxString());
 
     //this->EnableCloseButton(true);
 
@@ -2032,17 +1425,14 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
 
     pnl_.m_staticlineFooter->Hide(); //win: m_notebookResult already has a window frame
 
-    //hide remaining time
-    pnl_.m_panelTimeRemaining->Hide();
-
     //-------------------------------------------------------------
 
-    pnl_.m_notebookResult->SetPadding(wxSize(2, 0)); //height cannot be changed
+    pnl_.m_notebookResult->SetPadding(wxSize(fastFromDIP(2), 0)); //height cannot be changed
 
+    //1. re-arrange graph into results listbook
     const size_t pagePosProgress = 0;
     const size_t pagePosLog      = 1;
 
-    //1. re-arrange graph into results listbook
     const bool wasDetached = pnl_.bSizerRoot->Detach(pnl_.m_panelProgress);
     assert(wasDetached);
     (void)wasDetached;
@@ -2051,17 +1441,16 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
 
     //2. log file
     assert(pnl_.m_notebookResult->GetPageCount() == 1);
-    LogPanel* logPanel = new LogPanel(pnl_.m_notebookResult, log); //owned by m_notebookResult
+    LogPanel* logPanel = new LogPanel(pnl_.m_notebookResult); //owned by m_notebookResult
+    logPanel->setLog(log);
     pnl_.m_notebookResult->AddPage(logPanel, _("Log"), false /*bSelect*/);
-    //bSizerHoldStretch->Insert(0, logPanel, 1, wxEXPAND);
 
     //show log instead of graph if errors occurred! (not required for ignored warnings)
-    if (log.getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR) > 0)
+    if (log->getItemCount(MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR) > 0)
         pnl_.m_notebookResult->ChangeSelection(pagePosLog);
 
     //fill image list to cope with wxNotebook image setting design desaster...
-    const int imgListSize = getResourceImage(L"log_file_small").GetHeight();
-    assert(imgListSize == 16); //Windows default size for panel caption
+    const int imgListSize = getResourceImage(L"log_file_sicon").GetHeight();
     auto imgList = std::make_unique<wxImageList>(imgListSize, imgListSize);
 
     auto addToImageList = [&](const wxBitmap& bmp)
@@ -2070,8 +1459,8 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
         assert(bmp.GetHeight() <= imgListSize);
         imgList->Add(bmp);
     };
-    addToImageList(getResourceImage(L"progress_small"));
-    addToImageList(getResourceImage(L"log_file_small"));
+    addToImageList(getResourceImage(L"progress_sicon"));
+    addToImageList(getResourceImage(L"log_file_sicon"));
 
     pnl_.m_notebookResult->AssignImageList(imgList.release()); //pass ownership
 
@@ -2088,26 +1477,26 @@ void SyncProgressDialogImpl<TopLevelDialog>::showSummary(SyncResult resultId, co
     //small statistics panels:
     pnl_.m_panelItemsProcessed->Layout();
     pnl_.m_panelItemsRemaining->Layout();
-    //pnl.m_panelTimeRemaining->Layout();
+    //pnl.m_panelTimeRemaining->Layout(); -> hidden
     //pnl.m_panelTimeElapsed->Layout(); -> needed?
 
     //play (optional) sound notification after sync has completed -> only play when waiting on results dialog, seems to be pointless otherwise!
-    switch (finalResult_)
+    switch (finalStatus)
     {
-        case SyncProgressDialog::RESULT_ABORTED:
+        case SyncResult::ABORTED:
             break;
-        case SyncProgressDialog::RESULT_FINISHED_WITH_ERROR:
-        case SyncProgressDialog::RESULT_FINISHED_WITH_WARNINGS:
-        case SyncProgressDialog::RESULT_FINISHED_WITH_SUCCESS:
+        case SyncResult::FINISHED_WITH_ERROR:
+        case SyncResult::FINISHED_WITH_WARNINGS:
+        case SyncResult::FINISHED_WITH_SUCCESS:
             if (!soundFileSyncComplete_.empty())
             {
-                const Zstring soundFilePath = getResourceDirPf() + soundFileSyncComplete_;
+                const Zstring soundFilePath = getResourceDirPf() + Zstr("Misc") + FILE_NAME_SEPARATOR + soundFileSyncComplete_;
                 if (fileAvailable(soundFilePath))
                     wxSound::Play(utfTo<wxString>(soundFilePath), wxSOUND_ASYNC);
                 //warning: this may fail and show a wxWidgets error message! => must not play when running FFS without user interaction!
             }
             //if (::GetForegroundWindow() != GetHWND())
-            //  RequestUserAttention(); -> probably too much since task bar already alreay is colorized with Taskbar::STATUS_ERROR or STATUS_NORMAL
+            //  RequestUserAttention(); -> probably too much since task bar is already colorized with Taskbar::STATUS_ERROR or STATUS_NORMAL
             break;
     }
 
@@ -2129,7 +1518,7 @@ void SyncProgressDialogImpl<TopLevelDialog>::OnCancel(wxCommandEvent& event)
 
     paused_ = false;
     updateStaticGui(); //update status + pause button
-    //no Layout() or UI-update here to avoid cascaded Yield()-call!
+    //no UI-update here to avoid cascaded Yield()-call!
 }
 
 
@@ -2159,7 +1548,6 @@ void SyncProgressDialogImpl<TopLevelDialog>::OnClose(wxCloseEvent& event)
     syncStat_ = nullptr;
     abortCb_  = nullptr;
 
-    wereDead_ = true;
     this->Destroy(); //wxWidgets OS X: simple "delete"!!!!!!!
 }
 
@@ -2250,6 +1638,7 @@ SyncProgressDialog* fff::createProgressDialog(AbortCallback& abortCb,
                                               const wxString& jobName,
                                               const Zstring& soundFileSyncComplete,
                                               bool ignoreErrors,
+                                              size_t automaticRetryCount,
                                               PostSyncAction2 postSyncAction)
 {
     if (parentWindow) //sync from GUI
@@ -2258,13 +1647,13 @@ SyncProgressDialog* fff::createProgressDialog(AbortCallback& abortCb,
         //https://groups.google.com/forum/#!topic/wx-users/J5SjjLaBOQE
         return new SyncProgressDialogImpl<wxDialog>(wxDEFAULT_DIALOG_STYLE | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxRESIZE_BORDER,
         [&](wxDialog& progDlg) { return parentWindow; },
-        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
+        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, automaticRetryCount, postSyncAction);
     }
     else //FFS batch job
     {
         auto dlg = new SyncProgressDialogImpl<wxFrame>(wxDEFAULT_FRAME_STYLE,
         [](wxFrame& progDlg) { return &progDlg; },
-        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, postSyncAction);
+        abortCb, notifyWindowTerminate, syncStat, parentWindow, showProgress, autoCloseDialog, jobName, soundFileSyncComplete, ignoreErrors, automaticRetryCount, postSyncAction);
 
         //only top level windows should have an icon:
         dlg->SetIcon(getFfsIcon());

@@ -9,23 +9,8 @@
 
 #include <cassert>
 #include <exception>
-#include "type_tools.h"
-
-
-//std::uncaught_exceptions() currently unsupported on GCC and Clang => clean up ASAP
-    static_assert(__GNUC__ < 7 || (__GNUC__ == 7 && (__GNUC_MINOR__ < 3 || (__GNUC_MINOR__ == 3 && __GNUC_PATCHLEVEL__ <= 0))), "check std::uncaught_exceptions support");
-
-namespace __cxxabiv1
-{
-struct __cxa_eh_globals;
-extern "C" __cxa_eh_globals* __cxa_get_globals() noexcept;
-}
-
-inline
-int getUncaughtExceptionCount()
-{
-    return *(reinterpret_cast<unsigned int*>(static_cast<char*>(static_cast<void*>(__cxxabiv1::__cxa_get_globals())) + sizeof(void*)));
-}
+#include "type_traits.h"
+#include "legacy_compiler.h" //std::uncaught_exceptions
 
 //best of Zen, Loki and C++17
 
@@ -53,7 +38,7 @@ enum class ScopeGuardRunMode
 
 //partially specialize scope guard destructor code and get rid of those pesky MSVC "4127 conditional expression is constant"
 template <typename F> inline
-void runScopeGuardDestructor(F& fun, int /*exeptionCountOld*/, StaticEnum<ScopeGuardRunMode, ScopeGuardRunMode::ON_EXIT>)
+void runScopeGuardDestructor(F& fun, int /*exeptionCountOld*/, std::integral_constant<ScopeGuardRunMode, ScopeGuardRunMode::ON_EXIT>)
 {
     try { fun(); }
     catch (...) { assert(false); } //consistency: don't expect exceptions for ON_EXIT even if "!failed"!
@@ -61,18 +46,18 @@ void runScopeGuardDestructor(F& fun, int /*exeptionCountOld*/, StaticEnum<ScopeG
 
 
 template <typename F> inline
-void runScopeGuardDestructor(F& fun, int exeptionCountOld, StaticEnum<ScopeGuardRunMode, ScopeGuardRunMode::ON_SUCCESS>)
+void runScopeGuardDestructor(F& fun, int exeptionCountOld, std::integral_constant<ScopeGuardRunMode, ScopeGuardRunMode::ON_SUCCESS>)
 {
-    const bool failed = getUncaughtExceptionCount() > exeptionCountOld;
+    const bool failed = std::uncaught_exceptions() > exeptionCountOld;
     if (!failed)
         fun(); //throw X
 }
 
 
 template <typename F> inline
-void runScopeGuardDestructor(F& fun, int exeptionCountOld, StaticEnum<ScopeGuardRunMode, ScopeGuardRunMode::ON_FAIL>)
+void runScopeGuardDestructor(F& fun, int exeptionCountOld, std::integral_constant<ScopeGuardRunMode, ScopeGuardRunMode::ON_FAIL>)
 {
-    const bool failed = getUncaughtExceptionCount() > exeptionCountOld;
+    const bool failed = std::uncaught_exceptions() > exeptionCountOld;
     if (failed)
         try { fun(); }
         catch (...) { assert(false); }
@@ -93,7 +78,7 @@ public:
     ~ScopeGuard() noexcept(runMode != ScopeGuardRunMode::ON_SUCCESS)
     {
         if (!dismissed_)
-            runScopeGuardDestructor(fun_, exeptionCount_, StaticEnum<ScopeGuardRunMode, runMode>());
+            runScopeGuardDestructor(fun_, exeptionCount_, std::integral_constant<ScopeGuardRunMode, runMode>());
     }
 
     void dismiss() { dismissed_ = true; }
@@ -103,7 +88,7 @@ private:
     ScopeGuard& operator=(const ScopeGuard&) = delete;
 
     F fun_;
-    const int exeptionCount_ = getUncaughtExceptionCount();
+    const int exeptionCount_ = std::uncaught_exceptions();
     bool dismissed_ = false;
 };
 
@@ -115,8 +100,12 @@ auto makeGuard(F&& fun) { return ScopeGuard<runMode, std::decay_t<F>>(std::forwa
 #define ZEN_CONCAT_SUB(X, Y) X ## Y
 #define ZEN_CONCAT(X, Y) ZEN_CONCAT_SUB(X, Y)
 
-#define ZEN_ON_SCOPE_EXIT(X)    auto ZEN_CONCAT(dummy, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_EXIT   >([&]{ X; }); (void)ZEN_CONCAT(dummy, __LINE__);
-#define ZEN_ON_SCOPE_FAIL(X)    auto ZEN_CONCAT(dummy, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_FAIL   >([&]{ X; }); (void)ZEN_CONCAT(dummy, __LINE__);
-#define ZEN_ON_SCOPE_SUCCESS(X) auto ZEN_CONCAT(dummy, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_SUCCESS>([&]{ X; }); (void)ZEN_CONCAT(dummy, __LINE__);
+#define ZEN_CHECK_CASE_FOR_CONSTANT(X) case X: return ZEN_CHECK_CASE_FOR_CONSTANT_IMPL(#X)
+#define ZEN_CHECK_CASE_FOR_CONSTANT_IMPL(X) L ## X
+
+
+#define ZEN_ON_SCOPE_EXIT(X)    auto ZEN_CONCAT(scopeGuard, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_EXIT   >([&]{ X; }); (void)ZEN_CONCAT(scopeGuard, __LINE__);
+#define ZEN_ON_SCOPE_FAIL(X)    auto ZEN_CONCAT(scopeGuard, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_FAIL   >([&]{ X; }); (void)ZEN_CONCAT(scopeGuard, __LINE__);
+#define ZEN_ON_SCOPE_SUCCESS(X) auto ZEN_CONCAT(scopeGuard, __LINE__) = zen::makeGuard<zen::ScopeGuardRunMode::ON_SUCCESS>([&]{ X; }); (void)ZEN_CONCAT(scopeGuard, __LINE__);
 
 #endif //SCOPE_GUARD_H_8971632487321434

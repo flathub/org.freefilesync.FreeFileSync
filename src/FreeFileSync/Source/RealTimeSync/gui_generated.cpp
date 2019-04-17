@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  6 2017)
+// C++ code generated with wxFormBuilder (version May 29 2018)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO *NOT* EDIT THIS FILE!
@@ -87,7 +87,7 @@ MainDlgGenerated::MainDlgGenerated( wxWindow* parent, wxWindowID id, const wxStr
 
     bSizer161->Add( bSizer16, 0, 0, 5 );
 
-    m_staticText811 = new wxStaticText( this, wxID_ANY, _("To get started just import a .ffs_batch file."), wxDefaultPosition, wxDefaultSize, 0 );
+    m_staticText811 = new wxStaticText( this, wxID_ANY, _("To get started just import a \"ffs_batch\" file."), wxDefaultPosition, wxDefaultSize, 0 );
     m_staticText811->Wrap( -1 );
     m_staticText811->SetForegroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_GRAYTEXT ) );
 
@@ -108,9 +108,18 @@ MainDlgGenerated::MainDlgGenerated( wxWindow* parent, wxWindowID id, const wxStr
     wxBoxSizer* bSizer151;
     bSizer151 = new wxBoxSizer( wxVERTICAL );
 
+    wxBoxSizer* bSizer142;
+    bSizer142 = new wxBoxSizer( wxHORIZONTAL );
+
+    m_bitmapFolders = new wxStaticBitmap( m_panelMain, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
+    bSizer142->Add( m_bitmapFolders, 0, wxTOP|wxBOTTOM|wxLEFT, 5 );
+
     m_staticText7 = new wxStaticText( m_panelMain, wxID_ANY, _("Folders to watch:"), wxDefaultPosition, wxDefaultSize, 0 );
     m_staticText7->Wrap( -1 );
-    bSizer151->Add( m_staticText7, 0, wxALL, 5 );
+    bSizer142->Add( m_staticText7, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
+
+
+    bSizer151->Add( bSizer142, 0, 0, 5 );
 
     m_panelMainFolder = new wxPanel( m_panelMain, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     m_panelMainFolder->SetBackgroundColour( wxSystemSettings::GetColour( wxSYS_COLOUR_WINDOW ) );
@@ -131,32 +140,32 @@ MainDlgGenerated::MainDlgGenerated( wxWindow* parent, wxWindowID id, const wxStr
     wxBoxSizer* bSizer20;
     bSizer20 = new wxBoxSizer( wxHORIZONTAL );
 
-    m_bpButtonAddFolder = new wxBitmapButton( m_panelMainFolder, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( 25, 25 ), wxBU_AUTODRAW );
+    m_bpButtonAddFolder = new wxBitmapButton( m_panelMainFolder, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( -1, -1 ), wxBU_AUTODRAW );
     m_bpButtonAddFolder->SetToolTip( _("Add folder") );
 
-    bSizer20->Add( m_bpButtonAddFolder, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5 );
+    bSizer20->Add( m_bpButtonAddFolder, 0, wxEXPAND, 5 );
 
-    m_bpButtonRemoveTopFolder = new wxBitmapButton( m_panelMainFolder, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( 25, 25 ), wxBU_AUTODRAW );
+    m_bpButtonRemoveTopFolder = new wxBitmapButton( m_panelMainFolder, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( -1, -1 ), wxBU_AUTODRAW );
     m_bpButtonRemoveTopFolder->SetToolTip( _("Remove folder") );
 
-    bSizer20->Add( m_bpButtonRemoveTopFolder, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5 );
+    bSizer20->Add( m_bpButtonRemoveTopFolder, 0, wxEXPAND, 5 );
 
 
-    fgSizer1->Add( bSizer20, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5 );
+    fgSizer1->Add( bSizer20, 0, wxEXPAND, 5 );
 
     wxBoxSizer* bSizer19;
     bSizer19 = new wxBoxSizer( wxHORIZONTAL );
 
-    m_txtCtrlDirectoryMain = new wxTextCtrl( m_panelMainFolder, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( 300, -1 ), 0 );
+    m_txtCtrlDirectoryMain = new wxTextCtrl( m_panelMainFolder, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize( -1, -1 ), 0 );
     bSizer19->Add( m_txtCtrlDirectoryMain, 1, wxALIGN_CENTER_VERTICAL, 5 );
 
     m_buttonSelectFolderMain = new wxButton( m_panelMainFolder, wxID_ANY, _("Browse"), wxDefaultPosition, wxDefaultSize, 0 );
     m_buttonSelectFolderMain->SetToolTip( _("Select a folder") );
 
-    bSizer19->Add( m_buttonSelectFolderMain, 0, wxALIGN_CENTER_VERTICAL, 5 );
+    bSizer19->Add( m_buttonSelectFolderMain, 0, wxEXPAND, 5 );
 
 
-    fgSizer1->Add( bSizer19, 0, wxEXPAND|wxALIGN_CENTER_VERTICAL, 5 );
+    fgSizer1->Add( bSizer19, 0, wxEXPAND, 5 );
 
 
     m_panelMainFolder->SetSizer( fgSizer1 );
@@ -203,14 +212,23 @@ MainDlgGenerated::MainDlgGenerated( wxWindow* parent, wxWindowID id, const wxStr
     wxBoxSizer* bSizer141;
     bSizer141 = new wxBoxSizer( wxVERTICAL );
 
+    wxBoxSizer* bSizer13;
+    bSizer13 = new wxBoxSizer( wxHORIZONTAL );
+
+    m_bitmapCommand = new wxStaticBitmap( m_panelMain, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0 );
+    bSizer13->Add( m_bitmapCommand, 0, wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
+
     m_staticText6 = new wxStaticText( m_panelMain, wxID_ANY, _("Command line:"), wxDefaultPosition, wxDefaultSize, 0 );
     m_staticText6->Wrap( -1 );
-    bSizer141->Add( m_staticText6, 0, wxALL, 5 );
+    bSizer13->Add( m_staticText6, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
+
+
+    bSizer141->Add( bSizer13, 0, 0, 5 );
 
     m_textCtrlCommand = new wxTextCtrl( m_panelMain, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
     m_textCtrlCommand->SetToolTip( _("The command is triggered if:\n- files or subfolders change\n- new folders arrive (e.g. USB stick insert)") );
 
-    bSizer141->Add( m_textCtrlCommand, 0, wxBOTTOM|wxRIGHT|wxLEFT|wxEXPAND, 5 );
+    bSizer141->Add( m_textCtrlCommand, 0, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 
 
     bSizer1->Add( bSizer141, 0, wxALL|wxEXPAND, 5 );
@@ -261,10 +279,10 @@ FolderGenerated::FolderGenerated( wxWindow* parent, wxWindowID id, const wxPoint
     wxBoxSizer* bSizer114;
     bSizer114 = new wxBoxSizer( wxHORIZONTAL );
 
-    m_bpButtonRemoveFolder = new wxBitmapButton( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( 25, 25 ), wxBU_AUTODRAW );
+    m_bpButtonRemoveFolder = new wxBitmapButton( this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize( -1, -1 ), wxBU_AUTODRAW );
     m_bpButtonRemoveFolder->SetToolTip( _("Remove folder") );
 
-    bSizer114->Add( m_bpButtonRemoveFolder, 0, wxALIGN_CENTER_VERTICAL, 5 );
+    bSizer114->Add( m_bpButtonRemoveFolder, 0, wxEXPAND, 5 );
 
     m_txtCtrlDirectory = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
     bSizer114->Add( m_txtCtrlDirectory, 1, wxALIGN_CENTER_VERTICAL, 5 );
@@ -272,7 +290,7 @@ FolderGenerated::FolderGenerated( wxWindow* parent, wxWindowID id, const wxPoint
     m_buttonSelectFolder = new wxButton( this, wxID_ANY, _("Browse"), wxDefaultPosition, wxDefaultSize, 0 );
     m_buttonSelectFolder->SetToolTip( _("Select a folder") );
 
-    bSizer114->Add( m_buttonSelectFolder, 0, wxALIGN_CENTER_VERTICAL, 5 );
+    bSizer114->Add( m_buttonSelectFolder, 0, wxEXPAND, 5 );
 
 
     this->SetSizer( bSizer114 );

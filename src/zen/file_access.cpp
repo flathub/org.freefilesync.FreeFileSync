@@ -14,8 +14,8 @@
 #include "symlink_target.h"
 #include "file_id_def.h"
 #include "file_io.h"
-#include "crc.h"  //boost dependency!
-#include "guid.h" //
+#include "crc.h"
+#include "guid.h"
 
     #include <sys/vfs.h> //statfs
     #include <sys/time.h> //lutimes
@@ -30,27 +30,59 @@
 using namespace zen;
 
 
-Opt<PathComponents> zen::parsePathComponents(const Zstring& itemPath)
+std::optional<PathComponents> zen::parsePathComponents(const Zstring& itemPath)
 {
-    if (startsWith(itemPath, "/"))
+    auto doParse = [&](int sepCountVolumeRoot, bool rootWithSep) -> std::optional<PathComponents>
     {
-        Zstring relPath(itemPath.c_str() + 1);
-        if (endsWith(relPath, FILE_NAME_SEPARATOR))
-            relPath.pop_back();
-        return PathComponents({ "/", relPath });
-    }
-    //we do NOT support relative paths!
-    return NoValue();
+        const Zstring itemPathFmt = appendSeparator(itemPath); //simplify analysis of root without separator, e.g. \\server-name\share
+        int sepCount = 0;
+        for (auto it = itemPathFmt.begin(); it != itemPathFmt.end(); ++it)
+            if (*it == FILE_NAME_SEPARATOR)
+                if (++sepCount == sepCountVolumeRoot)
+                {
+                    Zstring rootPath(itemPathFmt.begin(), rootWithSep ? it + 1 : it);
+
+                    Zstring relPath(it + 1, itemPathFmt.end());
+                    trim(relPath, true, true, [](Zchar c) { return c == FILE_NAME_SEPARATOR; });
+
+                    return PathComponents({ rootPath, relPath });
+                }
+        return {};
+    };
+
+    std::optional<PathComponents> pc; //"/media/zenju/" and "/Volumes/" should not fail to parse
+
+    if (!pc && startsWith(itemPath, "/mnt/")) //e.g. /mnt/DEVICE_NAME
+        pc = doParse(3 /*sepCountVolumeRoot*/, false /*rootWithSep*/);
+
+    if (!pc && startsWith(itemPath, "/media/")) //Ubuntu: e.g. /media/zenju/DEVICE_NAME
+        if (const char* username = ::getenv("USER"))
+            if (startsWith(itemPath, std::string("/media/") + username + "/"))
+                pc = doParse(4 /*sepCountVolumeRoot*/, false /*rootWithSep*/);
+
+    if (!pc && startsWith(itemPath, "/run/media/")) //CentOS, Suse: e.g. /run/media/zenju/DEVICE_NAME
+        if (const char* username = ::getenv("USER"))
+            if (startsWith(itemPath, std::string("/run/media/") + username + "/"))
+                pc = doParse(5 /*sepCountVolumeRoot*/, false /*rootWithSep*/);
+
+    if (!pc && startsWith(itemPath, "/run/user/")) //Ubuntu, e.g.: /run/user/1000/gvfs/smb-share:server=192.168.62.145,share=folder
+        if (startsWith(itemPath, "/run/user/" + numberTo<std::string>(::getuid()) + "/gvfs/")) //::getuid() never fails
+            pc = doParse(6 /*sepCountVolumeRoot*/, false /*rootWithSep*/);
+
+
+    if (!pc && startsWith(itemPath, "/"))
+        pc = doParse(1 /*sepCountVolumeRoot*/, true /*rootWithSep*/);
+
+    return pc;
 }
 
 
-
-Opt<Zstring> zen::getParentFolderPath(const Zstring& itemPath)
+std::optional<Zstring> zen::getParentFolderPath(const Zstring& itemPath)
 {
-    if (const Opt<PathComponents> comp = parsePathComponents(itemPath))
+    if (const std::optional<PathComponents> comp = parsePathComponents(itemPath))
     {
         if (comp->relPath.empty())
-            return NoValue();
+            return {};
 
         const Zstring parentRelPath = beforeLast(comp->relPath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
         if (parentRelPath.empty())
@@ -58,7 +90,7 @@ Opt<Zstring> zen::getParentFolderPath(const Zstring& itemPath)
         return appendSeparator(comp->rootPath) + parentRelPath;
     }
     assert(false);
-    return NoValue();
+    return {};
 }
 
 
@@ -76,49 +108,40 @@ ItemType zen::getItemType(const Zstring& itemPath) //throw FileError
 }
 
 
-PathStatus zen::getPathStatus(const Zstring& itemPath) //throw FileError
+std::optional<ItemType> zen::itemStillExists(const Zstring& itemPath) //throw FileError
 {
-    const Opt<Zstring> parentPath = getParentFolderPath(itemPath);
     try
     {
-        return { getItemType(itemPath), itemPath, {} }; //throw FileError
+        return getItemType(itemPath); //throw FileError
     }
-    catch (FileError&)
+    catch (const FileError& e) //not existing or access error
     {
+        const std::optional<Zstring> parentPath = getParentFolderPath(itemPath);
         if (!parentPath) //device root
             throw;
         //else: let's dig deeper... don't bother checking Win32 codes; e.g. not existing item may have the codes:
         //  ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, ERROR_INVALID_NAME, ERROR_INVALID_DRIVE,
         //  ERROR_NOT_READY, ERROR_INVALID_PARAMETER, ERROR_BAD_PATHNAME, ERROR_BAD_NETPATH => not reliable
+
+        const Zstring itemName = afterLast(itemPath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
+        assert(!itemName.empty());
+
+        const std::optional<ItemType> parentType = itemStillExists(*parentPath); //throw FileError
+        if (parentType && *parentType != ItemType::FILE /*obscure, but possible (and not an error)*/)
+            try
+            {
+                traverseFolder(*parentPath,
+                [&](const    FileInfo& fi) { if (fi.itemName == itemName) throw ItemType::FILE;    },
+                [&](const  FolderInfo& fi) { if (fi.itemName == itemName) throw ItemType::FOLDER;  },
+                [&](const SymlinkInfo& si) { if (si.itemName == itemName) throw ItemType::SYMLINK; },
+                [](const std::wstring& errorMsg) { throw FileError(errorMsg); });
+            }
+            catch (const ItemType&) //finding the item after getItemType() previously failed is exceptional
+            {
+                throw e; //yes, slicing
+            }
+        return {};
     }
-    const Zstring itemName = afterLast(itemPath, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
-    assert(!itemName.empty());
-
-    PathStatus ps = getPathStatus(*parentPath); //throw FileError
-    if (ps.relPath.empty() &&
-        ps.existingType != ItemType::FILE) //obscure, but possible (and not an error)
-        try
-        {
-            traverseFolder(*parentPath,
-            [&](const FileInfo&    fi) { if (equalFilePath(fi.itemName, itemName)) throw ItemType::FILE; },
-            [&](const FolderInfo&  fi) { if (equalFilePath(fi.itemName, itemName)) throw ItemType::FOLDER; },
-            [&](const SymlinkInfo& si) { if (equalFilePath(si.itemName, itemName)) throw ItemType::SYMLINK; },
-            [](const std::wstring& errorMsg) { throw FileError(errorMsg); });
-        }
-        catch (const ItemType& type) { return { type, itemPath, {} }; } //yes, exceptions for control-flow are bad design... but, but...
-    //we're not CPU-bound here and finding the item after getItemType() previously failed is exceptional (even C:\pagefile.sys should be found)
-
-    ps.relPath.push_back(itemName);
-    return ps;
-}
-
-
-Opt<ItemType> zen::getItemTypeIfExists(const Zstring& itemPath) //throw FileError
-{
-    const PathStatus pd = getPathStatus(itemPath); //throw FileError
-    if (pd.relPath.empty())
-        return pd.existingType;
-    return NoValue();
 }
 
 
@@ -142,28 +165,8 @@ bool zen::dirAvailable(const Zstring& dirPath) //noexcept
 }
 
 
-bool zen::itemNotExisting(const Zstring& itemPath)
-{
-    try
-    {
-        return !getItemTypeIfExists(itemPath); //throw FileError
-    }
-    catch (FileError&) { return false; }
-}
-
-
 namespace
 {
-}
-
-
-uint64_t zen::getFileSize(const Zstring& filePath) //throw FileError
-{
-    struct ::stat fileInfo = {};
-    if (::stat(filePath.c_str(), &fileInfo) != 0)
-        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot read file attributes of %x."), L"%x", fmtPath(filePath)), L"stat");
-
-    return fileInfo.st_size;
 }
 
 
@@ -187,12 +190,22 @@ VolumeId zen::getVolumeId(const Zstring& itemPath) //throw FileError
 }
 
 
+uint64_t zen::getFileSize(const Zstring& filePath) //throw FileError
+{
+    struct ::stat fileInfo = {};
+    if (::stat(filePath.c_str(), &fileInfo) != 0)
+        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot read file attributes of %x."), L"%x", fmtPath(filePath)), L"stat");
+
+    return fileInfo.st_size;
+}
+
+
 Zstring zen::getTempFolderPath() //throw FileError
 {
-    const char* buf = ::getenv("TMPDIR"); //no extended error reporting
-    if (!buf)
-        throw FileError(_("Cannot get process information."), L"getenv: TMPDIR not found.");
-    return buf;
+    if (const char* buf = ::getenv("TMPDIR")) //no extended error reporting
+        return buf;
+
+    return P_tmpdir; //usually resolves to "/tmp"
 }
 
 
@@ -254,8 +267,8 @@ void removeDirectoryImpl(const Zstring& folderPath) //throw FileError
 
     //get all files and directories from current directory (WITHOUT subdirectories!)
     traverseFolder(folderPath,
-    [&](const FileInfo&    fi) { filePaths   .push_back(fi.fullPath); },
-    [&](const FolderInfo&  fi) { folderPaths .push_back(fi.fullPath); }, //defer recursion => save stack space and allow deletion of extremely deep hierarchies!
+    [&](const    FileInfo& fi) {    filePaths.push_back(fi.fullPath); },
+    [&](const  FolderInfo& fi) {  folderPaths.push_back(fi.fullPath); }, //defer recursion => save stack space and allow deletion of extremely deep hierarchies!
     [&](const SymlinkInfo& si) { symlinkPaths.push_back(si.fullPath); },
     [](const std::wstring& errorMsg) { throw FileError(errorMsg); });
 
@@ -288,42 +301,49 @@ namespace
 
 /* Usage overview: (avoid circular pattern!)
 
-  renameFile()  -->  renameFile_sub()
-      |               /|\
-     \|/               |
-      Fix8Dot3NameClash()
+  moveAndRenameItem()  -->  moveAndRenameFileSub()
+      |                              /|\
+     \|/                              |
+             Fix8Dot3NameClash()
 */
 //wrapper for file system rename function:
-void renameFile_sub(const Zstring& pathSource, const Zstring& pathTarget) //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
+void moveAndRenameFileSub(const Zstring& pathFrom, const Zstring& pathTo, bool replaceExisting) //throw FileError, ErrorMoveUnsupported, ErrorTargetExisting
 {
-    //rename() will never fail with EEXIST, but always (atomically) overwrite!
-    //=> equivalent to SetFileInformationByHandle() + FILE_RENAME_INFO::ReplaceIfExists or ::MoveFileEx + MOVEFILE_REPLACE_EXISTING
-    //=> Linux: renameat2() with RENAME_NOREPLACE -> still new, probably buggy
-    //=> OS X: no solution
-
     auto throwException = [&](int ec)
     {
-        const std::wstring errorMsg = replaceCpy(replaceCpy(_("Cannot move file %x to %y."), L"%x", L"\n" + fmtPath(pathSource)), L"%y", L"\n" + fmtPath(pathTarget));
+        const std::wstring errorMsg = replaceCpy(replaceCpy(_("Cannot move file %x to %y."), L"%x", L"\n" + fmtPath(pathFrom)), L"%y", L"\n" + fmtPath(pathTo));
         const std::wstring errorDescr = formatSystemError(L"rename", ec);
 
         if (ec == EXDEV)
-            throw ErrorDifferentVolume(errorMsg, errorDescr);
+            throw ErrorMoveUnsupported(errorMsg, errorDescr);
         if (ec == EEXIST)
             throw ErrorTargetExisting(errorMsg, errorDescr);
         throw FileError(errorMsg, errorDescr);
     };
 
-    if (!equalFilePath(pathSource, pathTarget)) //exception for OS X: changing file name case is not an "already exists" situation!
+    //rename() will never fail with EEXIST, but always (atomically) overwrite!
+    //=> equivalent to SetFileInformationByHandle() + FILE_RENAME_INFO::ReplaceIfExists or ::MoveFileEx() + MOVEFILE_REPLACE_EXISTING
+    //Linux: renameat2() with RENAME_NOREPLACE -> still new, probably buggy
+    //macOS: no solution https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man2/rename.2.html
+    if (!replaceExisting)
     {
-        bool alreadyExists = true;
-        try { /*ItemType type = */getItemType(pathTarget); } /*throw FileError*/ catch (FileError&) { alreadyExists = false; }
+        struct ::stat infoSrc = {};
+        if (::lstat(pathFrom.c_str(), &infoSrc) != 0)
+            THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot read file attributes of %x."), L"%x", fmtPath(pathFrom)), L"stat");
 
-        if (alreadyExists)
-            throwException(EEXIST);
-        //else: nothing exists or other error (hopefully ::rename will also fail!)
+        struct ::stat infoTrg = {};
+        if (::lstat(pathTo.c_str(), &infoTrg) == 0)
+        {
+            if (infoSrc.st_dev != infoTrg.st_dev ||
+                infoSrc.st_ino != infoTrg.st_ino)
+                throwException(EEXIST); //that's what we're really here for
+            //else: continue with a rename in case
+            //caveat: if we have a hardlink referenced by two different paths, the source one will be unlinked => fine, but not exactly a "rename"...
+        }
+        //else: not existing or access error (hopefully ::rename will also fail!)
     }
 
-    if (::rename(pathSource.c_str(), pathTarget.c_str()) != 0)
+    if (::rename(pathFrom.c_str(), pathTo.c_str()) != 0)
         throwException(errno);
 }
 
@@ -332,29 +352,29 @@ void renameFile_sub(const Zstring& pathSource, const Zstring& pathTarget) //thro
 
 
 //rename file: no copying!!!
-void zen::renameFile(const Zstring& pathSource, const Zstring& pathTarget) //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
+void zen::moveAndRenameItem(const Zstring& pathFrom, const Zstring& pathTo, bool replaceExisting) //throw FileError, ErrorMoveUnsupported, ErrorTargetExisting
 {
     try
     {
-        renameFile_sub(pathSource, pathTarget); //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
+        moveAndRenameFileSub(pathFrom, pathTo, replaceExisting); //throw FileError, ErrorMoveUnsupported, ErrorTargetExisting
     }
     catch (ErrorTargetExisting&)
     {
-#if 0 //"Work around pen drive failing to change file name case" => enable if needed: https://www.freefilesync.org/forum/viewtopic.php?t=4279
-        const Zstring fileNameSrc   = afterLast (pathSource, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
-        const Zstring fileNameTrg   = afterLast (pathTarget, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
-        const Zstring parentPathSrc = beforeLast(pathSource, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
-        const Zstring parentPathTrg = beforeLast(pathTarget, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
+#if 0 //"Work around pen drive failing to change file name case" => enable if needed: https://freefilesync.org/forum/viewtopic.php?t=4279
+        const Zstring fileNameSrc   = afterLast (pathFrom, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
+        const Zstring fileNameTrg   = afterLast (pathTo,   FILE_NAME_SEPARATOR, IF_MISSING_RETURN_ALL);
+        const Zstring parentPathSrc = beforeLast(pathFrom, FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
+        const Zstring parentPathTrg = beforeLast(pathTo,   FILE_NAME_SEPARATOR, IF_MISSING_RETURN_NONE);
         //some (broken) devices may fail to rename case directly:
-        if (equalFilePath(parentPathSrc, parentPathTrg))
+        if (equalNativePath(parentPathSrc, parentPathTrg))
         {
             if (fileNameSrc == fileNameTrg)
                 return; //non-sensical request
 
-            const Zstring tempFilePath = getTemporaryPath8Dot3(pathSource); //throw FileError
-            renameFile_sub(pathSource, tempFilePath); //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
-            ZEN_ON_SCOPE_FAIL(renameFile_sub(tempFilePath, pathSource)); //"try" our best to be "atomic" :>
-            renameFile_sub(tempFilePath, pathTarget); //throw FileError, ErrorDifferentVolume, ErrorTargetExisting
+            const Zstring tempFilePath = getTemporaryPath8Dot3(pathFrom); //throw FileError
+            moveAndRenameFileSub(pathFrom, tempFilePath); //throw FileError, (ErrorMoveUnsupported), ErrorTargetExisting
+            ZEN_ON_SCOPE_FAIL(moveAndRenameFileSub(tempFilePath, pathFrom)); //"try" our best to be "atomic" :>
+            moveAndRenameFileSub(tempFilePath, pathTo); //throw FileError, (ErrorMoveUnsupported), ErrorTargetExisting
             return;
         }
 #endif
@@ -379,18 +399,19 @@ void setWriteTimeNative(const Zstring& itemPath, const struct ::timespec& modTim
         using open()/futimens() for regular files and utimensat(AT_SYMLINK_NOFOLLOW) for symlinks is consistent with "cp" and "touch"!
     */
     struct ::timespec newTimes[2] = {};
-    newTimes[0].tv_sec = ::time(nullptr); //access time; using UTIME_OMIT for tv_nsec would trigger even more bugs: https://www.freefilesync.org/forum/viewtopic.php?t=1701
+    newTimes[0].tv_sec = ::time(nullptr); //access time; using UTIME_OMIT for tv_nsec would trigger even more bugs: https://freefilesync.org/forum/viewtopic.php?t=1701
     newTimes[1] = modTime; //modification time
+    //test: even modTime == 0 is correctly applied (no NOOP!) test2: same behavior for "utime()"
 
     if (procSl == ProcSymlink::FOLLOW)
     {
         //hell knows why files on gvfs-mounted Samba shares fail to open(O_WRONLY) returning EOPNOTSUPP:
-        //https://www.freefilesync.org/forum/viewtopic.php?t=2803 => utimensat() works (but not for gvfs SFTP)
+        //https://freefilesync.org/forum/viewtopic.php?t=2803 => utimensat() works (but not for gvfs SFTP)
         if (::utimensat(AT_FDCWD, itemPath.c_str(), newTimes, 0) == 0)
             return;
 
-        //in other cases utimensat() returns EINVAL for CIFS/NTFS drives, but open+futimens works: https://www.freefilesync.org/forum/viewtopic.php?t=387
-        const int fdFile = ::open(itemPath.c_str(), O_WRONLY | O_APPEND); //2017-07-04: O_WRONLY | O_APPEND seems to avoid EOPNOTSUPP on gvfs SFTP!
+        //in other cases utimensat() returns EINVAL for CIFS/NTFS drives, but open+futimens works: https://freefilesync.org/forum/viewtopic.php?t=387
+        const int fdFile = ::open(itemPath.c_str(), O_WRONLY | O_APPEND | O_CLOEXEC); //2017-07-04: O_WRONLY | O_APPEND seems to avoid EOPNOTSUPP on gvfs SFTP!
         if (fdFile == -1)
             THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot write modification time of %x."), L"%x", fmtPath(itemPath)), L"open");
         ZEN_ON_SCOPE_EXIT(::close(fdFile));
@@ -532,8 +553,18 @@ void zen::createDirectory(const Zstring& dirPath) //throw FileError, ErrorTarget
 
 void zen::createDirectoryIfMissingRecursion(const Zstring& dirPath) //throw FileError
 {
-    if (!getParentFolderPath(dirPath)) //device root
-        return static_cast<void>(/*ItemType =*/ getItemType(dirPath)); //throw FileError
+    const std::optional<Zstring> parentPath = getParentFolderPath(dirPath);
+    if (!parentPath) //device root
+        return;
+
+    try //generally we expect that path already exists (see: ffs_paths.cpp) => check first
+    {
+        if (getItemType(dirPath) != ItemType::FILE) //throw FileError
+            return;
+    }
+    catch (FileError&) {} //not yet existing or access error? let's find out...
+
+    createDirectoryIfMissingRecursion(*parentPath); //throw FileError
 
     try
     {
@@ -541,22 +572,13 @@ void zen::createDirectoryIfMissingRecursion(const Zstring& dirPath) //throw File
     }
     catch (FileError&)
     {
-        Opt<PathStatus> pd;
-        try { pd = getPathStatus(dirPath); /*throw FileError*/ }
-        catch (FileError&) {} //previous exception is more relevant
-
-        if (pd &&
-            pd->existingType != ItemType::FILE &&
-            pd->relPath.size() != 1) //don't repeat the very same createDirectory() call from above!
+        try
         {
-            Zstring intermediatePath = pd->existingPath;
-            for (const Zstring& itemName : pd->relPath)
-            {
-                intermediatePath = appendSeparator(intermediatePath) + itemName;
-                createDirectory(intermediatePath); //throw FileError, (ErrorTargetExisting)
-            }
-            return;
+            if (getItemType(dirPath) != ItemType::FILE) //throw FileError
+                return; //already existing => possible, if createDirectoryIfMissingRecursion() is run in parallel
         }
+        catch (FileError&) {} //not yet existing or access error
+
         throw;
     }
 }
@@ -567,27 +589,26 @@ void zen::tryCopyDirectoryAttributes(const Zstring& sourcePath, const Zstring& t
 }
 
 
-void zen::copySymlink(const Zstring& sourceLink, const Zstring& targetLink, bool copyFilePermissions) //throw FileError
+void zen::copySymlink(const Zstring& sourcePath, const Zstring& targetPath, bool copyFilePermissions) //throw FileError
 {
-    const Zstring linkPath = getSymlinkTargetRaw(sourceLink); //throw FileError; accept broken symlinks
+    const Zstring linkPath = getSymlinkTargetRaw(sourcePath); //throw FileError; accept broken symlinks
 
-    const wchar_t functionName[] = L"symlink";
-    if (::symlink(linkPath.c_str(), targetLink.c_str()) != 0)
-        THROW_LAST_FILE_ERROR(replaceCpy(replaceCpy(_("Cannot copy symbolic link %x to %y."), L"%x", L"\n" + fmtPath(sourceLink)), L"%y", L"\n" + fmtPath(targetLink)), functionName);
+    if (::symlink(linkPath.c_str(), targetPath.c_str()) != 0)
+        THROW_LAST_FILE_ERROR(replaceCpy(replaceCpy(_("Cannot copy symbolic link %x to %y."), L"%x", L"\n" + fmtPath(sourcePath)), L"%y", L"\n" + fmtPath(targetPath)), L"symlink");
 
-    //allow only consistent objects to be created -> don't place before ::symlink, targetLink may already exist!
-    ZEN_ON_SCOPE_FAIL(try { removeSymlinkPlain(targetLink); /*throw FileError*/ }
+    //allow only consistent objects to be created -> don't place before ::symlink, targetPath may already exist!
+    ZEN_ON_SCOPE_FAIL(try { removeSymlinkPlain(targetPath); /*throw FileError*/ }
     catch (FileError&) {});
 
-    //file times: essential for sync'ing a symlink: enforce this! (don't just try!)
+    //file times: essential for syncing a symlink: enforce this! (don't just try!)
     struct ::stat sourceInfo = {};
-    if (::lstat(sourceLink.c_str(), &sourceInfo) != 0)
-        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot read file attributes of %x."), L"%x", fmtPath(sourceLink)), L"lstat");
+    if (::lstat(sourcePath.c_str(), &sourceInfo) != 0)
+        THROW_LAST_FILE_ERROR(replaceCpy(_("Cannot read file attributes of %x."), L"%x", fmtPath(sourcePath)), L"lstat");
 
-    setWriteTimeNative(targetLink, sourceInfo.st_mtim, ProcSymlink::DIRECT); //throw FileError
+    setWriteTimeNative(targetPath, sourceInfo.st_mtim, ProcSymlink::DIRECT); //throw FileError
 
     if (copyFilePermissions)
-        copyItemPermissions(sourceLink, targetLink, ProcSymlink::DIRECT); //throw FileError
+        copyItemPermissions(sourcePath, targetPath, ProcSymlink::DIRECT); //throw FileError
 }
 
 
@@ -609,7 +630,7 @@ FileCopyResult copyFileOsSpecific(const Zstring& sourceFile, //throw FileError, 
     //it seems we don't need S_IWUSR, not even for the setFileTime() below! (tested with source file having different user/group!)
 
     //=> need copyItemPermissions() only for "chown" and umask-agnostic permissions
-    const int fdTarget = ::open(targetFile.c_str(), O_WRONLY | O_CREAT | O_EXCL, mode);
+    const int fdTarget = ::open(targetFile.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode);
     if (fdTarget == -1)
     {
         const int ec = errno; //copy before making other system calls!
@@ -642,14 +663,14 @@ FileCopyResult copyFileOsSpecific(const Zstring& sourceFile, //throw FileError, 
     //close output file handle before setting file time; also good place to catch errors when closing stream!
     fileOut.finalize(); //throw FileError, (X)  essentially a close() since  buffers were already flushed
 
-    Opt<FileError> errorModTime;
+    std::optional<FileError> errorModTime;
     try
     {
         //we cannot set the target file times (::futimes) while the file descriptor is still open after a write operation:
         //this triggers bugs on samba shares where the modification time is set to current time instead.
         //Linux: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=340236
         //       http://comments.gmane.org/gmane.linux.file-systems.cifs/2854
-        //OS X:  https://www.freefilesync.org/forum/viewtopic.php?t=356
+        //OS X:  https://freefilesync.org/forum/viewtopic.php?t=356
         setWriteTimeNative(targetFile, sourceInfo.st_mtim, ProcSymlink::FOLLOW); //throw FileError
     }
     catch (const FileError& e)
@@ -660,8 +681,8 @@ FileCopyResult copyFileOsSpecific(const Zstring& sourceFile, //throw FileError, 
     FileCopyResult result;
     result.fileSize = sourceInfo.st_size;
     result.modTime = sourceInfo.st_mtim.tv_sec; //
-    result.sourceFileId = extractFileId(sourceInfo);
-    result.targetFileId = extractFileId(targetInfo);
+    result.sourceFileId = generateFileId(sourceInfo);
+    result.targetFileId = generateFileId(targetInfo);
     result.errorModTime = errorModTime;
     return result;
 }
@@ -680,10 +701,10 @@ copyFileWindowsDefault(::CopyFileEx)  copyFileWindowsStream(::BackupRead/::Backu
 }
 
 
-FileCopyResult zen::copyNewFile(const Zstring& sourceFile, const Zstring& targetFile, bool copyFilePermissions, //throw FileError, ErrorTargetExisting, ErrorFileLocked
-                                const IOCallback& notifyUnbufferedIO)
+FileCopyResult zen::copyNewFile(const Zstring& sourceFile, const Zstring& targetFile, bool copyFilePermissions, //throw FileError, ErrorTargetExisting, ErrorFileLocked, X
+                                const IOCallback& notifyUnbufferedIO /*throw X*/)
 {
-    const FileCopyResult result = copyFileOsSpecific(sourceFile, targetFile, notifyUnbufferedIO); //throw FileError, ErrorTargetExisting, ErrorFileLocked
+    const FileCopyResult result = copyFileOsSpecific(sourceFile, targetFile, notifyUnbufferedIO); //throw FileError, ErrorTargetExisting, ErrorFileLocked, X
 
     //at this point we know we created a new file, so it's fine to delete it for cleanup!
     ZEN_ON_SCOPE_FAIL(try { removeFilePlain(targetFile); }

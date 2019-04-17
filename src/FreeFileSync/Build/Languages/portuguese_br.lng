@@ -58,8 +58,8 @@
 <source>An exception occurred</source>
 <target>Ocorreu uma exceção</target>
 
-<source>A directory path is expected after %x.</source>
-<target>Um caminho de diretório é esperado após %x.</target>
+<source>A left and a right directory path are expected after %x.</source>
+<target>Um caminho de diretório esquerdo e um direito são esperados após %x.</target>
 
 <source>Syntax error</source>
 <target>Erro de sintaxe</target>
@@ -72,9 +72,6 @@
 
 <source>File %x does not contain a valid configuration.</source>
 <target>O arquivo %x não contém uma configuração válida.</target>
-
-<source>Unequal number of left and right directories specified.</source>
-<target>Número diferente de diretórios especificados na esquerda e na direita.</target>
 
 <source>The config file must not contain settings at directory pair level when directories are set via command line.</source>
 <target>O arquivo de configuração não deve conter configurações de diretórios quando os diretórios são definidos via linha de comando.</target>
@@ -97,23 +94,50 @@
 <source>global config file:</source>
 <target>arquivo de configuração global:</target>
 
-<source>Any number of FreeFileSync .ffs_gui and/or .ffs_batch configuration files.</source>
-<target>Qualquer número de arquivos FreeFileSync .ffs e/ou de tarefa em lotes .ffs_batch.</target>
+<source>Any number of FreeFileSync "ffs_gui" and/or "ffs_batch" configuration files.</source>
+<target>Qualquer número de arquivos FreeFileSync "ffs_gui" e/ou de tarefa em lotes "ffs_batch".</target>
 
 <source>Any number of alternative directory pairs for at most one config file.</source>
 <target>Qualquer número de pares alternativos de diretórios para no máximo um arquivo de configuração.</target>
 
-<source>Open the selected configuration for editing only without executing it.</source>
+<source>Open the selected configuration for editing only, without executing it.</source>
 <target>Abrir a configuração selecionada para edição apenas, sem executá-la.</target>
 
 <source>Path to an alternate GlobalSettings.xml file.</source>
 <target>Caminho para um arquivo GlobalSettings.xml alternativo.</target>
 
+<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
+<target>Os arquivos de instalação estão corrompidos. Por favor, reinstale o FreeFileSync.</target>
+
+<source>Cannot load file %x.</source>
+<target>Não é possível carregar o aquivo %x.</target>
+
 <source>Cannot find the following folders:</source>
 <target>Não é possível localizar as seguintes pastas:</target>
 
-<source>If this error is ignored the folders will be considered empty. Missing folders are created automatically when needed.</source>
-<target>Se o erro for ignorado, as pastas serão consideradas vazias. Pastas não encontradas serão criadas automaticamentes quando necessário.</target>
+<source>The following folders do not yet exist:</source>
+<target>As seguintes pastas ainda não existem:</target>
+
+<source>The folders are created automatically when needed.</source>
+<target>As pastas são criadas automaticamente quando necessárias.</target>
+
+<source>The following folder paths differ in case. Please use a single form in order to avoid duplicate accesses.</source>
+<target>Os seguintes caminhos da pasta diferem em letras maiúsculas e minúsculas. Por favor, use apenas uma forma para evitar acessos duplicados.</target>
+
+<source>Scanning:</source>
+<target>Pesquisando:</target>
+
+<source>Comparison finished:</source>
+<target>Comparação finalizada:</target>
+
+<source>
+<pluralform>1 item found</pluralform>
+<pluralform>%x items found</pluralform>
+</source>
+<target>
+<pluralform>1 item encontrado</pluralform>
+<pluralform>%x itens encontrados</pluralform>
+</target>
 
 <source>File %x has an invalid date.</source>
 <target>O arquivo %x tem uma data inválida.</target>
@@ -132,6 +156,9 @@
 
 <source>Items differ in attributes only</source>
 <target>Os itens diferem apenas nos atributos</target>
+
+<source>The name %x is used by more than one item in the folder.</source>
+<target>O nome %x é usado por mais de um item na pasta.</target>
 
 <source>Resolving symbolic link %x</source>
 <target>Resolvendo link simbólico %x</target>
@@ -160,9 +187,6 @@
 <source>File time tolerance</source>
 <target>Tolerância de tempo do arquivo</target>
 
-<source>Folder access timeout</source>
-<target>Tempo limite de acesso da pasta</target>
-
 <source>Run with background priority</source>
 <target>Executar com prioridade de segundo plano</target>
 
@@ -174,9 +198,6 @@
 
 <source>Using non-default global settings:</source>
 <target>Usando configurações globais não predefinidas:</target>
-
-<source>Starting comparison</source>
-<target>Iniciando comparação</target>
 
 <source>A folder input field is empty.</source>
 <target>Um campo de entrada de pasta está vazio.</target>
@@ -198,6 +219,63 @@
 
 <source>Out of memory.</source>
 <target>Memória insuficiente.</target>
+
+<source>Database file %x is incompatible.</source>
+<target>Arquivo de banco de dados %x incompatível.</target>
+
+<source>Initial synchronization:</source>
+<target>Sincronização inicial:</target>
+
+<source>Database file %x does not yet exist.</source>
+<target>O arquivo de banco de dados %x ainda não existe.</target>
+
+<source>Database file is corrupted:</source>
+<target>O arquivo de banco de dados está corrompido:</target>
+
+<source>Cannot write file %x.</source>
+<target>Não é possível escrever o arquivo %x.</target>
+
+<source>Cannot read file %x.</source>
+<target>Não é possível ler o arquivo %x.</target>
+
+<source>The database files do not yet contain information about the last synchronization.</source>
+<target>Os arquivos de banco de dados ainda não contêm informação sobre a última sincronização.</target>
+
+<source>Loading file %x...</source>
+<target>Carregando arquivo %x...</target>
+
+<source>Saving file %x...</source>
+<target>Salvando arquivo %x...</target>
+
+<source>Searching for folder %x...</source>
+<target>Localizando pasta %x...</target>
+
+<source>Timeout while searching for folder %x.</source>
+<target>Tempo esgotado na localização da pasta %x.</target>
+
+<source>Cannot get process information.</source>
+<target>Não é possível obter as informações do processo.</target>
+
+<source>Cannot read file attributes of %x.</source>
+<target>Não é possível ler os atributos do arquivo %x.</target>
+
+<source>Waiting while directory is locked:</source>
+<target>Aguardando enquanto o diretório é bloqueado:</target>
+
+<source>Lock owner:</source>
+<target>Proprietário de bloqueio:</target>
+
+<source>Detecting abandoned lock...</source>
+<target>Detectando bloqueamento abandonado...</target>
+
+<source>
+<pluralform>1 sec</pluralform>
+<pluralform>%x sec</pluralform>
+</source>
+<target>
+<pluralform>1 s</pluralform>
+<pluralform>%x s</pluralform>
+</target>
 
 <source>Item exists on left side only</source>
 <target>Item existe apenas no lado esquerdo</target>
@@ -253,8 +331,239 @@
 <source>Update attributes on right</source>
 <target>Atualizar atributos à direita</target>
 
-<source>Cannot read file %x.</source>
-<target>Não é possível ler o arquivo %x.</target>
+<source>Errors:</source>
+<target>Erros:</target>
+
+<source>Warnings:</source>
+<target>Avisos:</target>
+
+<source>Items processed:</source>
+<target>Elementos processados:</target>
+
+<source>Items remaining:</source>
+<target>Elementos restantes:</target>
+
+<source>Total time:</source>
+<target>Tempo total:</target>
+
+<source>Warning</source>
+<target>Aviso</target>
+
+<source>Stopped</source>
+<target>Parado</target>
+
+<source>Cleaning up log files:</source>
+<target>Limpando arquivos de log:</target>
+
+<source>Error parsing file %x, row %y, column %z.</source>
+<target>Erro analisando o arquivo %x, linha %y, coluna %z.</target>
+
+<source>Services</source>
+<target>Serviços</target>
+
+<source>Show All</source>
+<target>Mostrar Todos</target>
+
+<source>Hide Others</source>
+<target>Ocultar Outros</target>
+
+<source>Hide %x</source>
+<target>Ocultar %x</target>
+
+<source>Quit %x</source>
+<target>Sair %x</target>
+
+<source>Cannot set directory locks for the following folders:</source>
+<target>Não é possível definir bloqueios de diretório para as seguintes pastas:</target>
+
+<source>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</source>
+<target>
+<pluralform>1 thread</pluralform>
+<pluralform>%x threads</pluralform>
+</target>
+
+<source>Cannot read directory %x.</source>
+<target>Não é possível ler o diretório %x.</target>
+
+<source>%x/sec</source>
+<target>%x/s</target>
+
+<source>%x items</source>
+<target>%x itens</target>
+
+<source>Show in Explorer</source>
+<target>Mostrar no Explorer</target>
+
+<source>Open with default application</source>
+<target>Abrir com aplicativo padrão</target>
+
+<source>Browse directory</source>
+<target>Procurar diretório</target>
+
+<source>Unable to connect to %x.</source>
+<target>Não foi possível conectar a %x.</target>
+
+<source>Completed successfully</source>
+<target>Concluído com sucesso</target>
+
+<source>Completed with warnings</source>
+<target>Concluído com avisos</target>
+
+<source>Completed with errors</source>
+<target>Concluído com erros</target>
+
+<source>Cannot access the Volume Shadow Copy Service.</source>
+<target>Não é possível acessar o Serviço de Cópias de Sombra de Volume.</target>
+
+<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
+<target>Execute a versão 64 bits do FreeFileSync para criar cópias de sombra neste sistema.</target>
+
+<source>Volume name %x is not part of file path %y.</source>
+<target>O nome do volume %x não faz parte do caminho do arquivo %y.</target>
+
+<source>File time and size</source>
+<target>Data e tamanho do arquivo</target>
+
+<source>File content</source>
+<target>Conteúdo do arquivo</target>
+
+<source>File size</source>
+<target>Tamanho do arquivo</target>
+
+<source>Two way</source>
+<target>Dois sentidos</target>
+
+<source>Mirror</source>
+<target>Espelhar</target>
+
+<source>Update</source>
+<target>Atualizar</target>
+
+<source>Custom</source>
+<target>Personalizado</target>
+
+<source>Multiple...</source>
+<target>Múltiplo...</target>
+
+<source>Cannot write file attributes of %x.</source>
+<target>Não é possível escrever os atributos de arquivo de %x.</target>
+
+<source>Cannot open file %x.</source>
+<target>Não é possível abrir o arquivo %x.</target>
+
+<source>%x and %y have different content.</source>
+<target>%x e %y têm conteúdos diferentes.</target>
+
+<source>Data verification error:</source>
+<target>Erro na verificação dos dados:</target>
+
+<source>Moving file %x to %y</source>
+<target>Movendo arquivo %x para %y</target>
+
+<source>Moving folder %x to %y</source>
+<target>Movendo pasta %x para %y</target>
+
+<source>Moving symbolic link %x to %y</source>
+<target>Movendo link simbólico %x para %y</target>
+
+<source>Updating file %x</source>
+<target>Atualizando arquivo %x...</target>
+
+<source>Updating symbolic link %x</source>
+<target>Atualizando link simbólico %x</target>
+
+<source>Verifying file %x</source>
+<target>Verificando arquivo %x</target>
+
+<source>Updating attributes of %x</source>
+<target>Atualizando atributos de %x</target>
+
+<source>Source item %x not found</source>
+<target>Item de origem %x não encontrado</target>
+
+<source>Cannot move file %x to %y.</source>
+<target>Não é possível mover o arquivo %x para %y.</target>
+
+<source>Parent folder %x is not existing.</source>
+<target>Pasta pai %x não existe.</target>
+
+<source>The name %x is already used by another item.</source>
+<target>O nome %x já é usado por outro item.</target>
+
+<source>Cannot copy file %x to %y.</source>
+<target>Não é possível copiar o arquivo %x para %y.</target>
+
+<source>Cannot copy symbolic link %x to %y.</source>
+<target>Não é possível copiar o link simbólico %x para %y.</target>
+
+<source>Creating a Volume Shadow Copy for %x...</source>
+<target>Criando uma Cópia de Sombra de Volume para %x...</target>
+
+<source>Cannot find folder %x.</source>
+<target>Não é possível encontrar a pasta %x.</target>
+
+<source>Target folder %x already existing.</source>
+<target>Pasta de destino %x já existe.</target>
+
+<source>Target folder input field must not be empty.</source>
+<target>Campo de entrada da pasta de destino não pode ficar vazio.</target>
+
+<source>Source folder %x not found.</source>
+<target>Pasta de origem %x não encontrada.</target>
+
+<source>Please enter a target folder for versioning.</source>
+<target>Insira uma pasta de destino para controle de versão.</target>
+
+<source>The following items have unresolved conflicts and will not be synchronized:</source>
+<target>Os seguintes itens possuem conflitos não resolvidos e não serão sincronizados:</target>
+
+<source>Folder pair:</source>
+<target>Par de pastas:</target>
+
+<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
+<target>As seguintes pastas são muito diferentes. Verifique se as pastas corretas estão selecionadas.</target>
+
+<source>Not enough free disk space available in:</source>
+<target>Espaço em disco insuficiente em:</target>
+
+<source>Required:</source>
+<target>Necessário:</target>
+
+<source>Available:</source>
+<target>Disponível:</target>
+
+<source>Some files will be synchronized as part of multiple base folders.</source>
+<target>Alguns arquivos serão sincronizados como parte de várias pastas base.</target>
+
+<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
+<target>Para evitar conflitos, configure filtros de exclusão para que cada arquivo atualizado seja considerado por apenas uma pasta base.</target>
+
+<source>Versioning folder:</source>
+<target>Pasta de controle de versão:</target>
+
+<source>Base folder:</source>
+<target>Pasta base:</target>
+
+<source>The versioning folder is contained in a base folder.</source>
+<target>A pasta de controle de versão está dentro de uma pasta base.</target>
+
+<source>Synchronizing folder pair:</source>
+<target>Sincronizando par de pastas:</target>
+
+<source>Generating database...</source>
+<target>Gerando banco de dados...</target>
+
+<source>Searching for old file versions:</source>
+<target>Procurando por versões antigas de arquivos:</target>
+
+<source>Removing old file versions:</source>
+<target>Removendo versões antigas de arquivos:</target>
+
+<source>Unable to create time stamp for versioning:</source>
+<target>Não é possível criar a estampa de tempo para o controle de versões:</target>
 
 <source>
 Unexpected size of data stream.
@@ -270,47 +579,32 @@ Atual: %y bytes
 <source>Cannot write permissions of %x.</source>
 <target>Não é possível escrever as permissões de %x.</target>
 
-<source>Operation not supported for different base folder types.</source>
-<target>Operação não suportada para tipos de pastas base diferentes.</target>
-
-<source>Cannot write file %x.</source>
-<target>Não é possível escrever o arquivo %x.</target>
-
-<source>Cannot move file %x to %y.</source>
-<target>Não é possível mover o arquivo %x para %y.</target>
-
-<source>Cannot copy symbolic link %x to %y.</source>
-<target>Não é possível copiar o link simbólico %x para %y.</target>
-
-<source>Unable to connect to %x.</source>
-<target>Não foi possível conectar a %x.</target>
-
-<source>Failed to get information about server %x.</source>
-<target>Falha na obteção da informação sobre o servidor %x.</target>
-
-<source>Cannot open directory %x.</source>
-<target>Não é possível abrir o diretório %x.</target>
-
-<source>Cannot read directory %x.</source>
-<target>Não é possível ler o diretório %x.</target>
-
-<source>Cannot read file attributes of %x.</source>
-<target>Não é possível ler os atributos do arquivo %x.</target>
-
-<source>Cannot create directory %x.</source>
-<target>Não é possível criar o diretório %x.</target>
+<source>Operation not supported between different devices.</source>
+<target>Operação não suportada entre dispositivos diferentes.</target>
 
 <source>Cannot delete file %x.</source>
 <target>Não é possível excluir o arquivo %x.</target>
 
+<source>Cannot delete symbolic link %x.</source>
+<target>Não é possível excluir o link simbólico %x.</target>
+
 <source>Cannot delete directory %x.</source>
 <target>Não é possível excluir o diretório %x.</target>
+
+<source>Error Code %x</source>
+<target>Código do Erro %x.</target>
 
 <source>Cannot write modification time of %x.</source>
 <target>Não é possível escrever a data de modificação de %x.</target>
 
+<source>Cannot create directory %x.</source>
+<target>Não é possível criar o diretório %x.</target>
+
 <source>Cannot determine final path for %x.</source>
 <target>Não é possível determinar o caminho final para %x.</target>
+
+<source>Operation not supported by device.</source>
+<target>Operação não suportada pelo dispositivo.</target>
 
 <source>Cannot resolve symbolic link %x.</source>
 <target>Não é possível resolver o link simbólico %x.</target>
@@ -318,38 +612,50 @@ Atual: %y bytes
 <source>Unable to move %x to the recycle bin.</source>
 <target>Não é possível mover %x para a Lixeira.</target>
 
-<source>Cannot open file %x.</source>
-<target>Não é possível abrir o arquivo %x.</target>
+<source>Authentication completed.</source>
+<target>Autenticação concluída.</target>
 
-<source>Cannot find device %x.</source>
-<target>Não é possível encontrar o dispositivo %x.</target>
+<source>You may close this page now and continue with FreeFileSync.</source>
+<target>Você pode fechar esta página agora e continuar com o FreeFileSync.</target>
+
+<source>Authentication failed.</source>
+<target>Autenticação falhou.</target>
 
 <source>Cannot find %x.</source>
 <target>Não é possível encontrar %x.</target>
 
-<source>Type of item %x is not supported:</source>
-<target>Tipo de item %x não é suportado:</target>
-
-<source>Cannot delete symbolic link %x.</source>
-<target>Não é possível excluir o link simbólico %x.</target>
+<source>Please authorize access to user account %x.</source>
+<target>Por favor, autorize o acesso para a conta de usuário %x.</target>
 
 <source>Cannot determine free disk space for %x.</source>
 <target>Não é possível determinar o espaço livre em disco para %x.</target>
 
-<source>Incorrect command line:</source>
-<target>Linha de comando incorreta:</target>
-
-<source>Error Code %x</source>
-<target>Código do Erro %x.</target>
-
-<source>The server does not support authentication via %x.</source>
-<target>O servidor não suporta autenticação via %x.</target>
-
-<source>Required:</source>
-<target>Necessário:</target>
+<source>Unable to disconnect from %x.</source>
+<target>Não foi possível desconectar de %x.</target>
 
 <source>Unable to access %x.</source>
 <target>Não foi possível acessar %x.</target>
+
+<source>Failed to get information about server %x.</source>
+<target>Falha na obteção da informação sobre o servidor %x.</target>
+
+<source>Cannot monitor directory %x.</source>
+<target>Não é possível monitorar o diretório %x.</target>
+
+<source>Cannot find device %x.</source>
+<target>Não é possível encontrar o dispositivo %x.</target>
+
+<source>Cannot open directory %x.</source>
+<target>Não é possível abrir o diretório %x.</target>
+
+<source>Unsupported item type.</source>
+<target>Tipo de item não suportado.</target>
+
+<source>Incorrect command line:</source>
+<target>Linha de comando incorreta:</target>
+
+<source>The server does not support authentication via %x.</source>
+<target>O servidor não suporta autenticação via %x.</target>
 
 <source>
 <pluralform>Operation timed out after 1 second.</pluralform>
@@ -375,143 +681,14 @@ Atual: %y bytes
 <source>Failed to open SFTP channel number %x.</source>
 <target>Falha ao abrir o canal SFTP número %x.</target>
 
-<source>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</source>
-<target>
-<pluralform>1 byte</pluralform>
-<pluralform>%x bytes</pluralform>
-</target>
-
-<source>%x MB</source>
-<target>%x MB</target>
-
-<source>%x KB</source>
-<target>%x kB</target>
-
-<source>%x GB</source>
-<target>%x GB</target>
-
-<source>Cannot load file %x.</source>
-<target>Não é possível carregar o aquivo %x.</target>
-
-<source>Database file %x is incompatible.</source>
-<target>Arquivo de banco de dados %x incompatível.</target>
-
-<source>Initial synchronization:</source>
-<target>Sincronização inicial:</target>
-
-<source>Database file %x does not yet exist.</source>
-<target>O arquivo de banco de dados %x ainda não existe.</target>
-
-<source>Database file is corrupted:</source>
-<target>O arquivo de banco de dados está corrompido:</target>
-
-<source>The database files do not yet contain information about the last synchronization.</source>
-<target>Os arquivos de banco de dados ainda não contêm informação sobre a última sincronização.</target>
-
-<source>Loading file %x...</source>
-<target>Carregando arquivo %x...</target>
-
-<source>Saving file %x...</source>
-<target>Salvando arquivo %x...</target>
-
-<source>Searching for folder %x...</source>
-<target>Localizando pasta %x...</target>
-
-<source>Timeout while searching for folder %x.</source>
-<target>Tempo esgotado na localização da pasta %x.</target>
-
-<source>Cannot get process information.</source>
-<target>Não é possível obter as informações do processo.</target>
-
-<source>Waiting while directory is locked:</source>
-<target>Aguardando enquanto o diretório é bloqueado:</target>
-
-<source>Lock owner:</source>
-<target>Proprietário de bloqueio:</target>
-
-<source>
-<pluralform>1 sec</pluralform>
-<pluralform>%x sec</pluralform>
-</source>
-<target>
-<pluralform>1 s</pluralform>
-<pluralform>%x s</pluralform>
-</target>
-
-<source>Detecting abandoned lock...</source>
-<target>Detectando bloqueamento abandonado...</target>
-
-<source>Items processed:</source>
-<target>Elementos processados:</target>
-
-<source>Items remaining:</source>
-<target>Elementos restantes:</target>
-
-<source>Total time:</source>
-<target>Tempo total:</target>
-
-<source>Error parsing file %x, row %y, column %z.</source>
-<target>Erro analisando o arquivo %x, linha %y, coluna %z.</target>
-
-<source>Cannot set directory lock for %x.</source>
-<target>Não é possível bloquear o diretório %x.</target>
-
-<source>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</source>
-<target>
-<pluralform>1 thread</pluralform>
-<pluralform>%x threads</pluralform>
-</target>
-
-<source>Scanning:</source>
-<target>Pesquisando:</target>
-
-<source>/sec</source>
-<target>/s</target>
-
-<source>%x items/sec</source>
-<target>%x itens/s</target>
-
-<source>Show in Explorer</source>
-<target>Mostrar no Explorer</target>
-
-<source>Open with default application</source>
-<target>Abrir com aplicativo padrão</target>
-
-<source>Browse directory</source>
-<target>Procurar diretório</target>
-
-<source>Cannot access the Volume Shadow Copy Service.</source>
-<target>Não é possível acessar o Serviço de Cópias de Sombra de Volume.</target>
-
-<source>Please run the 64-bit version of FreeFileSync to create shadow copies on this system.</source>
-<target>Execute a versão 64-bits do FreeFileSync para criar cópias de sombra neste sistema.</target>
-
-<source>Cannot determine volume name for %x.</source>
-<target>Não é possível determinar o nome do volume para %x.</target>
-
-<source>Volume name %x is not part of file path %y.</source>
-<target>O nome do volume %x não faz parte do caminho do arquivo %y.</target>
-
-<source>Stop requested: Waiting for current operation to finish...</source>
-<target>Interromper solicitado: Aguardando operação ser finalizada...</target>
-
-<source>Unable to create time stamp for versioning:</source>
-<target>Não é possível criar a estampa de tempo para o controle de versões:</target>
-
 <source>Drag && drop</source>
 <target>Arrastar && Soltar</target>
 
-<source>Cannot find folder %x.</source>
-<target>Não é possível encontrar a pasta %x.</target>
-
 <source>Select a folder</source>
 <target>Selecionar uma pasta</target>
+
+<source>&New</source>
+<target>&Novo</target>
 
 <source>&Open...</source>
 <target>&Abrir...</target>
@@ -546,8 +723,8 @@ Atual: %y bytes
 <source>3. Press 'Start'.</source>
 <target>3. Pressionar 'Iniciar'.</target>
 
-<source>To get started just import a .ffs_batch file.</source>
-<target>Para iniciar importe um arquivo .ffs_batch.</target>
+<source>To get started just import a "ffs_batch" file.</source>
+<target>Para iniciar importe um arquivo "ffs_batch".</target>
 
 <source>Folders to watch:</source>
 <target>Pastas para monitorar:</target>
@@ -602,14 +779,14 @@ O comando é disparado se:
 <source>Directory monitoring active</source>
 <target>Monitoramento de diretórios ativado</target>
 
-<source>Waiting until all directories are available...</source>
-<target>Aguardando até todos os diretórios estarem disponíveis...</target>
+<source>Waiting until directory is available:</source>
+<target>Aguardando até o diretório ficar disponível:</target>
 
 <source>&Restore</source>
 <target>&Restaurar</target>
 
-<source>&Show error</source>
-<target>&Mostrar erro</target>
+<source>&Show error message</source>
+<target>&Mostrar mensagem de erro</target>
 
 <source>&Quit</source>
 <target>&Encerrar</target>
@@ -617,152 +794,44 @@ O comando é disparado se:
 <source>&Retry</source>
 <target>&Tentar Novamente</target>
 
-<source>File time and size</source>
-<target>Data e tamanho do arquivo</target>
+<source>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</source>
+<target>
+<pluralform>1 byte</pluralform>
+<pluralform>%x bytes</pluralform>
+</target>
 
-<source>File content</source>
-<target>Conteúdo do arquivo</target>
+<source>%x MB</source>
+<target>%x MB</target>
 
-<source>File size</source>
-<target>Tamanho do arquivo</target>
+<source>%x KB</source>
+<target>%x kB</target>
 
-<source>Two way</source>
-<target>Dois sentidos</target>
-
-<source>Mirror</source>
-<target>Espelhar</target>
-
-<source>Update</source>
-<target>Atualizar</target>
-
-<source>Custom</source>
-<target>Personalizado</target>
-
-<source>Multiple...</source>
-<target>Múltiplo...</target>
-
-<source>Moving file %x to %y</source>
-<target>Movendo arquivo %x para %y</target>
-
-<source>Moving folder %x to %y</source>
-<target>Movendo pasta %x para %y</target>
-
-<source>Moving symbolic link %x to %y</source>
-<target>Movendo link simbólico %x para %y</target>
-
-<source>Removing old versions...</source>
-<target>Removendo versões antigas...</target>
-
-<source>Updating file %x</source>
-<target>Atualizando arquivo %x...</target>
-
-<source>Updating symbolic link %x</source>
-<target>Atualizando link simbólico %x</target>
-
-<source>Verifying file %x</source>
-<target>Verificando arquivo %x</target>
-
-<source>Updating attributes of %x</source>
-<target>Atualizando atributos de %x</target>
-
-<source>Cannot write file attributes of %x.</source>
-<target>Não é possível escrever os atributos de arquivo de %x.</target>
-
-<source>%x and %y have different content.</source>
-<target>%x e %y têm conteúdos diferentes.</target>
-
-<source>Data verification error:</source>
-<target>Erro na verificação dos dados:</target>
-
-<source>Creating a Volume Shadow Copy for %x...</source>
-<target>Criando uma Cópia de Sombra de Volume para %x...</target>
-
-<source>Target folder %x already existing.</source>
-<target>Pasta de destino %x já existe.</target>
-
-<source>Target folder input field must not be empty.</source>
-<target>Campo de entrada da pasta de destino não pode ficar vazio.</target>
-
-<source>Source folder %x not found.</source>
-<target>Pasta de origem %x não encontrada.</target>
-
-<source>Please enter a target folder for versioning.</source>
-<target>Insira uma pasta de destino para controle de versões.</target>
-
-<source>The following items have unresolved conflicts and will not be synchronized:</source>
-<target>Os seguintes itens possuem conflitos não resolvidos e não serão sincronizados:</target>
-
-<source>The following folders are significantly different. Please check that the correct folders are selected for synchronization.</source>
-<target>As seguintes pastas são muito diferentes. Verifique se as pastas corretas estão selecionadas.</target>
-
-<source>Not enough free disk space available in:</source>
-<target>Espaço em disco insuficiente em:</target>
-
-<source>Available:</source>
-<target>Disponível:</target>
-
-<source>Some files will be synchronized as part of multiple base folders.</source>
-<target>Alguns arquivos serão sincronizados como parte de várias pastas base.</target>
-
-<source>To avoid conflicts, set up exclude filters so that each updated file is considered by only one base folder.</source>
-<target>Para evitar conflitos, configure filtros de exclusão para que cada arquivo atualizado seja considerado por apenas uma pasta base.</target>
-
-<source>Versioning folder:</source>
-<target>Pasta de controle de versões:</target>
-
-<source>Base folder:</source>
-<target>Pasta base:</target>
-
-<source>The versioning folder is contained in a base folder.</source>
-<target>A pasta de controle de versões está dentro de uma pasta base.</target>
-
-<source>Synchronizing folder pair:</source>
-<target>Sincronizando par de pastas:</target>
-
-<source>Generating database...</source>
-<target>Gerando banco de dados...</target>
+<source>%x GB</source>
+<target>%x GB</target>
 
 <source>Loading...</source>
 <target>Carregando...</target>
 
+<source>Scanning...</source>
+<target>Examinando...</target>
+
 <source>job name</source>
 <target>nome da tarefa</target>
 
-<source>Show summary</source>
-<target>Mostrar resumo</target>
+<source>System: Sleep</source>
+<target>Sistema: Suspender</target>
 
-<source>Sleep</source>
-<target>Suspender</target>
-
-<source>Shut down</source>
-<target>Desligar</target>
-
-<source>Synchronization stopped</source>
-<target>Sincronização interrompida</target>
-
-<source>Stopped</source>
-<target>Interrompido</target>
-
-<source>Synchronization completed with errors</source>
-<target>Sincronização finalizada com erros</target>
-
-<source>Synchronization completed with warnings</source>
-<target>Sincronização finalizada com avisos</target>
-
-<source>Warning</source>
-<target>Aviso</target>
+<source>System: Shut down</source>
+<target>Sistema: Desligar</target>
 
 <source>Nothing to synchronize</source>
 <target>Nada para sincronizar</target>
 
-<source>Synchronization completed successfully</source>
-<target>Sincronização finalizada com êxito</target>
-
 <source>Executing command %x</source>
 <target>Executando comando %x</target>
-
-<source>Cleaning up old log files...</source>
-<target>Limpando arquivo de log antigo...</target>
 
 <source>You can switch to FreeFileSync's main window to resolve this issue.</source>
 <target>Você pode alternar para a janela principal do FreeFileSync para resolver este problema.</target>
@@ -779,14 +848,8 @@ O comando é disparado se:
 <source>Switching to FreeFileSync's main window</source>
 <target>Alternando para a janela principal do FreeFileSync</target>
 
-<source>
-<pluralform>Automatic retry in 1 second...</pluralform>
-<pluralform>Automatic retry in %x seconds...</pluralform>
-</source>
-<target>
-<pluralform>Nova tentativa em 1 segundo...</pluralform>
-<pluralform>Nova tentativa em %x segundos...</pluralform>
-</target>
+<source>Automatic retry</source>
+<target>Nova tentativa automática</target>
 
 <source>Ignore &all</source>
 <target>Ignorar &todos</target>
@@ -796,6 +859,30 @@ O comando é disparado se:
 
 <source>Serious Error</source>
 <target>Erro Grave</target>
+
+<source>Last session</source>
+<target>Última sessão</target>
+
+<source>Today</source>
+<target>Hoje</target>
+
+<source>
+<pluralform>1 day</pluralform>
+<pluralform>%x days</pluralform>
+</source>
+<target>
+<pluralform>1 dia</pluralform>
+<pluralform>%x dias</pluralform>
+</target>
+
+<source>Name</source>
+<target>Nome</target>
+
+<source>Last sync</source>
+<target>Últ. Sinc.</target>
+
+<source>Log</source>
+<target>Log</target>
 
 <source>Folder</source>
 <target>Pasta</target>
@@ -860,14 +947,20 @@ O comando é disparado se:
 <source>Please select a folder on a local file system, network or an MTP device.</source>
 <target>Selecione uma pasta em um sistema de arquivos local, de rede ou de um dispositivo MTP.</target>
 
-<source>&New</source>
-<target>&Novo</target>
+<source>Defined by context of use</source>
+<target>Definido pelo contexto de uso</target>
+
+<source>Requires FreeFileSync Donation Edition</source>
+<target>Requer FreeFileSync Edição do Doador</target>
 
 <source>&Save</source>
 <target>&Salvar</target>
 
 <source>Save as &batch job...</source>
 <target>Salvar como &tarefa em lotes...</target>
+
+<source>Show &log</source>
+<target>Mostrar &log</target>
 
 <source>Start &comparison</source>
 <target>Iniciar &Comparação</target>
@@ -927,10 +1020,7 @@ O comando é disparado se:
 <target>Remover par de pastas</target>
 
 <source>Access online storage</source>
-<target>Acessar armazenamento on-line</target>
-
-<source>Swap sides</source>
-<target>Trocar lados</target>
+<target>Acessar armazenamento online</target>
 
 <source>Close search bar</source>
 <target>Fechar barra de localização</target>
@@ -959,6 +1049,9 @@ O comando é disparado se:
 <source>Select view:</source>
 <target>Selecionar visualização:</target>
 
+<source>Save as default</source>
+<target>Salvar como padrão</target>
+
 <source>Statistics:</source>
 <target>Estatísticas:</target>
 
@@ -974,8 +1067,8 @@ O comando é disparado se:
 <source>Total bytes to copy</source>
 <target>Bytes totais a serem copiados</target>
 
-<source>Folder pair:</source>
-<target>Par de pastas:</target>
+<source>Arrange folder pair</source>
+<target>Organizar par de pastas</target>
 
 <source>Main settings:</source>
 <target>Configurações principais:</target>
@@ -1010,6 +1103,24 @@ O comando é disparado se:
 <source>Handle daylight saving time</source>
 <target>Como lidar com horário de verão</target>
 
+<source>Ignore errors</source>
+<target>Ignorar erros</target>
+
+<source>Retry count:</source>
+<target>Número de tentativas:</target>
+
+<source>Delay (in seconds):</source>
+<target>Atraso (em segundos):</target>
+
+<source>Performance improvements:</source>
+<target>Melhorias de desempenho:</target>
+
+<source>Parallel file operations:</source>
+<target>Operações de arquivos em paralelo:</target>
+
+<source>How to get best performance?</source>
+<target>Como obter o melhor desempenho?</target>
+
 <source>Local settings:</source>
 <target>Configurações locais:</target>
 
@@ -1019,8 +1130,8 @@ O comando é disparado se:
 <source>Show examples</source>
 <target>Mostrar exemplos</target>
 
-<source>Time span:</source>
-<target>Intervalo de tempo:</target>
+<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
+<target>Selecione regras de filtro para excluir certos arquivos da sincronização. Insira os caminhos relativos dos pares de pastas correspondentes.</target>
 
 <source>File size:</source>
 <target>Tamanho do arquivo:</target>
@@ -1031,8 +1142,8 @@ O comando é disparado se:
 <source>Maximum:</source>
 <target>Máximo:</target>
 
-<source>Select filter rules to exclude certain files from synchronization. Enter file paths relative to their corresponding folder pair.</source>
-<target>Selecione regras de filtro para excluir certos arquivos da sincronização. Insira os caminhos relativos dos pares de pastas correspondentes.</target>
+<source>Time span:</source>
+<target>Período de tempo:</target>
 
 <source>C&lear</source>
 <target>&Limpar</target>
@@ -1061,31 +1172,43 @@ O comando é disparado se:
 <target>&Permanente</target>
 
 <source>&Versioning</source>
-<target>Controle de &versões</target>
+<target>Controle de &versão</target>
+
+<source>Move files to a user-defined folder</source>
+<target>Mover os arquivos para uma pasta definida pelo usuário</target>
 
 <source>Naming convention:</source>
 <target>Convenção de nomenclatura:</target>
 
-<source>&Ignore errors</source>
-<target>&Ignorar erros</target>
+<source>Limit file versions:</source>
+<target>Limitar versões de arquivos:</target>
 
-<source>Show pop-up on errors or warnings</source>
-<target>Mostrar pop-up em caso de erros ou avisos</target>
+<source>Last x days:</source>
+<target>Últimos x dias:</target>
 
-<source>Run a command after synchronization:</source>
-<target>Executar um comando após a sincronização:</target>
+<source>&Override default log path:</source>
+<target>&Substituir caminho de log padrão:</target>
+
+<source>Run a command:</source>
+<target>Executar um comando:</target>
 
 <source>OK</source>
 <target>OK</target>
 
-<source>Arrange folder pair</source>
-<target>Organizar par de pastas</target>
-
-<source>Enter your login details:</source>
-<target>Entre com seus dados de login:</target>
-
 <source>Connection type:</source>
 <target>Tipo de conexão:</target>
+
+<source>Connected user accounts:</source>
+<target>Contas de usuário conectadas:</target>
+
+<source>&Add connection</source>
+<target>&Adicionar conexão</target>
+
+<source>&Disconnect</source>
+<target>&Desconectar</target>
+
+<source>Selected user account:</source>
+<target>Conta de usuário selecionada:</target>
 
 <source>Server name or IP address:</source>
 <target>Nome do servidor ou endereço IP:</target>
@@ -1126,14 +1249,8 @@ O comando é disparado se:
 <source>Directory on server:</source>
 <target>Diretório no servidor:</target>
 
-<source>Performance improvements:</source>
-<target>Melhorias de desempenho:</target>
-
-<source>How to get best performance?</source>
-<target>Como obter o melhor desempenho?</target>
-
-<source>Connections for directory reading:</source>
-<target>Conexões para leitura de diretório:</target>
+<source>Access timeout (in seconds):</source>
+<target>Tempo limite de acesso (em segundos):</target>
 
 <source>SFTP channels per connection:</source>
 <target>Canais SFTP por conexão:</target>
@@ -1141,14 +1258,8 @@ O comando é disparado se:
 <source>Detect server limit</source>
 <target>Detectar limite do servidor</target>
 
-<source>Select a directory on the server:</source>
-<target>Selecionar um diretório no servidor:</target>
-
 <source>Select Folder</source>
 <target>Selecionar Pasta</target>
-
-<source>Start synchronization now?</source>
-<target>Iniciar sincronização agora?</target>
 
 <source>Variant:</source>
 <target>Variante:</target>
@@ -1157,7 +1268,7 @@ O comando é disparado se:
 <target>&Não mostrar esta caixa de diálogo novamente</target>
 
 <source>Items found:</source>
-<target>Elementos encontrados:</target>
+<target>Itens encontrados:</target>
 
 <source>Time remaining:</source>
 <target>Tempo restante:</target>
@@ -1177,11 +1288,11 @@ O comando é disparado se:
 <source>Minimize to notification area</source>
 <target>Minimizar para a área de notificação</target>
 
-<source>Bytes copied:</source>
-<target>Bytes copiados:</target>
-
 <source>When finished:</source>
 <target>Quando concluído:</target>
+
+<source>Auto-close</source>
+<target>Fechamento automático</target>
 
 <source>Close</source>
 <target>Fechar</target>
@@ -1193,28 +1304,22 @@ O comando é disparado se:
 <target>Interromper</target>
 
 <source>Create a batch file for unattended synchronization. To start, double-click this file or schedule in a task planner: %x</source>
-<target>Criar um arquivo de tarefa em lotes para sincronização desatendida. Para iniciar, dê um clique duplo neste arquivo ou insira no agendador de tarefas: %x</target>
+<target>Cria um arquivo em lotes para sincronização desatendida. Para iniciar, dê um clique duplo neste arquivo ou insira no agendador de tarefas: %x</target>
+
+<source>Progress dialog:</source>
+<target>Caixa de diálogo de progresso:</target>
 
 <source>Run minimized</source>
 <target>Executar minimizado</target>
 
-<source>&Show error dialog</source>
-<target>&Mostrar caixa de diálogo de erro</target>
+<source>Show pop-up on errors or warnings</source>
+<target>Mostrar pop-up em caso de erros ou avisos</target>
 
 <source>&Cancel</source>
 <target>&Cancelar</target>
 
 <source>Stop synchronization at first error</source>
 <target>Interromper a sincronização ao primeiro erro</target>
-
-<source>Save log:</source>
-<target>Salvar arquivo de log:</target>
-
-<source>Limit:</source>
-<target>Limite:</target>
-
-<source>Limit maximum number of log files</source>
-<target>Limitar número máximo de arquivos de log</target>
 
 <source>How can I schedule a batch job?</source>
 <target>Como posso agendar uma tarefa em lotes?</target>
@@ -1249,14 +1354,14 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Transfer file and folder permissions.</source>
 <target>Transferir permissões de arquivos e pastas.</target>
 
-<source>Automatic retry on error:</source>
-<target>Nova tentativa em caso de erro:</target>
+<source>Show all permanently hidden dialogs and warning messages again</source>
+<target>Mostrar todas as caixas de diálogo e as mensagens de aviso permanentemente ocultas</target>
 
-<source>Retry count:</source>
-<target>Número de tentativas:</target>
+<source>Default log path:</source>
+<target>Caminho de log padrão:</target>
 
-<source>Delay (in seconds):</source>
-<target>Atraso (em segundos):</target>
+<source>&Delete logs after x days:</source>
+<target>&Excluir logs após x days:</target>
 
 <source>Customize context menu:</source>
 <target>Personalizar menu de contexto:</target>
@@ -1264,41 +1369,38 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Description</source>
 <target>Descrição</target>
 
-<source>Show hidden dialogs again</source>
-<target>Mostrar caixas de diálogo ocultadas</target>
-
-<source>Show all permanently hidden dialogs and warning messages again</source>
-<target>Mostrar todos as caixas de diálogo e mensagens de aviso permanentemente ocultadas</target>
-
 <source>&Default</source>
 <target>&Config. Padrão</target>
 
-<source>Source code written in C++ using:</source>
-<target>Código-fonte escrito em C++ utilizando:</target>
+<source>Feedback and suggestions are welcome:</source>
+<target>Comentários e sugestões são bem-vindos:</target>
+
+<source>Home page</source>
+<target>Página web</target>
+
+<source>FreeFileSync Forum</source>
+<target>Fórum do FreeFileSync</target>
+
+<source>Email</source>
+<target>E-mail</target>
 
 <source>If you like FreeFileSync:</source>
 <target>Se você gosta do FreeFileSync:</target>
 
 <source>Support with a donation</source>
-<target>Apoie com uma doação.</target>
-
-<source>Donation details</source>
-<target>Detalhes da doação</target>
+<target>Apoie com uma doação</target>
 
 <source>The auto updater was disabled by the administrator.</source>
 <target>A atualização automática foi desabilitada pelo administrador.</target>
 
-<source>Feedback and suggestions are welcome</source>
-<target>Críticas e sugestões são bem-vindas</target>
+<source>Donation details</source>
+<target>Detalhes da doação</target>
 
-<source>Home page</source>
-<target>Página web</target>
+<source>Source code written in C++ using:</source>
+<target>Código-fonte escrito em C++ utilizando:</target>
 
-<source>Email</source>
-<target>E-mail</target>
-
-<source>Published under the GNU General Public License</source>
-<target>Publicado sobre a GNU General Public License</target>
+<source>Published under the GNU General Public License:</source>
+<target>Publicado sob a Licença Pública Geral GNU:</target>
 
 <source>Many thanks for localization:</source>
 <target>Pela tradução, um agradecimento a:</target>
@@ -1310,10 +1412,10 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>1. Ativar pela internet agora:</target>
 
 <source>Activate online</source>
-<target>Ativar on-line</target>
+<target>Ativar online</target>
 
 <source>2. Retrieve an offline activation key from the following URL:</source>
-<target>2. Recuperar uma chave de ativação off-line a partir da seguinte URL:</target>
+<target>2. Recuperar uma chave de ativação offline a partir da seguinte URL:</target>
 
 <source>&Copy to clipboard</source>
 <target>&Copiar para área de transferência</target>
@@ -1322,7 +1424,16 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Entrar com chave de ativação:</target>
 
 <source>Activate offline</source>
-<target>Ativar off-line</target>
+<target>Ativar offline</target>
+
+<source>Highlight configurations that have not been run for more than the following number of days:</source>
+<target>Realçar configurações que não foram executadas a mais do seguinte número de dias:</target>
+
+<source>Synchronization Settings</source>
+<target>Configurações de Sincronização</target>
+
+<source>Access Online Storage</source>
+<target>Acessar Armazenamento Online</target>
 
 <source>Save as a Batch Job</source>
 <target>Salvar como um Trabalho em Lotes</target>
@@ -1330,17 +1441,26 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Delete Items</source>
 <target>Excluir Itens</target>
 
-<source>Copy items</source>
-<target>Copiar itens</target>
+<source>Copy Items</source>
+<target>Copiar Itens</target>
 
 <source>Options</source>
 <target>Opções</target>
 
 <source>Select Time Span</source>
-<target>Selecionar Intervalo de Tempo</target>
+<target>Selecionar Período de Tempo</target>
 
-<source>FreeFileSync Donation Edition</source>
-<target>FreeFileSync Edição do Doador</target>
+<source>Highlight Configurations</source>
+<target>Realçar Configurações</target>
+
+<source>Info</source>
+<target>Informações</target>
+
+<source>No log entries</source>
+<target>Nenhuma entrada de log</target>
+
+<source>Select all</source>
+<target>Selecionar todos</target>
 
 <source>&Options</source>
 <target>&Opções</target>
@@ -1355,13 +1475,16 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Localizar</target>
 
 <source>View Settings</source>
-<target>Ver configurações</target>
+<target>Ver Configurações</target>
 
 <source>Configuration</source>
 <target>Configuração</target>
 
 <source>Overview</source>
 <target>Parâmetros</target>
+
+<source>Swap sides</source>
+<target>Trocar lados</target>
 
 <source>Show "%x"</source>
 <target>Mostrar "%x"</target>
@@ -1371,9 +1494,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 
 <source>FreeFileSync %x is available!</source>
 <target>FreeFileSync %x está disponível!</target>
-
-<source>Installation files are corrupted. Please reinstall FreeFileSync.</source>
-<target>Os arquivos de instalação estão corrompidos. Por favor reinstale o FreeFileSync.</target>
 
 <source>Local path not available for %x.</source>
 <target>Caminho local não disponível para %x.</target>
@@ -1426,11 +1546,11 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>multiple selection</source>
 <target>seleção múltipla</target>
 
-<source>Include via filter:</source>
-<target>Incluir via filtro:</target>
+<source>&Include via filter:</source>
+<target>&Incluir via filtro:</target>
 
-<source>Exclude via filter:</source>
-<target>Excluir via filtro:</target>
+<source>&Exclude via filter:</source>
+<target>&Excluir via filtro:</target>
 
 <source>Include temporarily</source>
 <target>Incluir temporariamente</target>
@@ -1438,11 +1558,14 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Exclude temporarily</source>
 <target>Excluir temporariamente</target>
 
+<source>&Synchronize selection</source>
+<target>&Sincronizar seleção</target>
+
 <source>&Copy to...</source>
 <target>&Copiar para...</target>
 
 <source>&Delete</source>
-<target>&Exluir</target>
+<target>&Apagar</target>
 
 <source>Include all</source>
 <target>Incluir todos</target>
@@ -1463,10 +1586,10 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Grande</target>
 
 <source>Select time span...</source>
-<target>Selecionar intervalo de tempo...</target>
+<target>Selecionar período de tempo...</target>
 
-<source>Last session</source>
-<target>Última sessão</target>
+<source>Donation Edition</source>
+<target>Edição do Doador</target>
 
 <source>Folder Comparison and Synchronization</source>
 <target>Comparação e Sincronização de Pastas</target>
@@ -1486,8 +1609,11 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Do&n't save</source>
 <target>&Não salvar</target>
 
-<source>Remove entry from list</source>
-<target>Remover entrada da lista</target>
+<source>Hide configuration</source>
+<target>Ocultar configuração</target>
+
+<source>Highlight...</source>
+<target>Realçar...</target>
 
 <source>Clear filter</source>
 <target>Limpar filtro</target>
@@ -1537,9 +1663,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Show filtered or temporarily excluded files</source>
 <target>Mostrar arquivos que foram filtrados ou excluídos temporariamente</target>
 
-<source>Save as default</source>
-<target>Salvar como padrão</target>
-
 <source>Filter</source>
 <target>Filtro</target>
 
@@ -1567,23 +1690,14 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Paused</source>
 <target>Pausado</target>
 
+<source>Stop requested...</source>
+<target>Parada solicitada...</target>
+
 <source>Initializing...</source>
 <target>Inicializando...</target>
 
-<source>Scanning...</source>
-<target>Examinando...</target>
-
 <source>Comparing content...</source>
 <target>Comparando conteúdo...</target>
-
-<source>Completed</source>
-<target>Finalizado</target>
-
-<source>Info</source>
-<target>Informações</target>
-
-<source>Select all</source>
-<target>Selecionar todos</target>
 
 <source>&Continue</source>
 <target>&Continuar</target>
@@ -1591,14 +1705,17 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Progress</source>
 <target>Progresso</target>
 
-<source>Log</source>
-<target>Log</target>
-
 <source>Thank you, %x, for your donation and support!</source>
 <target>Obrigado, %x, pela sua doação e suporte!</target>
 
+<source>Connections</source>
+<target>Conexões</target>
+
 <source>Recommended range:</source>
 <target>Intervalo recomendado:</target>
+
+<source>Do you really want to disconnect from user account %x?</source>
+<target>Você realmente quer desconectar da conta de usuário %x?</target>
 
 <source>Password:</source>
 <target>Senha:</target>
@@ -1607,7 +1724,7 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Senha da chave:</target>
 
 <source>Please enter a file path.</source>
-<target>Insira um caminho de arquivo.</target>
+<target>Por favor, insira um caminho de arquivo.</target>
 
 <source>
 <pluralform>Copy the following item to another folder?</pluralform>
@@ -1619,15 +1736,15 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 </target>
 
 <source>Please enter a target folder.</source>
-<target>Insira uma pasta de destino.</target>
+<target>Por favor, insira uma pasta de destino.</target>
 
 <source>
 <pluralform>Do you really want to move the following item to the recycle bin?</pluralform>
 <pluralform>Do you really want to move the following %x items to the recycle bin?</pluralform>
 </source>
 <target>
-<pluralform>Você realmente deseja mover o seguinte item para a Lixeira?</pluralform>
-<pluralform>Você realmente deseja mover os seguintes %x itens para a Lixeira?</pluralform>
+<pluralform>Você realmente deseja mover o seguinte item para a lixeira?</pluralform>
+<pluralform>Você realmente deseja mover os seguintes %x itens para a lixeira?</pluralform>
 </target>
 
 <source>Move</source>
@@ -1641,6 +1758,12 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <pluralform>Você realmente deseja excluir o seguinte item?</pluralform>
 <pluralform>Você realmente deseja excluir os seguintes %x itens?</pluralform>
 </target>
+
+<source>Start to synchronize the selection?</source>
+<target>Começar a sincronizar a seleção?</target>
+
+<source>Start synchronization now?</source>
+<target>Iniciar sincronização agora?</target>
 
 <source>Copy DACL, SACL, Owner, Group</source>
 <target>Copiar DACL, SACL, Proprietário, Grupo</target>
@@ -1660,11 +1783,11 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Parameters for opposite side</source>
 <target>Parâmetros para o lado oposto</target>
 
-<source>Show hidden dialogs and warning messages again?</source>
-<target>Mostrar caixas de diálogo e mensagens de aviso ocultadas novamente?</target>
+<source>Show hidden dialogs again</source>
+<target>Mostrar caixas de diálogo ocultadas</target>
 
-<source>&Show</source>
-<target>&Mostrar</target>
+<source>All dialogs shown</source>
+<target>Todas caixas de diálogo visíveis</target>
 
 <source>Downloading update...</source>
 <target>Baixando atualização...</target>
@@ -1682,7 +1805,7 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Identifica e propaga as alterações em ambos os lados. Arquivos e pastas excluídos e/ou movidos e conflitos são detectados automaticamente usando um banco de dados.</target>
 
 <source>Create a mirror backup of the left folder by adapting the right folder to match.</source>
-<target>Cria uma cópia espelho da pasta da esquerda adaptando a pasta da direita para igualar.</target>
+<target>Cria uma cópia espelho da pasta da esquerda adaptando a pasta da direita para corresponder.</target>
 
 <source>Copy new and updated files to the right folder.</source>
 <target>Copia arquivos novos ou atualizados para a pasta da direita.</target>
@@ -1690,17 +1813,11 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Configure your own synchronization rules.</source>
 <target>Configure as suas próprias regras de sincronização.</target>
 
-<source>Synchronization Settings</source>
-<target>Configurações de Sincronização</target>
-
 <source>Comparison</source>
 <target>Comparação</target>
 
 <source>Synchronization</source>
 <target>Sincronização</target>
-
-<source>Today</source>
-<target>Hoje</target>
 
 <source>This week</source>
 <target>Esta semana</target>
@@ -1710,9 +1827,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 
 <source>This year</source>
 <target>Este ano</target>
-
-<source>Last x days</source>
-<target>Últimos x dias</target>
 
 <source>Byte</source>
 <target>Byte</target>
@@ -1724,13 +1838,10 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>MB</target>
 
 <source>Retain deleted and overwritten files in the recycle bin</source>
-<target>Manter arquivos excluídos e substituídos na Lixeira</target>
+<target>Manter arquivos excluídos e substituídos na lixeira</target>
 
 <source>Delete and overwrite files permanently</source>
 <target>Excluir e substituir arquivos permanentemente</target>
-
-<source>Move files to a user-defined folder</source>
-<target>Mover os arquivos para uma pasta definida pelo usuário</target>
 
 <source>Replace</source>
 <target>Substituir</target>
@@ -1739,10 +1850,16 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Mover arquivos e substituir se existente</target>
 
 <source>Time stamp</source>
-<target>Estampa de tempo</target>
+<target>Carimbo de data/hora</target>
+
+<source>Move files into a time-stamped subfolder</source>
+<target>Mover arquivos para uma subpasta com carimbo de data/hora</target>
+
+<source>File</source>
+<target>Arquivo</target>
 
 <source>Append a time stamp to each file name</source>
-<target>Colocar uma estampa de tempo para cada nome de arquivo</target>
+<target>Colocar um carimbo de data/hora para cada nome de arquivo</target>
 
 <source>On completion:</source>
 <target>Ao finalizar:</target>
@@ -1762,17 +1879,14 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Leave as unresolved conflict</source>
 <target>Deixar como conflito não resolvido</target>
 
-<source>File</source>
-<target>Arquivo</target>
-
 <source>YYYY-MM-DD hhmmss</source>
 <target>AAAA-MM-DD hhmmss</target>
 
+<source>Minimum version count must be smaller than maximum count.</source>
+<target>A contagem mínima de versões deve ser menor do que a contagem máxima.</target>
+
 <source>Files</source>
 <target>Arquivos</target>
-
-<source>Name</source>
-<target>Nome</target>
 
 <source>Percentage</source>
 <target>Percentual</target>
@@ -1782,9 +1896,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 
 <source>Automatic updates:</source>
 <target>Atualizações automáticas:</target>
-
-<source>Requires FreeFileSync Donation Edition</source>
-<target>Requer FreeFileSync Edição do Doador</target>
 
 <source>Check for Program Updates</source>
 <target>Verificar se existem atualizações</target>
@@ -1828,14 +1939,14 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Unable to register to receive system messages.</source>
 <target>Não é possível registrar para receber mensagens do sistema.</target>
 
+<source>The %x installation option is only available in the FreeFileSync Donation Edition.</source>
+<target>A opção de instalação %x está disponível apenas na Edição do Doador do FreeFileSync.</target>
+
 <source>Cannot find system function %x.</source>
 <target>Não é possível localizar a função de sistema %x.</target>
 
 <source>Unable to register device notifications for %x.</source>
 <target>Não foi possível registrar notificações para %x.</target>
-
-<source>Cannot monitor directory %x.</source>
-<target>Não é possível monitorar o diretório %x.</target>
 
 <source>The file is locked by another process:</source>
 <target>O arquivo está bloqueado por outro processo:</target>
@@ -1854,9 +1965,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 
 <source>%x is not a regular directory name.</source>
 <target>%x não é um nome de diretório regular.</target>
-
-<source>Cannot copy file %x to %y.</source>
-<target>Não é possível copiar o arquivo %x para %y.</target>
 
 <source>Cannot copy attributes from %x to %y.</source>
 <target>Não é possível copiar os atributos de %x para %y.</target>
@@ -1885,15 +1993,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <pluralform>%x horas</pluralform>
 </target>
 
-<source>
-<pluralform>1 day</pluralform>
-<pluralform>%x days</pluralform>
-</source>
-<target>
-<pluralform>1 dia</pluralform>
-<pluralform>%x dias</pluralform>
-</target>
-
 <source>Cannot set privilege %x.</source>
 <target>Não é possível estabelecer o privilégio %x.</target>
 
@@ -1908,12 +2007,6 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 
 <source>Checking recycle bin failed for folder %x.</source>
 <target>Verificando falha na Lixeira para pasta %x.</target>
-
-<source>The following XML elements could not be read:</source>
-<target>Os seguintes elementos XML não puderam ser lidos:</target>
-
-<source>Configuration file %x is incomplete. The missing elements will be set to their default values.</source>
-<target>Arquivo de configuração %x incompleto. Os elementos faltantes serão configurados com seus valores padrões.</target>
 
 <source>Prepare installation</source>
 <target>Preparando a instalação</target>
@@ -1930,8 +2023,8 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Portable</source>
 <target>Portátil</target>
 
-<source>Save settings to "%APPDATA%\FreeFileSync"</source>
-<target>Salvar as configurações em "%APPDATA%\FreeFileSync"</target>
+<source>Save settings in %x</source>
+<target>Salvar configurações em %x</target>
 
 <source>Register FreeFileSync file extensions</source>
 <target>Registrar as extensões de arquivos do FreeFileSync</target>
@@ -1957,8 +2050,11 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Desktop</source>
 <target>Área de trabalho</target>
 
-<source>Start menu</source>
+<source>Start Menu</source>
 <target>Menu Iniciar</target>
+
+<source>Send To</source>
+<target>Enviar para</target>
 
 <source>Registering FreeFileSync file extensions</source>
 <target>Registrando as extensões de arquivos do FreeFileSync</target>
@@ -1970,10 +2066,10 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <target>Configuração do FreeFileSync</target>
 
 <source>FreeFileSync Batch File</source>
-<target>Arquivo de tarefa em lotes do FreeFileSync</target>
+<target>Arquivo em Lotes do FreeFileSync</target>
 
 <source>FreeFileSync Synchronization Database</source>
-<target>Banco de dados de sincronização do FreeFileSync</target>
+<target>Banco de Dados de Sincronização do FreeFileSync</target>
 
 <source>RealTimeSync Configuration</source>
 <target>Configuração do RealTimeSync</target>
@@ -1981,12 +2077,15 @@ Isto garante um estado consistente mesmo em caso de erro grave.
 <source>Edit with FreeFileSync</source>
 <target>Editar com FreeFileSync</target>
 
+<source>Instead of an ad, here's an animal.</source>
+<target>Ao invés de um anúncio, veja um animal.</target>
+
 <source>The FreeFileSync portable version cannot install into a subfolder of %x.</source>
 <target>A versão portátil do FreeFileSync não pode ser instalada em uma subpasta de %x.</target>
 
 <source>Please choose the local installation type or select a different folder for installation.</source>
 <target>Escolha o tipo de instalação local ou selecione uma pasta diferente para instalação.</target>
 
-<source>The silent installation mode is only available in the FreeFileSync Donation Edition.</source>
-<target>O modo silencioso de instalação está disponível apenas no FreeFileSync Edição do Doador.</target>
+<source>Get the Donation Edition with bonus features and help keep FreeFileSync ad-free.</source>
+<target>Obtenha a Edição do Doador com recursos adicionais e ajude a manter o FreeFileSync livre de anúncios.</target>
 

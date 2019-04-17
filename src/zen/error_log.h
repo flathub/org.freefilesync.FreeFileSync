@@ -13,7 +13,7 @@
 #include <string>
 #include "time.h"
 #include "i18n.h"
-#include "string_base.h"
+#include "zstring.h"
 
 
 namespace zen
@@ -26,24 +26,20 @@ enum MessageType
     MSG_TYPE_FATAL_ERROR = 0x8,
 };
 
-using MsgString = Zbase<wchar_t>; //std::wstring may employ small string optimization: we cannot accept bloating the "ErrorLog::entries" memory block below (think 1 million items)
-
 struct LogEntry
 {
     time_t      time = 0;
     MessageType type = MSG_TYPE_FATAL_ERROR;
-    MsgString   message;
+    Zstringw    message; //std::wstring may employ small string optimization: we cannot accept bloating the "ErrorLog::entries" memory block below (think 1 million items)
 };
 
-template <class String>
-String formatMessage(const LogEntry& entry);
+std::wstring formatMessage(const LogEntry& entry);
 
 
 class ErrorLog
 {
 public:
-    template <class String> //a wchar_t-based string!
-    void logMsg(const String& text, MessageType type);
+    void logMsg(const std::wstring& msg, MessageType type);
 
     int getItemCount(int typeFilter = MSG_TYPE_INFO | MSG_TYPE_WARNING | MSG_TYPE_ERROR | MSG_TYPE_FATAL_ERROR) const;
 
@@ -51,10 +47,10 @@ public:
     using const_iterator = std::vector<LogEntry>::const_iterator;
     const_iterator begin() const { return entries_.begin(); }
     const_iterator end  () const { return entries_.end  (); }
-    bool empty() const { return entries_.empty(); }
+    bool           empty() const { return entries_.empty(); }
 
 private:
-    std::vector<LogEntry> entries_; //list of non-resolved errors and warnings
+    std::vector<LogEntry> entries_;
 };
 
 
@@ -66,10 +62,10 @@ private:
 
 
 //######################## implementation ##########################
-template <class String> inline
-void ErrorLog::logMsg(const String& text, MessageType type)
+inline
+void ErrorLog::logMsg(const std::wstring& msg, MessageType type)
 {
-    entries_.push_back({ std::time(nullptr), type, copyStringTo<MsgString>(text) });
+    entries_.push_back({ std::time(nullptr), type, copyStringTo<Zstringw>(msg) });
 }
 
 
@@ -82,8 +78,7 @@ int ErrorLog::getItemCount(int typeFilter) const
 
 namespace
 {
-template <class String>
-String formatMessageImpl(const LogEntry& entry) //internal linkage
+std::wstring formatMessageImpl(const LogEntry& entry)
 {
     auto getTypeName = [&]
     {
@@ -102,17 +97,14 @@ String formatMessageImpl(const LogEntry& entry) //internal linkage
         return std::wstring();
     };
 
-    String formattedText = L"[" + formatTime<String>(FORMAT_TIME, getLocalTime(entry.time)) + L"]  " + copyStringTo<String>(getTypeName()) + L":  ";
-    const size_t prefixLen = formattedText.size(); //considers UTF-16 only!
+    std::wstring msgFmt = L"[" + formatTime<std::wstring>(FORMAT_TIME, getLocalTime(entry.time)) + L"]  " + getTypeName() + L":  ";
+    const size_t prefixLen = msgFmt.size(); //considers UTF-16 only!
 
     for (auto it = entry.message.begin(); it != entry.message.end(); )
         if (*it == L'\n')
         {
-            formattedText += L'\n';
-
-            String blanks;
-            blanks.resize(prefixLen, L' ');
-            formattedText += blanks;
+            msgFmt += L'\n';
+            msgFmt.append(prefixLen, L' ');
 
             do //skip duplicate newlines
             {
@@ -121,14 +113,14 @@ String formatMessageImpl(const LogEntry& entry) //internal linkage
             while (it != entry.message.end() && *it == L'\n');
         }
         else
-            formattedText += *it++;
+            msgFmt += *it++;
 
-    return formattedText;
+    return msgFmt;
 }
 }
 
-template <class String> inline
-String formatMessage(const LogEntry& entry) { return formatMessageImpl<String>(entry); }
+inline
+std::wstring formatMessage(const LogEntry& entry) { return formatMessageImpl(entry); }
 }
 
 #endif //ERROR_LOG_H_8917590832147915

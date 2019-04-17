@@ -8,7 +8,6 @@
 #define MAIN_DLG_H_8910481324545644545
 
 #include <map>
-#include <list>
 #include <memory>
 #include <wx+/async_task.h>
 #include <wx+/file_drop.h>
@@ -17,8 +16,11 @@
 #include "file_grid.h"
 #include "tree_grid.h"
 #include "sync_cfg.h"
+#include "log_panel.h"
 #include "folder_history_box.h"
-#include "../algorithm.h"
+#include "../base/status_handler.h"
+#include "../base/algorithm.h"
+#include "../base/return_codes.h"
 
 
 namespace fff
@@ -26,7 +28,6 @@ namespace fff
 class FolderPairFirst;
 class FolderPairPanel;
 class CompareProgressDialog;
-class FolderSelectorImpl;
 template <class GuiPanel>
 class FolderPairCallback;
 class PanelMoveWindow;
@@ -64,13 +65,11 @@ private:
     friend class StatusHandlerFloatingDialog;
     friend class FolderPairFirst;
     friend class FolderPairPanel;
-    friend class FolderSelectorImpl;
     template <class GuiPanel>
     friend class FolderPairCallback;
     friend class PanelMoveWindow;
 
     //configuration load/save
-    void setLastUsedConfig(const Zstring& cfgFilePath, const XmlGuiConfig& guiConfig) { setLastUsedConfig(std::vector<Zstring>({ cfgFilePath }), guiConfig); }
     void setLastUsedConfig(const std::vector<Zstring>& cfgFilePaths, const XmlGuiConfig& guiConfig);
 
     XmlGuiConfig getConfig() const;
@@ -81,8 +80,8 @@ private:
 
     bool loadConfiguration(const std::vector<Zstring>& filepaths); //return true if loaded successfully
 
-    bool trySaveConfig     (const Zstring* guiFilename); //return true if saved successfully
-    bool trySaveBatchConfig(const Zstring* batchFileToUpdate); //
+    bool trySaveConfig     (const Zstring* guiCfgPath); //return true if saved successfully
+    bool trySaveBatchConfig(const Zstring* batchCfgPath); //
     bool saveOldConfig(); //return false on user abort
 
     void updateGlobalFilterButton();
@@ -92,12 +91,13 @@ private:
 
     void cfgHistoryRemoveObsolete(const std::vector<Zstring>& filepaths);
 
-    void insertAddFolderPair(const std::vector<FolderPairEnh>& newPairs, size_t pos);
+    void insertAddFolderPair(const std::vector<LocalPairConfig>& newPairs, size_t pos);
     void moveAddFolderPairUp(size_t pos);
     void removeAddFolderPair(size_t pos);
-    void setAddFolderPairs(const std::vector<FolderPairEnh>& newPairs);
+    void setAddFolderPairs(const std::vector<LocalPairConfig>& newPairs);
 
     void updateGuiForFolderPair(); //helper method: add usability by showing/hiding buttons related to folder pairs
+    void recalcMaxFolderPairsVisible();
 
     //main method for putting gridDataView on UI: updates data respecting current view settings
     void updateGui(); //kitchen-sink update
@@ -126,11 +126,15 @@ private:
                                  const std::vector<FileSystemObject*>& selectionRight); //selection may be empty
 
     //status bar supports one of the following two states at a time:
-    void setStatusBarFileStatistics(size_t filesOnLeftView, size_t foldersOnLeftView, size_t filesOnRightView, size_t foldersOnRightView, uint64_t filesizeLeftView, uint64_t filesizeRightView);
+    void setStatusBarFileStats(size_t fileCountLeft,
+                               size_t folderCountLeft,
+                               uint64_t bytesLeft,
+                               size_t fileCountRight,
+                               size_t folderCountRight,
+                               uint64_t bytesRight);
     //void setStatusBarFullText(const wxString& msg);
 
-    void flashStatusInformation(const wxString& msg); //temporarily show different status (only valid for setStatusBarFileStatistics)
-    void restoreStatusInformation();                  //called automatically after a few seconds
+    void flashStatusInformation(const wxString& msg); //temporarily show different status (only valid for setStatusBarFileStats)
 
     //events
     void onGridButtonEventL(wxKeyEvent& event) { onGridButtonEvent(event, *m_gridMainL,  true); }
@@ -153,7 +157,7 @@ private:
     void OnSyncSettingsContext(wxEvent& event);
     void OnGlobalFilterContext(wxEvent& event);
 
-    void OnViewButtonRightClick(wxMouseEvent& event) override;
+    void OnViewFilterSave(wxCommandEvent& event) override;
 
     void applyCompareConfig(bool setDefaultViewType);
 
@@ -161,7 +165,7 @@ private:
     void onMainGridContextL(zen::GridClickEvent& event);
     void onMainGridContextC(zen::GridClickEvent& event);
     void onMainGridContextR(zen::GridClickEvent& event);
-    void onMainGridContextRim(bool leftSide);
+    void onMainGridContextRim(bool leftSide, zen::GridClickEvent& event);
 
     void onTreeGridContext(zen::GridClickEvent& event);
 
@@ -214,10 +218,13 @@ private:
     void OnResizeTopButtonPanel (wxEvent& event);
     void OnResizeConfigPanel    (wxEvent& event);
     void OnResizeViewPanel      (wxEvent& event);
+    void OnShowLog              (wxCommandEvent& event) override;
     void OnCompare              (wxCommandEvent& event) override;
     void OnStartSync            (wxCommandEvent& event) override;
     void OnSwapSides            (wxCommandEvent& event) override;
     void OnClose                (wxCloseEvent&   event) override;
+
+    void startSyncForSelecction(const std::vector<FileSystemObject*>& selection);
 
     void OnCmpSettings    (wxCommandEvent& event) override { showConfigDialog(SyncConfigPanel::COMPARISON, -1); }
     void OnConfigureFilter(wxCommandEvent& event) override { showConfigDialog(SyncConfigPanel::FILTER,     -1); }
@@ -225,7 +232,10 @@ private:
 
     void showConfigDialog(SyncConfigPanel panelToShow, int localPairIndexToShow);
 
-    void updateLastSyncTimesToNow();
+    void updateConfigLastRunStats(time_t lastRunTime, SyncResult result, const AbstractPath& logFilePath);
+
+    void setLastOperationLog(const ProcessSummary& summary, const std::shared_ptr<const zen::ErrorLog>& errorLog);
+    void showLogPanel(bool show);
 
     void filterExtension(const Zstring& extension, bool include);
     void filterShortname(const FileSystemObject& fsObj, bool include);
@@ -249,7 +259,7 @@ private:
     void onAddFolderPairKeyEvent(wxKeyEvent& event);
 
     void applyFilterConfig();
-    void applySyncConfig();
+    void applySyncDirections();
 
     void showFindPanel(); //CTRL + F
     void hideFindPanel();
@@ -298,7 +308,7 @@ private:
 
     XmlGuiConfig lastSavedCfg_; //support for: "Save changed configuration?" dialog
 
-    const Zstring lastRunConfigPath_; //let's not use another static...
+    const Zstring lastRunConfigPath_ = getLastRunConfigPath(); //let's not use another static...
     //-------------------------------------
 
     //the prime data structure of this tool *bling*:
@@ -307,14 +317,18 @@ private:
     //folder pairs:
     std::unique_ptr<FolderPairFirst> firstFolderPair_; //always bound!!!
     std::vector<FolderPairPanel*> additionalFolderPairs_; //additional pairs to the first pair
+
+    std::optional<double> addPairCountLast_;
     //-------------------------------------
 
     //***********************************************
     //status information
-    std::list<wxString> oldStatusMsgs_; //the first one is the original/non-flash status message
+    std::vector<wxString> oldStatusMsgs_; //the first one is the original/non-flash status message
 
     //compare status panel (hidden on start, shown when comparing)
     std::unique_ptr<CompareProgressDialog> compareStatus_; //always bound
+
+    LogPanel* logPanel_ = nullptr;
 
     //toggle to display configuration preview instead of comparison result:
     //for read access use: m_bpButtonViewTypeSyncAction->isActive()
@@ -328,14 +342,14 @@ private:
     time_t manualTimeSpanFrom_ = 0;
     time_t manualTimeSpanTo_   = 0; //buffer manual time span selection at session level
 
-    std::shared_ptr<FolderHistory> folderHistoryLeft_  = std::make_shared<FolderHistory>(); //shared by all wxComboBox dropdown controls
-    std::shared_ptr<FolderHistory> folderHistoryRight_ = std::make_shared<FolderHistory>(); //always bound!
+    zen::SharedRef<FolderHistory> folderHistoryLeft_  = zen::makeSharedRef<FolderHistory>(); //shared by all wxComboBox dropdown controls
+    zen::SharedRef<FolderHistory> folderHistoryRight_ = zen::makeSharedRef<FolderHistory>(); //always bound!
 
     zen::AsyncGuiQueue guiQueue_; //schedule and run long-running tasks asynchronously, but process results on GUI queue
 
     std::unique_ptr<FilterConfig> filterCfgOnClipboard_; //copy/paste of filter config
 
-    wxWindow* focusWindowAfterSearch_ = nullptr; //used to restore focus after search panel is closed
+    wxWindowID focusIdAfterSearch_ = wxID_ANY; //used to restore focus after search panel is closed
 
     bool localKeyEventsEnabled_ = true;
     bool allowMainDialogClose_ = true; //e.g. do NOT allow close while sync is running => crash!!!

@@ -8,8 +8,8 @@
 #define SMALL_DLGS_H_8321790875018750245
 
 #include <wx/window.h>
-#include "../lib/process_xml.h"
-#include "../synchronization.h"
+#include "../base/process_xml.h"
+#include "../base/synchronization.h"
 
 
 namespace fff
@@ -28,8 +28,8 @@ struct ReturnSmallDlg
 void showAboutDialog(wxWindow* parent);
 
 ReturnSmallDlg::ButtonPressed showCopyToDialog(wxWindow* parent,
-                                               const std::vector<const FileSystemObject*>& rowsOnLeft,
-                                               const std::vector<const FileSystemObject*>& rowsOnRight,
+                                               std::span<const FileSystemObject* const> rowsOnLeft,
+                                               std::span<const FileSystemObject* const> rowsOnRight,
                                                Zstring& lastUsedPath,
                                                std::vector<Zstring>& folderPathHistory,
                                                size_t historySizeMax,
@@ -37,11 +37,12 @@ ReturnSmallDlg::ButtonPressed showCopyToDialog(wxWindow* parent,
                                                bool& overwriteIfExists);
 
 ReturnSmallDlg::ButtonPressed showDeleteDialog(wxWindow* parent,
-                                               const std::vector<const FileSystemObject*>& rowsOnLeft,
-                                               const std::vector<const FileSystemObject*>& rowsOnRight,
+                                               std::span<const FileSystemObject* const> rowsOnLeft,
+                                               std::span<const FileSystemObject* const> rowsOnRight,
                                                bool& useRecycleBin);
 
 ReturnSmallDlg::ButtonPressed showSyncConfirmationDlg(wxWindow* parent,
+                                                      bool syncSelection,
                                                       const wxString& variantName,
                                                       const SyncStatistics& statistics,
                                                       bool& dontShowAgain);
@@ -53,6 +54,8 @@ ReturnSmallDlg::ButtonPressed showSelectTimespanDlg(wxWindow* parent, time_t& ti
 ReturnSmallDlg::ButtonPressed showCfgHighlightDlg(wxWindow* parent, int& cfgHistSyncOverdueDays);
 
 
+ReturnSmallDlg::ButtonPressed showCloudSetupDialog(wxWindow* parent, Zstring& folderPathPhrase,
+                                                   size_t& parallelOps, const std::wstring* parallelOpsDisabledReason /*optional: disable control + show text*/);
 
 enum class ReturnActivationDlg
 {

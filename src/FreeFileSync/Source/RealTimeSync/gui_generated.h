@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Nov  6 2017)
+// C++ code generated with wxFormBuilder (version May 29 2018)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO *NOT* EDIT THIS FILE!
@@ -25,6 +25,7 @@ namespace zen { class BitmapTextButton; }
 #include <wx/stattext.h>
 #include <wx/sizer.h>
 #include <wx/statline.h>
+#include <wx/statbmp.h>
 #include <wx/bmpbuttn.h>
 #include <wx/button.h>
 #include <wx/textctrl.h>
@@ -57,6 +58,7 @@ protected:
     wxStaticText* m_staticText811;
     wxStaticLine* m_staticline2;
     wxPanel* m_panelMain;
+    wxStaticBitmap* m_bitmapFolders;
     wxStaticText* m_staticText7;
     wxPanel* m_panelMainFolder;
     wxStaticText* m_staticTextFinalPath;
@@ -70,6 +72,7 @@ protected:
     wxStaticText* m_staticText8;
     wxSpinCtrl* m_spinCtrlDelay;
     wxStaticLine* m_staticline211;
+    wxStaticBitmap* m_bitmapCommand;
     wxStaticText* m_staticText6;
     wxTextCtrl* m_textCtrlCommand;
     wxStaticLine* m_staticline5;

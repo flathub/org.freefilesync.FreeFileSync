@@ -89,3 +89,6 @@ git tag vREL
 git push --tags
 # push all modified branches (patchNN, src)
 ```
+
+See the progress and controls for new builds at
+[Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync).

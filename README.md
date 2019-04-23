@@ -42,6 +42,8 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 
 ## Maintaining this repository
 
+[Please become a co-maintainer](https://github.com/flathub/org.freefilesync.FreeFileSync/issues/11)
+
 Since there is no version control for FreeFileSync, the exploded tarball for
 each version is pushed into the `src` branch. Patches are kept in
 `patchNN-description` branches and rebased on top of new releases.

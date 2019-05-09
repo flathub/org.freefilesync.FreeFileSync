@@ -24,6 +24,8 @@ finish-args:
   - --socket=x11
   - --socket=wayland
   - --filesystem=host
+  - --filesystem=/run/user/$UID/gvfs  # access gvfs mounts
+  - --talk-name=org.gtk.vfs.*         # access gvfs mounts
 
 modules:
   - name: boost

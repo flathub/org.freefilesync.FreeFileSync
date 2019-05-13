@@ -53,7 +53,7 @@ branch.)
 
 The workflow for building a new release `REL` is:
 ```
-git branch vREL master
+git branch REL master
 # download new tarball into tarball/
 git checkout src
 rm src -rf
@@ -66,24 +66,25 @@ git checkout patchNN
 git rebase src
 # end for
 
-git checkout vREL
+git checkout REL
 
 # for each patchNN branch, do:
 git diff src patchNN > ./patchNN.patch
 # end for
 
 # adjust *appdata.xml and *FreeFileSync.yml
-flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean
+flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean --ccache
 # test the app
+flatpak-builder --run builddir org.freefilesync.FreeFileSync.yml FreeFileSync
 
 git add -A
 git commit
-git push -u origin vREL
+git push -u origin REL
 # submit a PR
 
 # after merging PR to master
-git branch -d vREL
-git push -d origin vREL
+git branch -d REL
+git push -d origin REL
 git checkout master
 git tag vREL
 git push --tags

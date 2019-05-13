@@ -89,8 +89,8 @@ modules:
         # the upstream is terrible, the original URL blocks curl/wget without
         # a specific user-agent, we need to use a mirror. Original URL:
         # https://freefilesync.org/download/FreeFileSync_10.11_Source.zip
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.11_Source.zip
-        sha256: ed322ef285d85b1cfaa7d4e6fd4dbcb00c4aaf57003a3cbd35126eaef95a1d37
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.12_Source.zip
+        sha256: 55b915c47f2dff5c376ed7b6297bae449ab71179bab026a776dea123aaa65407
         strip-components: 0
       - type: patch
         path: patch01-build.patch

@@ -33,8 +33,8 @@
       <image>https://www.freefilesync.org/images/screenshots/sync-settings.png</image>
     </screenshot>
     <screenshot priority="1">
-      <caption>Automatic synchronization</caption>
-      <image>https://www.freefilesync.org/images/screenshots/RealTimeSync.png</image>
+      <caption>Binary comparison</caption>
+      <image>https://freefilesync.org/images/screenshots/binary.png</image>
     </screenshot>
   </screenshots>
   <launchable type="desktop-id">org.freefilesync.FreeFileSync.desktop</launchable>
@@ -73,4 +73,6 @@
     <content_attribute id="money-purchasing">mild</content_attribute>
     <content_attribute id="money-gambling">none</content_attribute>
   </content_rating>
+  ​<update_contact>zenju at freefilesync.org</update_contact>
+  <translation/>
 </component>

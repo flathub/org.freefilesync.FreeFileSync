@@ -20,13 +20,11 @@ cleanup:
 
 finish-args:
   - --share=network
-  - --share=ipc  # X11 needs this
+  - --share=ipc                       # X11 needs this
   - --socket=x11
   - --socket=wayland
   - --filesystem=host
-  # GVFS access not working yet, see:
-  # https://github.com/flathub/org.freefilesync.FreeFileSync/issues/14
-  - --filesystem=/run/user/$UID/gvfs  # access gvfs mounts
+  - --filesystem=xdg-run/gvfs         # access gvfs mounts
   - --talk-name=org.gtk.vfs.*         # access gvfs mounts
 
 modules:

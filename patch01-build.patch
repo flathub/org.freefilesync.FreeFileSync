@@ -1,5 +1,5 @@
 diff --git a/src/FreeFileSync/Source/afs/sftp.cpp b/src/FreeFileSync/Source/afs/sftp.cpp
-index dc8a353..abd1fd0 100644
+index aecf3f7..fb86cf2 100644
 --- a/src/FreeFileSync/Source/afs/sftp.cpp
 +++ b/src/FreeFileSync/Source/afs/sftp.cpp
 @@ -56,9 +56,9 @@ const std::chrono::seconds SFTP_CHANNEL_LIMIT_DETECTION_TIME_OUT(30);

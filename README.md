@@ -44,35 +44,10 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 
 [Please become a co-maintainer](https://github.com/flathub/org.freefilesync.FreeFileSync/issues/11)
 
-Since there is no version control for FreeFileSync, the exploded tarball for
-each version is pushed into the `src` branch. Patches are kept in
-`patchNN-description` branches and rebased on top of new releases.
-(The reason for this is to make patch rebasing more comfortable and
-maintainable. A new release is still built from the tarball, not from the `src`
-branch.)
-
 The workflow for building a new release `REL` is:
 ```
-git branch REL master
-# download new tarball into tarball/
-git checkout src
-rm src -rf
-unzip -d src tarball/<tarball>.zip
-git add -A
-git commit
-
-# for each patchNN branch, do:
-git checkout patchNN
-git rebase src
-# end for
-
-git checkout REL
-
-# for each patchNN branch, do:
-git diff src patchNN > ./patchNN.patch
-# end for
-
-# adjust *appdata.xml and *FreeFileSync.yml
+git checkout -b REL master
+# adjust *FreeFileSync.yml and data/*appdata.xml
 flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean --ccache
 # test the app
 flatpak-builder --run builddir org.freefilesync.FreeFileSync.yml FreeFileSync
@@ -82,13 +57,14 @@ git commit
 git push -u origin REL
 # submit a PR
 
-# after merging PR to master
-git branch -d REL
-git push -d origin REL
+# after the PR is approved
 git checkout master
+git merge --ff-only REL
+git push
 git tag vREL
 git push --tags
-# push all modified branches (patchNN, src)
+git branch -d REL
+git push -d origin REL
 ```
 
 See the progress and controls for new builds at

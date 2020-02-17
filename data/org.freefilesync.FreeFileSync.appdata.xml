@@ -44,6 +44,7 @@
     <binary>RealTimeSync</binary>
   </provides>
   <releases>
+    <release version="10.20" date="2020-02-14"/>
     <release version="10.19" date="2019-12-27"/>
     <release version="10.18" date="2019-11-19"/>
     <release version="10.17" date="2019-10-17"/>

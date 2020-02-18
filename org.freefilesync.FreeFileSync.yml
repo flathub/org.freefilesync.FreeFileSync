@@ -23,6 +23,7 @@ finish-args:
   - --share=ipc                       # X11 needs this
   - --socket=x11
   - --socket=wayland
+  - --socket=pulseaudio               # notification sounds
   - --filesystem=host
   - --filesystem=xdg-run/gvfs         # access gvfs mounts
   - --talk-name=org.gtk.vfs.*         # access gvfs mounts

@@ -1,8 +1,8 @@
 app-id: org.freefilesync.FreeFileSync
 
-runtime: org.freedesktop.Platform
-runtime-version: '19.08'
-sdk: org.freedesktop.Sdk
+runtime: org.gnome.Platform
+runtime-version: '3.36'
+sdk: org.gnome.Sdk
 command: FreeFileSync
 
 build-options:
@@ -49,8 +49,8 @@ modules:
         # the upstream is terrible, the original URL blocks curl/wget without
         # a specific user-agent, we need to use a mirror. Original URL example:
         # https://freefilesync.org/download/FreeFileSync_10.17_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.22_Linux.tar.gz
-        sha256: 74c02d76429396e208bbf148970ef5eefcfb063a3e6a92c17de4a637870d7554
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.23_Linux.tar.gz
+        sha256: fa4f8260097357a0307a31ecf78d93de6182255910852b1c101ed033a1de3c74
         strip-components: 0
       - type: file
         path: data/org.freefilesync.FreeFileSync.desktop

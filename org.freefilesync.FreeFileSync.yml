@@ -31,6 +31,17 @@ finish-args:
 modules:
   - shared-modules/gtk2/gtk2.json
 
+    # without lsb_release, FFS shows an error at the end of each operation
+    # (in the log tab)
+  - name: lsb-release-compat
+    buildsystem: simple
+    build-commands:
+      - make install PREFIX=/app
+    sources:
+      - type: git
+        url: https://gitlab.com/nanonyme/lsb-release-compat.git
+        commit: 5751a93f4cd3885a9c3c92aa86026255851ad670
+
   - name: freefilesync
     buildsystem: simple
     build-commands:

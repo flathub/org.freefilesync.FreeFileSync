@@ -31,17 +31,6 @@ finish-args:
 modules:
   - shared-modules/gtk2/gtk2.json
 
-    # without lsb_release, FFS shows an error at the end of each operation
-    # (in the log tab)
-  - name: lsb-release-compat
-    buildsystem: simple
-    build-commands:
-      - make install PREFIX=/app
-    sources:
-      - type: git
-        url: https://gitlab.com/nanonyme/lsb-release-compat.git
-        commit: 5751a93f4cd3885a9c3c92aa86026255851ad670
-
   - name: freefilesync
     buildsystem: simple
     build-commands:
@@ -60,8 +49,8 @@ modules:
         # the upstream is terrible, the original URL blocks curl/wget without
         # a specific user-agent, we need to use a mirror. Original URL example:
         # https://freefilesync.org/download/FreeFileSync_10.17_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.23_Linux.tar.gz
-        sha256: fa4f8260097357a0307a31ecf78d93de6182255910852b1c101ed033a1de3c74
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_10.24_Linux.tar.gz
+        sha256: 1a0150acc2435dc1372bc8c893e706c65e368317ff178aae57a5611019a03a78
         strip-components: 0
       - type: file
         path: data/org.freefilesync.FreeFileSync.desktop

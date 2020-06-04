@@ -1,24 +1,20 @@
 # FreeFileSync on Flathub
 
-[FreeFileSync](https://www.freefilesync.org/) is a graphical folder comparison
-and synchronization software. See its homepage at
-[freefilesync.org](https://www.freefilesync.org).
+[FreeFileSync] is a graphical folder comparison and synchronization software. See its homepage at [freefilesync.org][FreeFileSync].
+
+This repo contains a [Flatpak] manifest for building a Flatpak package for FreeFileSync. You can download the the final Flatpak package from [FreeFileSync on Flathub].
+
+**Note: This is not the upstream repo for FreeFileSync. See [freefilesync.org][FreeFileSync] instead.**
 
 [![screenshot](https://www.freefilesync.org/images/screenshots/openSUSE.png)](https://www.freefilesync.org/images/screenshots/openSUSE.png)
 
-This repo contains a [Flatpak] manifest for building a
-Flatpak package for FreeFileSync. You can download the the final Flatpak
-package from [Flathub].
-
-[Flatpak]: http://flatpak.org
-[Flathub]: https://flathub.org
+[FreeFileSync]: https://www.freefilesync.org
+[Flatpak]: https://flatpak.org
+[FreeFileSync on Flathub]: https://flathub.org/apps/details/org.freefilesync.FreeFileSync
 
 ## Installation
 
-To install FreeFileSync through Flathub, visit
-[flathub.org/apps](https://flathub.org/apps.html) and click on FreeFileSync.
-It should open in a supported software center (like GNOME Software) with the
-option to install the app.
+To install FreeFileSync through Flathub, first make sure Flathub is [set up](https://flatpak.org/setup/) on your system, and then visit [FreeFileSync on Flathub] page and click *Install*.
 
 Or you can use the command line:
 ```
@@ -28,8 +24,7 @@ flatpak install flathub org.freefilesync.FreeFileSync
 
 ## Usage
 
-This package contains two tools named `FreeFileSync` and `RealTimeSync`. Simply
-search for either of them in your desktop app launcher.
+This package contains two tools named `FreeFileSync` and `RealTimeSync`. Simply search for either of them in your desktop app launcher.
 
 Or you can use the command line:
 ```
@@ -67,5 +62,4 @@ git branch -d REL
 git push -d origin REL
 ```
 
-See the progress and controls for new builds at
-[Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync).
+See the progress and controls for new builds at [Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync).

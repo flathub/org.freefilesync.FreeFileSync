@@ -49,8 +49,8 @@ modules:
         # the upstream is terrible, the original URL blocks curl/wget without
         # a specific user-agent, we need to use a mirror. Original URL example:
         # https://freefilesync.org/download/FreeFileSync_10.17_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.1_Linux.tar.gz
-        sha256: be6e7a2e7ecb4d96772d14facb8cfe3cd20cc18ce21be3d4244a549d3f3b0ed3
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.2_Linux.tar.gz
+        sha256: 035070c8fd3228bafc1a333589793dc48bac3a4729d90da9ab29010deec56dc3
         strip-components: 0
       - type: file
         path: data/org.freefilesync.FreeFileSync.desktop

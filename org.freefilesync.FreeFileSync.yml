@@ -51,8 +51,8 @@ modules:
         # https://freefilesync.org/download/FreeFileSync_11.3_Linux.tar.gz
         # A mirror URL example:
         # https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.3_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.4_Linux.tar.gz
-        sha256: 0a83bd28872f9139dc5bfe787f038c79502f170dcc4e8b4f69db5187c7b27132
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.5_Linux.tar.gz
+        sha256: 6953ea298874e413b58a048e606e2d06ef66b7094eb772a5a1ebfd067acda6b2
         strip-components: 0
       - type: file
         path: data/org.freefilesync.FreeFileSync.desktop

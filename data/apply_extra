@@ -1,0 +1,20 @@
+#!/usr/bin/bash
+# An "apply_extra" script gets automatically executed after "extra-data" are downloaded
+# during installation. CWD is at /app/extra/.
+
+# The errexit is the reason why this script is not embeded directly in the app manifest
+set -o errexit -o pipefail
+
+# Uncomment this when debugging. Turns out the output is also shown to end-users when installing
+# on a command line, which looks somewhat unprofessional.
+#set -o verbose
+
+tar xf FFS.tar.gz
+test -d FreeFileSync
+rm FFS.tar.gz
+
+rm 'FreeFileSync/User Manual.pdf'
+
+# Check whether the target binary actually exists (test -f resolves symlinks)
+test -f /app/bin/FreeFileSync
+test -f /app/bin/RealTimeSync

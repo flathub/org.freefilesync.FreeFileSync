@@ -41,18 +41,33 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 
 The workflow for building a new release `REL` is:
 ```
+# Create a new git branch REL (e.g. 11.6):
 git checkout -b REL master
-# adjust *FreeFileSync.yml and data/*appdata.xml
-flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean --ccache
-# test the app
-flatpak-builder --run builddir org.freefilesync.FreeFileSync.yml FreeFileSync
 
-git add -A
+# Adjust the manifest and appdata
+your-favorite-editor org.freefilesync.FreeFileSync.yml
+your-favorite-editor data/org.freefilesync.FreeFileSync.appdata.xml
+
+# Build and install. The installation part is necessary, because due to extra-data approach (see
+# manifest), the actual FFS binary is downloaded and processed only during installation.
+flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean --ccache --install --user
+
+# Test the app. Your dev version should be installed as the 'master' branch, so if you have the
+# stable version installed as well, you must distinguish them as shown below. Check your
+# 'flatpak list --app' output to make sure.
+flatpak run org.freefilesync.FreeFileSync//master
+
+# Remove the dev version of the app
+flatpak remove org.freefilesync.FreeFileSync//master
+
+# Commit the changes
+git add -u
+git diff --cached
 git commit
 git push -u origin REL
-# submit a PR
+# Submit the pull request now
 
-# after the PR is approved
+# After the PR is approved, release it
 git checkout master
 git merge --ff-only REL
 git push

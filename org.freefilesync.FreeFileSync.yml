@@ -34,10 +34,9 @@ modules:
   - name: freefilesync
     buildsystem: simple
     build-commands:
-      - rm -v 'FreeFileSync/User Manual.pdf'
-      - mv -v FreeFileSync/ /app/
-      - ln -sv "/app/FreeFileSync/Bin/FreeFileSync_$(uname -m)" /app/bin/FreeFileSync
-      - ln -sv "/app/FreeFileSync/Bin/RealTimeSync_$(uname -m)" /app/bin/RealTimeSync
+      - cp apply_extra /app/bin/
+      - ln -sv "/app/extra/FreeFileSync/Bin/FreeFileSync_$(uname -m)" /app/bin/FreeFileSync
+      - ln -sv "/app/extra/FreeFileSync/Bin/RealTimeSync_$(uname -m)" /app/bin/RealTimeSync
       - mkdir -pv /app/share/applications/
       - cp -v *.desktop /app/share/applications/
       - mkdir -pv /app/share/icons/hicolor/128x128/apps/
@@ -45,15 +44,6 @@ modules:
       - mkdir -pv /app/share/appdata
       - cp -v *.appdata.xml /app/share/appdata
     sources:
-      - type: archive
-        # the upstream is terrible, the original URL blocks curl/wget without
-        # a specific user-agent, we need to use a mirror. Original URL example:
-        # https://freefilesync.org/download/FreeFileSync_11.3_Linux.tar.gz
-        # A mirror URL example:
-        # https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.3_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.5_Linux.tar.gz
-        sha256: 6953ea298874e413b58a048e606e2d06ef66b7094eb772a5a1ebfd067acda6b2
-        strip-components: 0
       - type: file
         path: data/org.freefilesync.FreeFileSync.desktop
       - type: file
@@ -64,3 +54,25 @@ modules:
         path: data/org.freefilesync.FreeFileSync.RealTimeSync.png
       - type: file
         path: data/org.freefilesync.FreeFileSync.appdata.xml
+      # We don't compile FFS sources, because they are often broken and depend on modified system
+      # libraries. Instead, we use pre-compiled binaries. However, the binary licence disallows
+      # changes to the archive during distribution, and so we need to download the binary and
+      # process it on the client during installation. For more information, see:
+      # https://github.com/flathub/org.freefilesync.FreeFileSync/issues/48
+      - type: extra-data
+        # this ends up stored in /app/extra/
+        filename: FFS.tar.gz
+        # The upstream is terrible, the original URL blocks curl/wget without
+        # a specific user-agent, we need to use a mirror. Original URL example:
+        # https://freefilesync.org/download/FreeFileSync_11.3_Linux.tar.gz
+        # A mirror URL example:
+        # https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.3_Linux.tar.gz
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.5_Linux.tar.gz
+        sha256: 6953ea298874e413b58a048e606e2d06ef66b7094eb772a5a1ebfd067acda6b2
+        size: 25724806
+        # just a rough size (extracted), we don't want to update it with each release
+        installed-size: 30000000  # 30 MB
+      # An "apply_extra" script gets automatically executed after "extra-data" are downloaded
+      # during installation. CWD is at /app/extra/.
+      - type: file
+        path: data/apply_extra

@@ -1,6 +1,6 @@
 #!/usr/bin/bash
-# An "apply_extra" script gets automatically executed after "extra-data" are downloaded
-# during installation. CWD is at /app/extra/.
+# An "apply_extra" script gets automatically executed after "extra-data" are downloaded during
+# installation. CWD is at /app/extra/.
 
 # The errexit is the reason why this script is not embeded directly in the app manifest
 set -o errexit -o pipefail
@@ -12,7 +12,15 @@ set -o errexit -o pipefail
 #set -o verbose -o xtrace
 
 tar xf FFS.tar.gz --no-same-owner
-test -d FreeFileSync
+test "$(ls -1 FreeFileSync*.run | wc -l)" -eq 1
+mv FreeFileSync*.run FreeFileSync_Install.run
+7z x -oFFS_Installer_Archive FreeFileSync_Install.run >/dev/null
+test -d FFS_Installer_Archive
+mkdir FreeFileSync
+tar xf FFS_Installer_Archive/FreeFileSync.tar.gz --no-same-owner --directory FreeFileSync
+
+rm -rf FFS_Installer_Archive
+rm FreeFileSync_Install.run
 rm FFS.tar.gz
 
 rm 'FreeFileSync/User Manual.pdf'

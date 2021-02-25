@@ -7,9 +7,12 @@ set -o errexit -o pipefail
 
 # Uncomment this when debugging. Turns out the output is also shown to end-users when installing
 # on a command line, which looks somewhat unprofessional.
-#set -o verbose
+set -o verbose
+set -o xtrace
 
+ls -l
 tar xf FFS.tar.gz
+ls -l
 test -d FreeFileSync
 rm FFS.tar.gz
 

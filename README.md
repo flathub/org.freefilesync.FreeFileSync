@@ -77,4 +77,4 @@ git branch -d REL
 git push -d origin REL
 ```
 
-See the progress and controls for new builds at [Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync).
+See the progress and controls for new builds at [Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync) ([beta branch](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync~2Fbeta)).

@@ -26,8 +26,12 @@ finish-args:
   - --socket=wayland
   - --socket=pulseaudio               # notification sounds
   - --filesystem=host
-  - --filesystem=xdg-run/gvfs         # access gvfs mounts
-  - --talk-name=org.gtk.vfs.*         # access gvfs mounts
+  # access gvfs mounts
+  # https://github.com/flathub/flathub/issues/2180
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=xdg-run/gvfsd
+  - --talk-name=org.gtk.vfs
+  - --talk-name=org.gtk.vfs.*
 
 modules:
   - shared-modules/gtk2/gtk2.json

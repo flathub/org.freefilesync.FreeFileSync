@@ -40,7 +40,7 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 [Please become a co-maintainer](https://github.com/flathub/org.freefilesync.FreeFileSync/issues/11)
 
 The workflow for building a new release `REL` is:
-```
+```sh
 # Create a new git branch REL (e.g. 11.6):
 git checkout -b REL master
 

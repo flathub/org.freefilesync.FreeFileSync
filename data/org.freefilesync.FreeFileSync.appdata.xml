@@ -43,6 +43,11 @@
     <binary>FreeFileSync</binary>
     <binary>RealTimeSync</binary>
   </provides>
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <display_length side="longest" compare="ge">1200</display_length>
+  </recommends>
   <releases>
     <release version="11.14" date="2021-09-20">
       <description>

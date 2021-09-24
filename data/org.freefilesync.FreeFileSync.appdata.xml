@@ -44,6 +44,17 @@
     <binary>RealTimeSync</binary>
   </provides>
   <releases>
+    <release version="11.14" date="2021-09-20">
+      <description>
+        <ul>
+          <li>Authenticate (S)FTP connections using OpenSSL 3.0</li>
+          <li>Fixed E_NOINTERFACE error after synchronization</li>
+          <li>Preempt crashes due to Nahimic Sonic Studio 3</li>
+          <li>Hide main window when minimizing progress window (macOS)</li>
+          <li>Avoid second dock icon when minimizing progress window (macOS)</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.13" date="2021-08-17"/>
     <release version="11.12" date="2021-07-15"/>
     <release version="11.11" date="2021-06-11"/>

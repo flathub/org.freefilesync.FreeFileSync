@@ -49,6 +49,19 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.15" date="2021-12-03">
+      <description>
+        <ul>
+          <li>Play sound reminder when waiting for user confirmation</li>
+          <li>Enhanced crash diagnostics with known triggers</li>
+          <li>Defer reporting third-party incompatibilities until after crashing</li>
+          <li>Support running FreeFileSync from Dokany-based encrypted volumes</li>
+          <li>Fixed Server 2019 not being detected for log file</li>
+          <li>Use native representation for modified config (macOS)</li>
+          <li>Improved WinMerge detection for external app integration</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.14" date="2021-09-20">
       <description>
         <ul>

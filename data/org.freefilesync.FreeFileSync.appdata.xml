@@ -14,9 +14,9 @@
       amount of data needed.
     </p>
     <p>
-      <em>NOTE:</em> Due to technical limitations, FreeFileSync installed from
+      NOTE: Due to technical limitations, FreeFileSync installed from
       a Flatpak can't read configuration files of your other Flatpak
-      applications, commonly stored at <code>~/.var/app/</code>. If you need to
+      applications, commonly stored at ~/.var/app/. If you need to
       process files in that directory, you must use a non-Flatpak installation
       of FreeFileSync (or some other tool).
     </p>

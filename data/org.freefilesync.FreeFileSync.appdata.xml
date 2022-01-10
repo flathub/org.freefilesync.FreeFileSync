@@ -49,6 +49,24 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.16" date="2022-01-02">
+      <description>
+        <ul>
+          <li>Allow to select and remove invalid config file</li>
+          <li>Migrated all HTTPS requests to use libcurl (Linux, macOS)</li>
+          <li>Set keyboard focus on config panel after startup</li>
+          <li>Added computer name to log file trailer</li>
+          <li>Context menu instead of confirmation dialog for swap sides</li>
+          <li>Fixed config selection lost after auto-cleaning obsolete rows</li>
+          <li>Install app files with owner set to root (Linux)</li>
+          <li>Don't override keyboard shortcut "CTRL + W" (macOS)</li>
+          <li>Migrated key conversion routines deprecated in OpenSSL 3.0</li>
+          <li>Boxed app icon to fit OS theme (macOS)</li>
+          <li>Fixed manual retry after automatic update check error</li>
+          <li>Fixed missing ampersands in middle grid tooltip</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.15" date="2021-12-03">
       <description>
         <ul>

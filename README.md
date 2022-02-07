@@ -41,8 +41,9 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 
 The workflow for building a new release `REL` is:
 ```sh
-# Create a new git branch REL (e.g. 11.6):
-git checkout -b REL master
+# Create a new git branch REL (e.g. "11.6", adjust the version):
+REL=11.6
+git switch -c ${REL} master
 
 # Adjust the manifest and appdata
 your-favorite-editor org.freefilesync.FreeFileSync.yml
@@ -63,18 +64,26 @@ flatpak remove org.freefilesync.FreeFileSync//master
 # Commit the changes
 git add -u
 git diff --cached
-git commit
-git push -u origin REL
+git commit -m "upstream release ${REL}"
+git push -u origin ${REL}
 # Submit the pull request now
 
 # After the PR is approved, release it
-git checkout master
-git merge --ff-only REL
+git switch master
+git merge --ff-only ${REL}
 git push
-git tag vREL
+git tag v${REL}
 git push --tags
-git branch -d REL
-git push -d origin REL
+git branch -d ${REL}
+git push -d origin ${REL}
+
+# Update the beta branch as well, in case somebody follows that
+git switch -c betamerge master
+git merge -s ours -m 'make it identical to master' beta
+git switch beta2
+git merge --ff-only betamerge
+git branch -d betamerge
+git push
 ```
 
 See the progress and controls for new builds at [Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync) ([beta branch](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync~2Fbeta)).

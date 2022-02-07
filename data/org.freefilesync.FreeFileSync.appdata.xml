@@ -56,6 +56,19 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.17" date="2022-02-04">
+      <description>
+        <ul>
+          <li>Show per-file progress in percent when copying large files</li>
+          <li>Log app initialization errors</li>
+          <li>Fixed uncaught exception after installation</li>
+          <li>Defer testing for third-party buggy DLLs until after crashing</li>
+          <li>Consider ReFS 128-bit file ID failure states (Windows)</li>
+          <li>Refer to volume by name: support names including brackets</li>
+          <li>Support local installation with non-standard home (Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.16" date="2022-01-02">
       <description>
         <ul>

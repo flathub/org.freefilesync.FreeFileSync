@@ -80,7 +80,7 @@ git push -d origin ${REL}
 # Update the beta branch as well, in case somebody follows that
 git switch -c betamerge master
 git merge -s ours -m 'make it identical to master' beta
-git switch beta2
+git switch beta
 git merge --ff-only betamerge
 git branch -d betamerge
 git push

@@ -41,13 +41,22 @@ flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 
 The workflow for building a new release `REL` is:
 ```sh
-# Create a new git branch REL (e.g. "11.6", adjust the version):
-REL=11.6
-git switch -c ${REL} master
+# Create a new git branch for release REL (e.g. "11.0", adjust the version)
+REL=11.0
+git switch -c release-${REL} master
 
-# Adjust the manifest and appdata
+# Adjust the manifest:
+# 1) In the 'freefilesync' module, update `url`, `sha256` and `size`.
+# 2) For other modules (dependencies), check if there are newer releases available and update them.
 your-favorite-editor org.freefilesync.FreeFileSync.yml
+
+# Update the appdata: Create a new `<release>` tag.
 your-favorite-editor data/org.freefilesync.FreeFileSync.appdata.xml
+
+# Update shared modules
+cd shared-modules
+git pull
+cd ..
 
 # Build and install. The installation part is necessary, because due to extra-data approach (see
 # manifest), the actual FFS binary is downloaded and processed only during installation.
@@ -65,21 +74,20 @@ flatpak remove org.freefilesync.FreeFileSync//master
 git add -u
 git diff --cached
 git commit -m "upstream release ${REL}"
-git push -u origin ${REL}
+git push -u origin release-${REL}
 # Submit the pull request now
 
 # After the PR is approved, release it
 git switch master
-git merge --ff-only ${REL}
-git push
-git tag v${REL}
-git push --tags
-git branch -d ${REL}
-git push -d origin ${REL}
+git merge --ff-only release-${REL}
+git tag -a -m "release ${REL}" v${REL}
+git push --follow-tags
+git branch -d release-${REL}
+git push -d origin release-${REL}
 
 # Update the beta branch as well, in case somebody follows that
 git switch -c betamerge master
-git merge -s ours -m 'make it identical to master' beta
+git merge -s ours -m 'make beta identical to master' beta
 git switch beta
 git merge --ff-only betamerge
 git branch -d betamerge

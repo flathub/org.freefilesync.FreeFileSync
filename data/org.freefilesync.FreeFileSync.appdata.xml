@@ -56,6 +56,19 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.18" date="2022-03-07">
+      <description>
+        <ul>
+          <li>Add comparison time to sync log when using GUI</li>
+          <li>Added user-configurable timeout for Google Drive</li>
+          <li>Consider port when comparing (S)FTP paths for equality</li>
+          <li>Fixed SFTP key file login error on OpenSSH_8.8p1</li>
+          <li>Add error details for NSFileReadUnknownError (macOS)</li>
+          <li>Disable new config button when already at default</li>
+          <li>Use user language instead of region locale during installation</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.17" date="2022-02-04">
       <description>
         <ul>

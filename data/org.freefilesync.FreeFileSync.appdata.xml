@@ -56,6 +56,21 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.19" date="2022-04-16">
+      <description>
+        <ul>
+          <li>Improved performance for huge exclusion filter lists: linear to constant(!) time</li>
+          <li>Support sync with Google Drive starred folders</li>
+          <li>Access "My Computers" (as created by Google Backup and Sync) if starred</li>
+          <li>Western Digital Mycloud NAS: fixed ERROR_ALREADY_EXISTS when changing case</li>
+          <li>Added per-file progress for "copy to" function</li>
+          <li>Have filter wildcard ? not match path separator</li>
+          <li>Work around WBEM_E_INVALID_NAMESPACE error during installation</li>
+          <li>Fixed login user incorrectly displayed as root (macOS)</li>
+          <li>Save Google Drive buffer before system shutdown</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.18" date="2022-03-07">
       <description>
         <ul>

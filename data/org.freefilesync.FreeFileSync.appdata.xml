@@ -56,6 +56,20 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.21" date="2022-05-17">
+      <description>
+        <ul>
+          <li>Support volume GUID as path: \\?\Volume{01234567-89ab-cdef-0123-456789abcdef} (Windows)</li>
+          <li>Avoid Two-Way conflict when changing folder name upper/lower-case</li>
+          <li>List hidden warning messages in options dialog</li>
+          <li>Fixed buffer overflow while receiving SFTP server banner</li>
+          <li>Create crash dumps even if FFS-internal crash handling doesn't kick in</li>
+          <li>Log time when error occured, not when it is reported</li>
+          <li>Swap sides: Require confirmation only after comparison</li>
+          <li>Updated translation files</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.19" date="2022-04-16">
       <description>
         <ul>

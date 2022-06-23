@@ -56,6 +56,19 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.22" date="2022-06-23">
+      <description>
+        <ul>
+          <li>Allow to change default log folder in global settings</li>
+          <li>Fixed sort order when items existing on one side only</li>
+          <li>Consider HOME environment variable for home path (Linux)</li>
+          <li>Fixed config selection using shift and arrow keys</li>
+          <li>Start comparison, then sync by only pressing Enter after startup</li>
+          <li>Fall back to default path when failing to save log file</li>
+          <li>Improved relative config path handling in portable mode</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.21" date="2022-05-17">
       <description>
         <ul>

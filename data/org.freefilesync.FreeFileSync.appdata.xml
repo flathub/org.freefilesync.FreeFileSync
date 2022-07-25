@@ -56,6 +56,21 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.23" date="2022-07-23">
+      <description>
+        <ul>
+          <li>Format local file times with no limits on time span</li>
+          <li>Deferred child item failure when traversing MTP folder</li>
+          <li>Fixed occasional wrong thumbnail orientation for MTP</li>
+          <li>Support additional image formats for MTP preview (e.g. CR2)</li>
+          <li>Fixed folder pair window being squashed after text size increase</li>
+          <li>Fixed wrong folder pair order when loading config (Linux)</li>
+          <li>Fixed some images being stretched on high-DPI monitors</li>
+          <li>Fixed config panel tab text being mirrored in RTL layout</li>
+          <li>Fixed parsing file times one second before Unix epoch (Gdrive, FTP)</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.22" date="2022-06-23">
       <description>
         <ul>

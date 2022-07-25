@@ -85,11 +85,11 @@ modules:
         # https://freefilesync.org/download/FreeFileSync_11.3_Linux.tar.gz
         # A mirror URL example:
         # https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.3_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.22_Linux.tar.gz
-        sha256: a48e8a2f8dad667d0a6657ae8d895a30c8c309b4efcf38fb1c0fb49121862a2f
-        size: 30341380
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.23_Linux.tar.gz
+        sha256: 5a018d575c2c03ea13c2e144956c59165eea09731ba185efd2bb6c9063d43a54
+        size: 30361693
         # just a rough size (extracted), we don't want to update it with each release
-        installed-size: 30000000  # 30 MB
+        installed-size: 40000000  # 40 MB
       # An "apply_extra" script gets automatically executed after "extra-data" are downloaded
       # during installation. CWD is at /app/extra/.
       - type: file

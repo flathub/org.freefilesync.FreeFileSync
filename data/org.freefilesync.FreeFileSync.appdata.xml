@@ -56,6 +56,32 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.25" date="2022-08-31">
+      <description>
+        <ul>
+          <li>Fixed crash when normalizing Unicode non-characters</li>
+          <li>Fixed crash when accesssing Google Drive</li>
+          <li>Fixed regession for decomposed Unicode comparison</li>
+          <li>Fixed "exit code 106: --sign is required" error on macOS</li>
+          <li>Reset icon cache after each comparison </li>
+        </ul>
+      </description>
+    </release>
+    <release version="11.24" date="2022-08-28">
+      <description>
+        <ul>
+          <li>Enhanced filter syntax to match files only (append ':')</li>
+          <li>Fixed "Some files will be synchronized as part of multiple base folders": no more false-positives</li>
+          <li>Detect full path filter items and convert to relative path</li>
+          <li>Auto-detect FTP server character encoding (UTF8 or ANSI)</li>
+          <li>Cancel grid selection via Escape key or second mouse button</li>
+          <li>Apply conflict preview limit accross all folder pairs</li>
+          <li>Require config type and file extension to match</li>
+          <li>Fixed view filter panel vertical layout</li>
+          <li>Strict validation of UTF encoding </li>
+        </ul>
+      </description>
+    </release>
     <release version="11.23" date="2022-07-23">
       <description>
         <ul>

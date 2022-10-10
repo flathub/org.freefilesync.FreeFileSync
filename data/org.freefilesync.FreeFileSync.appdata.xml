@@ -56,6 +56,22 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.26" date="2022-10-06">
+      <description>
+        <ul>
+          <li>Faster file copy for SSD-based hard drives (Linux, macOS)</li>
+          <li>Don't fill the OS file cache during file copy (macOS)</li>
+          <li>Removed redundant memory buffering during file copy</li>
+          <li>Fixed ERROR_FILE_EXISTS on Samba share when copying files with NTFS extended attributes</li>
+          <li>Show warning when recycle bin is not available (macOS, Linux)</li>
+          <li>Customize config item background colors</li>
+          <li>Fixed macOS menu bar not showing after app start</li>
+          <li>Fixed normalizing strings with broken UTF encoding</li>
+          <li>Fixed sound playback not working (Linux)</li>
+          <li>Don't allow creating file names ending with dot character (Windows)</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.25" date="2022-08-31">
       <description>
         <ul>

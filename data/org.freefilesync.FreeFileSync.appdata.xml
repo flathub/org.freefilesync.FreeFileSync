@@ -56,6 +56,20 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.27" date="2022-10-17">
+      <description>
+        <ul>
+          <li>Fixed "Some files will be synchronized as part of multiple base folders" false-negative</li>
+          <li>Fixed "Unexpected size of data stream" for Google Drive</li>
+          <li>Fixed crash when downloading empty file from Google Drive</li>
+          <li>RealTimeSync: fixed ffs_batch not accepted as valid configuration</li>
+          <li>Fixed top buttons vertical GUI layout</li>
+          <li>Fixed progress dialog font on Ubuntu MATE</li>
+          <li>Support cut/copy/paste for filter settings</li>
+          <li>Fixed free disk space calculation if target folder not yet created</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.26" date="2022-10-06">
       <description>
         <ul>

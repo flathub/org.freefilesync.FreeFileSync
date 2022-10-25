@@ -82,9 +82,9 @@ modules:
         # https://freefilesync.org/download/FreeFileSync_11.3_Linux.tar.gz
         # A mirror URL example:
         # https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.3_Linux.tar.gz
-        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.26_Linux.tar.gz
-        sha256: a6f36f2d8f7e68484db72b92f9d987a5f71647b6e7d51160b0082529e13c1486
-        size: 30705469
+        url: https://kparal.fedorapeople.org/mirror/freefilesync/FreeFileSync_11.27_Linux.tar.gz
+        sha256: 2417da9c5938996e0c791715ce99a762e6a5ce8c1a4237d40d9af28c99f0196b
+        size: 30723456
         # just a rough size (extracted), we don't want to update it with each release
         installed-size: 40000000  # 40 MB
       # An "apply_extra" script gets automatically executed after "extra-data" are downloaded

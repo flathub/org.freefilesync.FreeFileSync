@@ -35,15 +35,25 @@ or
 flatpak run --command=RealTimeSync org.freefilesync.FreeFileSync
 ```
 
-## Maintaining this repository
+## Get involved
 
-[Please become a co-maintainer](https://github.com/flathub/org.freefilesync.FreeFileSync/issues/11)
+* Run FreeFileSync from the [beta branch](https://discourse.flathub.org/t/how-to-use-flathub-beta/2111) and report issues. Installation instructions:
+  ```
+  flatpak remove org.freefilesync.FreeFileSync//stable
+  flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
+  flatpak install flathub-beta org.freefilesync.FreeFileSync//beta
+  ```
+  It's best to subscribe to new Pull Request notifications through GitHub, so that you are aware when the `beta` branch gets updated with a new FFS release.
+* [Please become a co-maintainer](https://github.com/flathub/org.freefilesync.FreeFileSync/issues/11) of this repository. Create PRs for new FFS releases (see the instructions below), solve reported issues.
+
+
+## Maintaining this repository
 
 The workflow for building a new release `REL` is:
 ```sh
 # Create a new git branch for release REL (e.g. "11.0", adjust the version)
 REL=11.0
-git switch -c release-${REL} master
+git switch -c release-${REL} beta
 
 # Adjust the manifest:
 # 1) In the 'freefilesync' module, update `url`, `sha256` and `size`.
@@ -75,23 +85,25 @@ git add -u
 git diff --cached
 git commit -m "upstream release ${REL}"
 git push -u origin release-${REL}
-# Submit the pull request now
+# Submit the pull request now (against the beta branch) through GitHub
 
-# After the PR is approved, release it
-git switch master
+# After the PR is approved, merge it into the beta branch
+git switch beta
 git merge --ff-only release-${REL}
+git push
+
+# If there are no issues with beta, update the master branch
+# Create a new PR through GitHub:
+# https://github.com/flathub/org.freefilesync.FreeFileSync/compare/master...beta
+# After it is approved:
+git switch master
+git merge --ff-only beta
 git tag -a -m "release ${REL}" v${REL}
 git push --follow-tags
+
+# Remove old branches
 git branch -d release-${REL}
 git push -d origin release-${REL}
-
-# Update the beta branch as well, in case somebody follows that
-git switch -c betamerge master
-git merge -s ours -m 'make beta identical to master' beta
-git switch beta
-git merge --ff-only betamerge
-git branch -d betamerge
-git push
 ```
 
 See the progress and controls for new builds at [Flathub buildbot](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync) ([beta branch](https://flathub.org/builds/#/apps/org.freefilesync.FreeFileSync~2Fbeta)).

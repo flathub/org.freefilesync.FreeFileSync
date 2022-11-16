@@ -64,6 +64,19 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.28" date="2022-11-16">
+      <description>
+        <ul>
+          <li>Recover from corrupted database file</li>
+          <li>Save database files pair-wise as a transaction</li>
+          <li>Fixed FTP access for Xiaomi "File Manager"</li>
+          <li>Fixed filter full path detection for root directory (Linux/macOS)</li>
+          <li>Fixed recycle bin double initialization bug (Windows)</li>
+          <li>Fixed incorrect case-insensitive string comparison for i and ı</li>
+          <li>Round progress percentage numbers down</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.27" date="2022-10-17">
       <description>
         <ul>

@@ -64,6 +64,23 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="11.29" date="2022-12-16">
+      <description>
+        <ul>
+            <li>Fixed crash after 1-byte file copy from MTP device</li>
+            <li>Fixed incorrect installer z-order during auto-update (macOS)</li>
+            <li>Compress copied file only if target folder is marked as NTFS-compressed (Windows)</li>
+            <li>Show install errors without requiring access to "System Events" (macOS)</li>
+            <li>Fall back to creation time if modification time is missing on MTP device</li>
+            <li>Copy/paste filter config via operating system clipboard</li>
+            <li>Show FreeFileSync startup error message when called from RealTimeSync</li>
+            <li>Avoid server round trip when preparing summary email</li>
+            <li>Show path conflict warning aggregated into groups</li>
+            <li>Don't assume path conflict if single write and multiple ignored items</li>
+            <li>Fixed CTRL + Insert clipboard copy for some text controls (Windows, Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="11.28" date="2022-11-16">
       <description>
         <ul>

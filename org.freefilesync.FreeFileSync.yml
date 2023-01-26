@@ -77,7 +77,9 @@ modules:
       - type: extra-data
         # this ends up stored in /app/extra/
         filename: FFS.tar.gz
-        url: https://freefilesync.org/download/FreeFileSync_12.0_Linux.tar.gz
+        # The upstream server randomly fails to serve the archive (see #97 and #98), we need to use
+        # a mirror.
+        url: https://github.com/flathub/org.freefilesync.FreeFileSync/releases/download/reupload-12.0/FreeFileSync_12.0_Linux.tar.gz
         sha256: 90630cc8c77d39af8e7746ce664738f9590ea7586454c90a66ad09248c41eb4f
         size: 30809464
         # just a rough size (extracted), we don't want to update it with each release

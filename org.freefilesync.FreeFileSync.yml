@@ -41,7 +41,7 @@ modules:
       - type: git
         url: https://github.com/p7zip-project/p7zip
         tag: v17.05
-        commit: d5fa760eee206064ad037b177e1182eb86841094
+        commit: a45b8830cafda25e76d7120b0462daa82c382a7a
       - type: shell
         commands:
           - sed -i 's|/usr/local|/app|g' makefile.common

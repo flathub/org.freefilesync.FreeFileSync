@@ -21,8 +21,7 @@ cleanup:
 
 finish-args:
   - --share=network
-  - --socket=wayland
-  - --socket=fallback-x11
+  - --socket=x11
   - --share=ipc                       # X11 needs this
   - --socket=pulseaudio               # notification sounds
   - --filesystem=host
@@ -33,6 +32,8 @@ finish-args:
   - --talk-name=org.gtk.vfs.*
 
 modules:
+  - shared-modules/gtk2/gtk2.json
+
   - name: p7zip
     no-autogen: true
     make-args:
@@ -79,9 +80,9 @@ modules:
         filename: FFS.tar.gz
         # The upstream server randomly fails to serve the archive (see #97 and #98), we need to use
         # a mirror.
-        url: https://github.com/flathub/org.freefilesync.FreeFileSync/releases/download/reupload-12.1/FreeFileSync_12.1_Linux.tar.gz
-        sha256: 8a19e3f32c62fba8fd023be36f1cd75d95315a623ac543da1b973f6ef1c96efc
-        size: 30893781
+        url: https://github.com/flathub/org.freefilesync.FreeFileSync/releases/download/reupload-12.1-1/FreeFileSync_12.1_Linux.tar.gz
+        sha256: c38a80469c1d91a3655bbd326d9fe58caac42e6ca8b0f9216f180dfaf941c5fe
+        size: 30899297
         # just a rough size (extracted), we don't want to update it with each release
         installed-size: 40000000  # 40 MB
       # An "apply_extra" script gets automatically executed after "extra-data" are downloaded

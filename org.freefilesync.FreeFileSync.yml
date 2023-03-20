@@ -30,6 +30,9 @@ finish-args:
   - --filesystem=xdg-run/gvfs
   - --filesystem=xdg-run/gvfsd
   - --talk-name=org.gtk.vfs.*
+  # access ~/.var/app for backup purposes
+  # https://github.com/flathub/org.freefilesync.FreeFileSync/issues/47
+  - --filesystem=~/.var/app
 
 modules:
   - shared-modules/gtk2/gtk2.json

@@ -57,6 +57,20 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="12.2" date="2023-04-03">
+      <description>
+        <ul>
+            <li>Fixed temporary access error when creating multiple folders in parallel</li>
+            <li>Log failure to copy folder attributes as warning only</li>
+            <li>Enable UTF-8, even if FTP server does not advertize in FEAT (vsftpd)</li>
+            <li>Fixed drag and drop for non-ASCII folders (macOS)</li>
+            <li>Explicitly detect MTP path without existence check</li>
+            <li>Fixed crash when parsing SFTP package from stream</li>
+            <li>Revert back to GTK2 build due to GTK3 hangs on KDE (Linux)</li>
+            <li>Fixed missing COM initialization for MTP path parsing</li>
+        </ul>
+      </description>
+    </release>
     <release version="12.1" date="2023-02-20">
       <description>
         <ul>

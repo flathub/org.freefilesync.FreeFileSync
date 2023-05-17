@@ -57,6 +57,22 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="12.3" date="2023-05-17">
+      <description>
+        <ul>
+            <li>Add custom notes to sync configurations</li>
+            <li>Highlight comparison and sync buttons</li>
+            <li>Show sync stats in config panel tool tip</li>
+            <li>Update config panel sync info even if cancelled</li>
+            <li>Support FTP listing format missing owner/group</li>
+            <li>Fixed "Class not registered" error during installation</li>
+            <li>Propagate process priority of launcher executable</li>
+            <li>Fixed config panel metadata being reset after renaming</li>
+            <li>Fixed config panel keyboard cursor after deletion/rename</li>
+            <li>Improved small icon resolution for high-DPI monitors</li>
+        </ul>
+      </description>
+    </release>
     <release version="12.2" date="2023-04-03">
       <description>
         <ul>

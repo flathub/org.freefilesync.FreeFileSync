@@ -60,6 +60,22 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="12.5" date="2023-07-21">
+      <description>
+        <ul>
+          <li>Merge logs of individual steps (comparison, manual operation, sync)</li>
+          <li>Show total percentage in progress dialog header</li>
+          <li>Log and report errors during cleanup or exception handling</li>
+          <li>Skip folder traversal if existence check fails for other side of the pair</li>
+          <li>Automatically adapt batch options to prevent hanging a non-interactive process (Windows)</li>
+          <li>Support path lists for external applications: %item_paths%, %local_paths%, %item_names%, %parent_paths%</li>
+          <li>Create directory lock files with hidden attribute</li>
+          <li>Don't clear other side when right-clicking file selection</li>
+          <li>Fixed passive FTP when using different IP than control connection</li>
+          <li>Work around FTP servers silently renaming unsupported characters of temporary file</li>
+        </ul>
+      </description>
+    </release>
     <release version="12.4" date="2023-06-20">
       <description>
         <ul>

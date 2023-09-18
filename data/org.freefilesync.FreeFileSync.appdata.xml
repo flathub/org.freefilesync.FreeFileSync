@@ -60,6 +60,21 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.0" date="2023-09-10">
+      <description>
+        <ul>
+          <li>Rename (multiple) files manually (F2 key)</li>
+          <li>Configure individual directions for DB-based sync</li>
+          <li>Detect moved files with "Update" sync variant (requires sync.ffs_db files)</li>
+          <li>Update variant: Do not restore files that were deleted on target</li>
+          <li>Distinguish file renames from file moves and simplify grid display</li>
+          <li>Fixed ERROR_NOT_SUPPORTED when copying files with NTFS extended attributes</li>
+          <li>Fixed error during process initialization while connecting with quick launch</li>
+          <li>Avoid redundant file reopen when setting file times during copy</li>
+          <li>Set working directory to match FFS configuration file when double-clicking (Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="12.5" date="2023-07-21">
       <description>
         <ul>

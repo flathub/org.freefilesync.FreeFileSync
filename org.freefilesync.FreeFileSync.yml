@@ -1,7 +1,7 @@
 app-id: org.freefilesync.FreeFileSync
 
 runtime: org.gnome.Platform
-runtime-version: '43'
+runtime-version: '45'
 sdk: org.gnome.Sdk
 command: FreeFileSync
 

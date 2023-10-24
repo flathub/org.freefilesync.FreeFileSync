@@ -60,6 +60,17 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.1" date="2023-10-23">
+      <description>
+        <ul>
+          <li>Keep comparison results when only changing cloud connection settings</li>
+          <li>Sync button: indicate if database will be used</li>
+          <li>Remove leading/trailing space during manual file rename</li>
+          <li>Set environment variable "DISPLAY=:0" if missing (Linux)</li>
+          <li>Support dropping ffs_gui/ffs_real config on RealTimeSync directory input field</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.0" date="2023-09-10">
       <description>
         <ul>

@@ -60,6 +60,18 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.3" date="2024-01-07">
+      <description>
+        <ul>
+          <li>Completed CASA security assessment for Google Drive</li>
+          <li>Use system temp folder for auto-updating</li>
+          <li>Ignore errors when setting directory attributes is unsupported</li>
+          <li>Save GUI sync log file even when cancelled</li>
+          <li>Fixed Business Edition install over existing installation</li>
+          <li>Updated code signing certificates (Windows)</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.2" date="2023-11-23">
       <description>
         <ul>

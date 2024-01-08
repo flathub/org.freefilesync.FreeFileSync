@@ -53,7 +53,8 @@ The workflow for building a new release `REL` is:
 ```sh
 # Create a new git branch for release REL (e.g. "11.0", adjust the version)
 REL=11.0
-git switch -c release-${REL} beta
+git fetch
+git switch -c release-${REL} origin/beta
 
 # Adjust the manifest:
 # 1) In the 'freefilesync' module, update `url`, `sha256` and `size`.

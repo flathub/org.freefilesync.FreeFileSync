@@ -9,24 +9,13 @@
     <name>Zenju</name>
   </developer>
   <description>
-    <p>
-      FreeFileSync is a folder comparison and synchronization software that
-      creates and manages backup copies of your important files. Instead of
-      copying every file every time, FreeFileSync determines the differences
-      between a source and a target folder and transfers only the minimum
-      amount of data needed.
-    </p>
-    <p>
-      NOTE: FreeFileSync allows you to open files in external applications or
-      run custom scripts. However, when sandboxed as Flatpak, external
-      applications or scripts from your host system are not accessible. If you
-      want to give FreeFileSync access to your host applications/commands, run
-      "flatpak override --user --socket=session-bus org.freefilesync.FreeFileSync"
-      in terminal to give it access to your session DBus (or you can use
-      Flatseal to configure app permissions). Now you can run any app/command,
-      if you prefix it with "flatpak-spawn --host", i.e.
-      "flatpak-spawn --host mycommand arguments".
-    </p>
+    <p>FreeFileSync is a folder comparison and synchronization software that creates and manages backup copies of your important files. Instead of copying every file every time, FreeFileSync determines the differences between a source and a target folder and transfers only the minimum amount of data needed.</p>
+    <p><em>NOTE:</em>
+FreeFileSync allows you to open files in external applications or run custom scripts. However, when sandboxed as Flatpak, external applications or scripts from your host system are not accessible. If you want to give FreeFileSync access to your host applications/commands, run this command in terminal to give it access to your session DBus:
+<code>flatpak override --user --socket=session-bus org.freefilesync.FreeFileSync</code>
+(Or you can use Flatseal to configure this permission).
+Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --host</code>", i.e.:
+<code>flatpak-spawn --host mycommand arguments</code></p>
   </description>
   <url type="homepage">https://freefilesync.org</url>
   <url type="bugtracker">https://freefilesync.org/forum/</url>

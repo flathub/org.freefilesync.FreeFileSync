@@ -60,6 +60,17 @@
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.4" date="2024-02-16">
+      <description>
+        <ul>
+          <li>Ignore leading/trailing space when matching file names</li>
+          <li>Work around wxWidgets system logger clearing error code</li>
+          <li>Fixed registration info not found after App Translocation (macOS)</li>
+          <li>Avoid modal dialog hang on KDE when compiling with GTK3</li>
+          <li>Change app location without losing Donation Edition status (macOS)</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.3" date="2024-01-07">
       <description>
         <ul>

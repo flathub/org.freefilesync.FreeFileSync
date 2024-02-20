@@ -5,6 +5,9 @@
   <project_license>GPL-3.0</project_license>
   <name>FreeFileSync</name>
   <summary>Visual folder comparison and synchronization</summary>
+  <developer id="freefilesync.org">
+    <name>Zenju</name>
+  </developer>
   <description>
     <p>
       FreeFileSync is a folder comparison and synchronization software that

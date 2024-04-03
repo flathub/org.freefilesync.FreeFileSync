@@ -52,6 +52,17 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.5" date="2024-04-01">
+      <description>
+        <ul>
+          <li>Wrap file grid folder paths instead of truncate</li>
+          <li>Fixed sync operation arrows for RTL layout</li>
+          <li>Fixed FTP hang during connection (libcurl regression)</li>
+          <li>Consider user-defined file time tolerance for DB comparisons</li>
+          <li>Don't log folder pair paths if nothing to sync</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.4" date="2024-02-16">
       <description>
         <ul>

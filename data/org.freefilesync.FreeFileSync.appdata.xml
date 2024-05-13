@@ -52,6 +52,18 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.6" date="2024-05-10">
+      <description>
+        <ul>
+          <li>Compact parent path display for medium/large row sizes</li>
+          <li>Fixed crash when mouse inputs are queued due to system lag</li>
+          <li>Don't steal focus from other app when sync progress dialog is shown</li>
+          <li>Fix crackling sound at the beginning of WAV playback (Linux)</li>
+          <li>Prevent middle grid tooltip from covering sync direction</li>
+          <li>Disable Nagle algorithm for SFTP connections</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.5" date="2024-04-01">
       <description>
         <ul>

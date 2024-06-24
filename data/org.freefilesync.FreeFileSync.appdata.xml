@@ -52,6 +52,16 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.7" date="2024-06-23">
+      <description>
+        <ul>
+          <li>Support copying symlinks between SFTP devices</li>
+          <li>Fixed input focus not being restored after comparison/sync</li>
+          <li>Fixed log file pruning not considering selected configuration</li>
+          <li>Show startup error details when running outside terminal (Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.6" date="2024-05-10">
       <description>
         <ul>

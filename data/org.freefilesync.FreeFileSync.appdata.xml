@@ -52,6 +52,17 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.8" date="2024-11-04">
+      <description>
+        <ul>
+          <li>Support raw IPv6 server address for (S)FTP</li>
+          <li>RealTimeSync: Fixed scrollbar when adding/removing folders</li>
+          <li>Don't set sync direction for partial folder pairs</li>
+          <li>Uniquely identify partial folder pairs in error message</li>
+          <li>Fixed network login prompt not showing in Windows 11 24H2</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.7" date="2024-06-23">
       <description>
         <ul>

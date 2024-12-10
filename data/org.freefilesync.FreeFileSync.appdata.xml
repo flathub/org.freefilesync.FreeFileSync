@@ -52,6 +52,18 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="13.9" date="2024-12-07">
+      <description>
+        <ul>
+          <li>Fixed CURLE_SEND_ERROR: OpenSSL SSL_write: SSL_ERROR_SYSCALL, errno 0</li>
+          <li>Added comparison and sync context menu options for multiple folder pairs</li>
+          <li>Show file include/exclude filter directly in tooltip</li>
+          <li>Fixed file not found error when cancelling file up-/download</li>
+          <li>Fixed showing cancelled config log status after nothing to sync</li>
+          <li>Updated translation files</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.8" date="2024-11-04">
       <description>
         <ul>

@@ -52,6 +52,23 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.0" date="2025-01-17">
+      <description>
+        <ul>
+          <li>Dark mode support (Windows 10 20H1, macOS 10.14 (Mojave), Linux)</li>
+          <li>Fixed dock icon progress percentage divergence (macOS)</li>
+          <li>Prevent "App Napp during comparison/synchronization (macOS)</li>
+          <li>Enhance EINVAL error message for unsupported characters</li>
+          <li>Support running with background priority (Linux)</li>
+          <li>Fixed installer access denied when creating shell links (Windows)</li>
+          <li>Improved size and date formatting for file listing (macOS)</li>
+          <li>Improved context menu customization grid</li>
+          <li>Reduced peak memory consumption by 12%</li>
+          <li>Automatically set appropriate text color for config panel background</li>
+          <li>Revived and updated Italian translation</li>
+        </ul>
+      </description>
+    </release>
     <release version="13.9" date="2024-12-07">
       <description>
         <ul>

@@ -52,6 +52,29 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.2" date="2025-02-20">
+      <description>
+        <ul>
+          <li>Fixed crash when closing progress dialog after sync (Windows)</li>
+        </ul>
+      </description>
+    </release>
+    <release version="14.1" date="2025-02-19">
+      <description>
+        <ul>
+          <li>Further dark mode improvements</li>
+          <li>Fixed blurry icons due to image resizing glitch</li>
+          <li>Fixed RealTimeSync process not exiting while in taskbar (Linux)</li>
+          <li>Improved file icon loading performance</li>
+          <li>Improved extension handling for multi-file renaming</li>
+          <li>Mitigate icon size rendering bug for notification emails</li>
+          <li>Close popup dialogs using Ctrl+Enter while ignoring keyboard focus</li>
+          <li>Resume from system tray via single mouse click</li>
+          <li>Avoid white flash when resuming progress dialog from system tray (Windows)</li>
+          <li>Increased progress indicator UI update frequency</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.0" date="2025-01-17">
       <description>
         <ul>

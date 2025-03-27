@@ -52,6 +52,18 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.3" date="2025-03-27">
+      <description>
+        <ul>
+          <li>Support internationalized domain names (IDN) for (S)FTP and email</li>
+          <li>Log performance statistics for file content comparison</li>
+          <li>Support installation using Ptyxis terminal (Linux)</li>
+          <li>Support pausing countdown towards system shutdown</li>
+          <li>Support KDE Plasma 6 service menu (Linux)</li>
+          <li>Fixed crash on app exit when called by Cron (Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.2" date="2025-02-20">
       <description>
         <ul>

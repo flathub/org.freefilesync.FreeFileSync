@@ -52,6 +52,14 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.4" date="2025-07-26">
+      <description>
+        <ul>
+          <li>Fixed FTP login error "dh key too small"</li>
+          <li>Updated all 3rd party libraries to latest versions</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.3" date="2025-03-27">
       <description>
         <ul>

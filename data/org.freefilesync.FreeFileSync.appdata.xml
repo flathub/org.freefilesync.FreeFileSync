@@ -52,6 +52,17 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.5" date="2025-10-03">
+      <description>
+        <ul>
+            <li>Quotation not needed anymore for external application macros</li>
+            <li>Unambiguous license key file extension</li>
+            <li>Fixed crash when resizing config panel during comparison</li>
+            <li>Fixed log file viewing when config name contains special characters</li>
+            <li>Dedicated installer for x86_64-only operating system (Linux)</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.4" date="2025-07-26">
       <description>
         <ul>

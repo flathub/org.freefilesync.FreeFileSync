@@ -52,6 +52,20 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.6" date="2025-12-02">
+      <description>
+        <ul>
+            <li>Write sync statistics to stdout as JSON for .ffs_batch</li>
+            <li>Removed precompiled 32-bit bundle (Linux)</li>
+            <li>Avoid redundant window centering before finishing layout</li>
+            <li>GTK3-based build (Linux)</li>
+            <li>Dark mode support with GTK3 (Linux)</li>
+            <li>Stream errors to stderr instead of stdout (Linux)</li>
+            <li>Installer supports dark mode (Windows)</li>
+            <li>Added "New Window" dock menu item (macOS)</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.5" date="2025-10-03">
       <description>
         <ul>

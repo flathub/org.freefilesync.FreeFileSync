@@ -81,9 +81,9 @@ modules:
         filename: FFS.tar.gz
         # The upstream server randomly fails to serve the archive (see #97 and #98), we need to use
         # a mirror.
-        url: https://github.com/flathub/org.freefilesync.FreeFileSync/releases/download/reupload-14.6/FreeFileSync_14.6_Linux_x86_64.tar.gz
-        sha256: 3decf12a217f0e6b31197603fe1c12256d37eabf2c251a9ba316553cc52fc08b
-        size: 18357476
+        url: https://github.com/flathub/org.freefilesync.FreeFileSync/releases/download/reupload-14.7/FreeFileSync_14.7_Linux_x86_64.tar.gz
+        sha256: b17eb4e53dff3ebdd3947f398cfbdae1ede50fbdbbb14fb935c7fe536ea5a1ce
+        size: 18764009
         # just a rough size (extracted), we don't want to update it with each release
         installed-size: 40000000  # 40 MB
       # An "apply_extra" script gets automatically executed after "extra-data" are downloaded

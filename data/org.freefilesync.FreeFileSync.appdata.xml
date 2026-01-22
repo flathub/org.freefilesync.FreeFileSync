@@ -52,6 +52,20 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.7" date="2026-01-21">
+      <description>
+        <ul>
+            <li>Shorter lock file abandonment timeout</li>
+            <li>Highlight to be created items on file grid</li>
+            <li>Fixed file grid selection background</li>
+            <li>Support running on Windows 10 PE (Portable Edition)</li>
+            <li>Show host name in device listing (Donation Edition)</li>
+            <li>Fixed dump file creation when worker threads crash (Windows)</li>
+            <li>Fixed whitespace glitches in PDF manual</li>
+            <li>Consider Windows Subsystem for Linux as VM</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.6" date="2025-12-02">
       <description>
         <ul>

@@ -64,11 +64,6 @@ your-favorite-editor org.freefilesync.FreeFileSync.yml
 # Update the appdata: Create a new `<release>` tag.
 your-favorite-editor data/org.freefilesync.FreeFileSync.appdata.xml
 
-# Update shared modules
-cd shared-modules
-git pull
-cd ..
-
 # Build and install. The installation part is necessary, because due to extra-data approach (see
 # manifest), the actual FFS binary is downloaded and processed only during installation.
 flatpak-builder builddir org.freefilesync.FreeFileSync.yml --force-clean --ccache --install --user

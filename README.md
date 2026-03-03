@@ -97,7 +97,7 @@ git merge --ff-only beta
 git tag -a -m "release ${REL}" v${REL}
 git push --follow-tags
 
-# Remove old branches
+# Remove old branches (the remote one might be deleted automatically already)
 git branch -d release-${REL}
 git push -d origin release-${REL}
 ```

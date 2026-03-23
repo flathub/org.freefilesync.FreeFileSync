@@ -1,7 +1,7 @@
 app-id: org.freefilesync.FreeFileSync
 
 runtime: org.gnome.Platform
-runtime-version: '48'
+runtime-version: '50'
 sdk: org.gnome.Sdk
 command: FreeFileSync
 
@@ -10,14 +10,8 @@ build-options:
   cxxflags: -O2 -g
 
 cleanup:
-  - /include
-  - /lib/cmake
-  - /lib/pkgconfig
   - /man
   - /share/doc
-  - /share/man
-  - '*.la'
-  - '*.a'
 
 finish-args:
   - --share=network

@@ -52,6 +52,20 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.9" date="2026-03-29">
+      <description>
+        <ul>
+          <li>Support 200% display scaling for high-DPI monitors (Linux)</li>
+          <li>Trimmed text-to-image bounding box</li>
+          <li>Improved center grid tooltip (macOS, Linux)</li>
+          <li>Work around "getcwd() failed" for console execute (Linux)</li>
+          <li>Fixed calculating main window size and position on exit</li>
+          <li>Fixed multi-folder-pair horizontal sizing glitch</li>
+          <li>Fixed Donation Edition incorrect activation count (Linux)</li>
+          <li>Fixed error during log file cleanup when running multiple FFS instances</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.8" date="2026-02-22">
       <description>
         <ul>

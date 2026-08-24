@@ -52,6 +52,18 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.11" date="2026-08-10">
+      <description>
+        <ul>
+          <li>Fixed "TLS session resumption required" FTP error</li>
+          <li>Log file time errors as "info" after comparing by file content</li>
+          <li>Fixed tooltip not being updated during mouse scrolling (macOS, Linux)</li>
+          <li>Fixed sluggy mouse scrolling during mouse movement (Linux)</li>
+          <li>Skip ADS when failing to copy to ReFS (Windows)</li>
+          <li>Updated translation files</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.10" date="2026-06-28">
       <description>
         <ul>

@@ -52,6 +52,17 @@ Now you can run any app/command, if you prefix it with "<code>flatpak-spawn --ho
     <display_length side="longest" compare="ge">1200</display_length>
   </recommends>
   <releases>
+    <release version="14.13" date="2026-10-26">
+      <description>
+        <ul>
+          <li>Reduced window flickering during resize (Windows 10)</li>
+          <li>Prevent process termination on broken pipe errors (Linux/macOS)</li>
+          <li>Work around SMB driver dropping modification time (macOS)</li>
+          <li>Fixed privilege drop after auto-update (Linux)</li>
+          <li>Correctly save minimum folder pair list height (Linux, macOS)</li>
+        </ul>
+      </description>
+    </release>
     <release version="14.12" date="2026-09-09">
       <description>
         <ul>
